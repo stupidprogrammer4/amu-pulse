@@ -31,6 +31,7 @@ class SourceCode(StrEnum):
     NAVASAN = "navasan"
     NERKH_API = "nerkh_api"
     TGJU = "tgju"
+    WALLEX = "wallex"
 
     # --- global_market: XAU spot ---
     COMMODITY_PRICE_API = "commodity_price_api"
