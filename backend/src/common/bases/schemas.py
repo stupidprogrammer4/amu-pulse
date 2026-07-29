@@ -20,7 +20,9 @@ class ExtraField(Generic[T]):
     def __set__(self, instance: object, value: T) -> None:
         instance.__dict__[self._name] = value
 
-    def __get__(self, instance: object | None, owner: type | None = None) -> T | None:
+    def __get__(
+        self, instance: object | None, owner: type | None = None
+    ) -> T | None:
         if instance is None:
             return None
         return instance.__dict__.get(self._name)
@@ -37,7 +39,9 @@ class HookField(Generic[I, T]):
     def __set__(self, instance: object, value: I) -> None:
         instance.__dict__[self._name] = self.hook(value)
 
-    def __get__(self, instance: object | None, owner: type | None = None) -> T | None:
+    def __get__(
+        self, instance: object | None, owner: type | None = None
+    ) -> T | None:
         if instance is None:
             return None
         return instance.__dict__.get(self._name)
@@ -47,8 +51,12 @@ class BaseOutput(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_obj(cls, model: Any, extra: dict[str, BaseModel] | None = None) -> Self:
-        return cls.model_validate(model, context={"extra": extra} if extra else None)
+    def from_obj(
+        cls, model: Any, extra: dict[str, BaseModel] | None = None
+    ) -> Self:
+        return cls.model_validate(
+            model, context={"extra": extra} if extra else None
+        )
 
     @classmethod
     def from_objs(cls, models: Sequence[Any]) -> list[Self]:
@@ -76,21 +84,13 @@ class BaseOutput(BaseModel):
 
 
 class BaseIDOutput(BaseOutput):
-    # the id stays internal in memory; only the wire output is encoded, so a
-    # re-validation (FastAPI's response_model pass) never double-encodes it
+    # only the wire output is encoded, so re-validation cannot double it
     __encryption__: ClassVar[IDEncryption | None] = None
 
     id: int
 
     @field_serializer("id")
     def _encode_id(self, id: int) -> int:
-        """
-        Desc: Encode the internal id into the public one on serialization.
-        Args:
-            id (int): The internal id.
-        Returns:
-            return (int): The public id, or the id itself when unencrypted.
-        """
         encryption = type(self).__encryption__
         result = id
         if encryption is not None:

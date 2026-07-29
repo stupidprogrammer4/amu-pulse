@@ -13,12 +13,10 @@ BUBBLE_ID_ENCRYPTION = IDEncryption(
     offset=300_000_000,
 )
 
-# a foreign key to a bubble, encoded with the bubble's own encryption
-# wherever it appears in another module's output
+# a foreign key to a bubble, encoded wherever another module returns it
 BubbleIDField = Annotated[
     int, PlainSerializer(BUBBLE_ID_ENCRYPTION.encode, return_type=int)
 ]
 
-# the input side: a client sends the public bubble id, decoded back to the
-# internal one when a DTO parses it (raises 422 on a malformed id)
+# the input side: a public id a DTO decodes back, 422 on a malformed one
 BubbleIDInput = Annotated[int, AfterValidator(BUBBLE_ID_ENCRYPTION.decode)]

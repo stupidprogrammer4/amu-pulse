@@ -1,10 +1,3 @@
-"""Shared Elasticsearch analyzers.
-
-Assign these to `Text` fields (``Text(analyzer=persian_analyzer)``);
-`elasticsearch.dsl` collects their definitions into the index settings on
-``Document.init()`` — no manual registration needed.
-"""
-
 from elasticsearch.dsl import analyzer, char_filter, token_filter
 
 _persian_zwnj = char_filter(

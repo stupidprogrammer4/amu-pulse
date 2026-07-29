@@ -36,26 +36,12 @@ ASSETS: list[AssetSeed] = [
 
 
 def _service(uow: PGUnitOfWork) -> AssetService:
-    """
-    Desc: Build the asset service over the unit of work.
-    Args:
-        uow (PGUnitOfWork): Unit of work the service writes through.
-    Returns:
-        return (AssetService): The assembled service.
-    """
     configs = AssetConfigService(AssetConfigRepository(uow))
     service = AssetService(AssetRepository(uow), configs)
     return service
 
 
 async def seed_assets(uow: PGUnitOfWork) -> list[AssetModel]:
-    """
-    Desc: Create every missing asset through the service, with its config.
-    Args:
-        uow (PGUnitOfWork): Unit of work the service writes through.
-    Returns:
-        return (list[AssetModel]): The assets created by this run.
-    """
     service = _service(uow)
     existing = await service.get_all()
     taken = {asset.code for asset in existing}

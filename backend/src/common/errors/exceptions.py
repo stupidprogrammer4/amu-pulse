@@ -38,11 +38,15 @@ class ValidationException(APPException[ValidationErrorOut]):
             loc=self.loc,
             input=self.input,
             ctx=self.ctx,
-            errors=[child.as_schema() for child in self.childs] if self.childs else None,
+            errors=[child.as_schema() for child in self.childs]
+            if self.childs
+            else None,
         )
 
     @classmethod
-    def get_invalid_input(cls, childs: Sequence[ValidationException]) -> ValidationException:
+    def get_invalid_input(
+        cls, childs: Sequence[ValidationException]
+    ) -> ValidationException:
         return cls(
             message="Check your input data",
             message_code=resources.INVALID_INPUT,
@@ -56,7 +60,9 @@ class UnAuthorizedException(APPException[UnAuthorizedErrorOut]):
         super().__init__(message, message_code, HTTPStatus.UNAUTHORIZED)
 
     def as_schema(self) -> UnAuthorizedErrorOut:
-        return UnAuthorizedErrorOut(message=self.message, message_code=self.message_code)
+        return UnAuthorizedErrorOut(
+            message=self.message, message_code=self.message_code
+        )
 
 
 class ForbiddenException(APPException[ForbiddenErrorOut]):
@@ -98,7 +104,9 @@ class NotFoundException(APPException[NotFoundErrorOut]):
 
 
 class ConflictException(APPException[ConflictErrorOut]):
-    def __init__(self, message: str, message_code: str, unique_dict: dict[str, Any]) -> None:
+    def __init__(
+        self, message: str, message_code: str, unique_dict: dict[str, Any]
+    ) -> None:
         super().__init__(message, message_code, HTTPStatus.CONFLICT)
         self.unique_dict = unique_dict
 

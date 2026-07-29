@@ -12,9 +12,11 @@ class FastAPIConfig(BaseModel):
     description: str
     version: str
 
+
 class TaskiqConfig(BaseModel):
     redis_url: str
     max_connection_pool_size: int
+
 
 class PostgreSQLConfig(BaseModel):
     test_dsn: str
@@ -24,9 +26,11 @@ class PostgreSQLConfig(BaseModel):
     pool_size: int
     max_overflow: int
 
+
 class CryptoConfig(BaseModel):
     encryption_key: str
     password_salt: str
+
 
 class RedisConfig(BaseModel):
     url: str
@@ -34,6 +38,7 @@ class RedisConfig(BaseModel):
     socket_timeout: float = Field(ge=0)
     socket_connect_timeout: float = Field(ge=0)
     health_check_interval: int = Field(ge=0)
+
 
 class JWTConfig(BaseModel):
     algorithm: str
@@ -50,8 +55,10 @@ class StorageConfig(BaseModel):
     max_file_size: int = Field(ge=1)
     allowed_extensions: list[str]
 
+
 class CSRFConfig(BaseModel):
     secret_key: str
+
 
 class ESConfig(BaseModel):
     hosts: list[str]

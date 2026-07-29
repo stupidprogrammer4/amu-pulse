@@ -3,7 +3,7 @@ from .base import (
     BaseModel,
     BaseIDModel,
     BaseIDTimestampModel,
-    BaseTimestampModel
+    BaseTimestampModel,
 )
 
 TModel = TypeVar("TModel", bound=BaseModel)

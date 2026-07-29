@@ -36,11 +36,6 @@ class SourceModel(BaseIDTimestampModel, table=True):
 class SourceConfigModel(BaseTimestampModel, table=True):
     @declared_attr.directive
     def __tablename__(cls) -> str:
-        """
-        Desc: Name the table, the class's auto-plural being wrong here.
-        Returns:
-            return (str): The table name.
-        """
         return "tbl_source_configs"
 
     source_id: int = ForeignKeyField(

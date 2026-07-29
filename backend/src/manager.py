@@ -1,27 +1,3 @@
-"""Project CLI — scaffolds new modules following the agreed structure.
-
-Pass the module as ``<name>`` or ``<group>.<name>`` — a group is a namespace
-folder, not a requirement. Write the name in the **singular**
-(e.g. ``catalog.category`` or plain ``category``); the folder, the
-``src.modules...`` imports and the router prefix/tags are pluralised
-automatically (``categories``). Class names stay singular (``CategoryModel``)
-while the table name is pluralised (``tbl_categories``). A new group folder is
-created on first use.
-
-A ``--context`` module is the exception: it owns no table and no ES document, so
-its name is left exactly as written (``pricing`` stays ``pricing``).
-
-Usage::
-
-    python -m src.manager module category                  # CRUD module, no group
-    python -m src.manager module catalog.category          # CRUD module in a group
-    python -m src.manager module catalog.category --cqrs   # + ES read-model, projection, commands/queries
-    python -m src.manager module pricing --context         # pure-logic module (context, reader, no models)
-    python -m src.manager module catalog.category --http   # + infra/gateways.py
-    python -m src.manager module catalog.category --excel  # + infra/exporters.py
-    python -m src.manager module catalog.category --tasks  # + tasks/ (taskiq background tasks)
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -36,34 +12,30 @@ MODULES_DIR = Path(__file__).resolve().parent / "modules"
 
 
 @app.callback()
-def _main() -> None:
-    """goldis project CLI."""
+def _main() -> None: ...
 
 
 def _split(name: str) -> tuple[str, str]:
-    """Split the argument into its optional group and its module name.
-
-    Args:
-        name (str): ``<name>`` or ``<group>.<name>`` (``/`` works as a separator too).
-    Returns:
-        (tuple[str, str]): The group (empty when the module has none) and the raw name.
-    """
-    parts = [part.strip() for part in name.replace("/", ".").split(".") if part.strip()]
+    parts = [
+        part.strip()
+        for part in name.replace("/", ".").split(".")
+        if part.strip()
+    ]
     if not parts or len(parts) > 2:
-        raise typer.BadParameter("expected <name> or <group>.<name>, e.g. product or catalog.product")
+        raise typer.BadParameter(
+            "expected <name> or <group>.<name>, e.g. product or catalog.product"
+        )
     group = parts[0].lower() if len(parts) == 2 else ""
     return group, parts[-1]
 
 
 def _names(raw: str) -> tuple[str, str]:
-    """(snake, Pascal) from a raw module name like 'product' / 'product-tag'."""
     snake = raw.strip().lower().replace("-", "_").replace(" ", "_")
     pascal = "".join(part.capitalize() for part in snake.split("_") if part)
     return snake, pascal
 
 
 def _pluralize(snake: str) -> str:
-    """Pluralise the last word of a snake_case name (shared heuristics)."""
     parts = snake.split("_")
     result = snake
     if parts[-1]:
@@ -72,18 +44,9 @@ def _pluralize(snake: str) -> str:
     return result
 
 
-def _render(tpl: str, pascal: str, snake: str, plural: str, dotted: str) -> str:
-    """Fill a template.
-
-    Args:
-        tpl (str): The template text.
-        pascal (str): Singular class prefix (``Product``).
-        snake (str): Singular snake name (``product``).
-        plural (str): Folder / route name (``products``).
-        dotted (str): Dotted path under ``src.modules`` (``catalog.products`` or ``products``).
-    Returns:
-        (str): The rendered file body.
-    """
+def _render(
+    tpl: str, pascal: str, snake: str, plural: str, dotted: str
+) -> str:
     return (
         tpl.replace("<<P>>", pascal)
         .replace("<<PL>>", plural)
@@ -361,8 +324,9 @@ class <<P>>Provider(Provider):
 """
 
 
-def _layout(*, cqrs: bool, context: bool, http: bool, excel: bool, tasks: bool) -> dict[str, str]:
-    """The files a module is made of, as ``relative path -> template``."""
+def _layout(
+    *, cqrs: bool, context: bool, http: bool, excel: bool, tasks: bool
+) -> dict[str, str]:
     if context:
         files = {
             "__init__.py": "",
@@ -417,17 +381,31 @@ def _layout(*, cqrs: bool, context: bool, http: bool, excel: bool, tasks: bool) 
 @app.command()
 def module(
     name: str = typer.Argument(
-        ..., help="module as <singular-name> or <group>.<singular-name>, e.g. product or catalog.product"
+        ...,
+        help="module as <singular-name> or <group>.<singular-name>, e.g. product or catalog.product",
     ),
-    cqrs: bool = typer.Option(False, "--cqrs", help="add ES read-model + projection"),
-    context: bool = typer.Option(False, "--context", help="pure-logic module: a context + reader, no models"),
-    http: bool = typer.Option(False, "--http", help="add infra/gateways.py (HTTP client)"),
-    excel: bool = typer.Option(False, "--excel", help="add infra/exporters.py (excel/file)"),
-    tasks: bool = typer.Option(False, "--tasks", help="add tasks/ (taskiq background tasks)"),
+    cqrs: bool = typer.Option(
+        False, "--cqrs", help="add ES read-model + projection"
+    ),
+    context: bool = typer.Option(
+        False,
+        "--context",
+        help="pure-logic module: a context + reader, no models",
+    ),
+    http: bool = typer.Option(
+        False, "--http", help="add infra/gateways.py (HTTP client)"
+    ),
+    excel: bool = typer.Option(
+        False, "--excel", help="add infra/exporters.py (excel/file)"
+    ),
+    tasks: bool = typer.Option(
+        False, "--tasks", help="add tasks/ (taskiq background tasks)"
+    ),
 ) -> None:
-    """Scaffold a new module under src/modules/[<group>/]<name>."""
     if cqrs and context:
-        raise typer.BadParameter("--context owns no table, so it cannot be --cqrs")
+        raise typer.BadParameter(
+            "--context owns no table, so it cannot be --cqrs"
+        )
 
     group, raw = _split(name)
     snake, pascal = _names(raw)
@@ -440,20 +418,30 @@ def module(
     parent_dir = MODULES_DIR / group if group else MODULES_DIR
     module_dir = parent_dir / folder
     if module_dir.exists():
-        typer.secho(f"module '{dotted}' already exists at {module_dir}", fg=typer.colors.RED)
+        typer.secho(
+            f"module '{dotted}' already exists at {module_dir}",
+            fg=typer.colors.RED,
+        )
         raise typer.Exit(code=1)
 
     parent_dir.mkdir(parents=True, exist_ok=True)
     (MODULES_DIR / "__init__.py").touch(exist_ok=True)
     (parent_dir / "__init__.py").touch(exist_ok=True)
 
-    for rel, tpl in _layout(cqrs=cqrs, context=context, http=http, excel=excel, tasks=tasks).items():
+    for rel, tpl in _layout(
+        cqrs=cqrs, context=context, http=http, excel=excel, tasks=tasks
+    ).items():
         path = module_dir / rel
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_render(tpl, pascal, snake, folder, dotted), encoding="utf-8")
+        path.write_text(
+            _render(tpl, pascal, snake, folder, dotted), encoding="utf-8"
+        )
 
     kind = "context" if context else "CQRS" if cqrs else "CRUD"
-    typer.secho(f"✓ created {kind} module '{dotted}' at {module_dir}", fg=typer.colors.GREEN)
+    typer.secho(
+        f"✓ created {kind} module '{dotted}' at {module_dir}",
+        fg=typer.colors.GREEN,
+    )
 
 
 if __name__ == "__main__":

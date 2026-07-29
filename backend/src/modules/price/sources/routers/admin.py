@@ -43,14 +43,6 @@ async def create_source(
     data: SourceCreate,
     service: FromDishka[ISourceService],
 ) -> SourceResponse:
-    """
-    Desc: Create a source together with its default config.
-    Args:
-        data (SourceCreate): Validated payload to persist.
-        service (ISourceService): The source service.
-    Returns:
-        return (SourceResponse): The created source.
-    """
     source = await service.create(data)
     return APIResponse.from_data(SourceOut.from_obj(source))
 
@@ -61,13 +53,6 @@ async def create_source(
 async def get_sources(
     service: FromDishka[ISourceService],
 ) -> SourceResponse:
-    """
-    Desc: Get every source.
-    Args:
-        service (ISourceService): The source service.
-    Returns:
-        return (SourceResponse): All sources.
-    """
     sources = await service.get_all()
     return APIResponse.from_data(SourceOut.from_objs(sources))
 
@@ -81,14 +66,6 @@ async def search_sources(
     data: Annotated[SourceSearch, Query()],
     service: FromDishka[ISourceService],
 ) -> PagedSourceResponse:
-    """
-    Desc: Get a filtered page of sources.
-    Args:
-        data (SourceSearch): Free text, market filters and paging.
-        service (ISourceService): The source service.
-    Returns:
-        return (PagedSourceResponse): The page of sources and its pager.
-    """
     paged = await service.get_page(data)
     return APIResponse(
         success=True,
@@ -110,14 +87,6 @@ async def get_sources_with_config(
     service: FromDishka[ISourceService],
     switch: SourceSwitch | None = None,
 ) -> SourceWithConfigResponse:
-    """
-    Desc: Get sources with their configs, optionally one market's only.
-    Args:
-        service (ISourceService): The source service.
-        switch (SourceSwitch | None): The market to narrow to, if any.
-    Returns:
-        return (SourceWithConfigResponse): Each source with its config.
-    """
     if switch is None:
         sources = await service.get_all_with_config()
     else:
@@ -134,14 +103,6 @@ async def get_source(
     id: SourceID,
     service: FromDishka[ISourceService],
 ) -> SourceResponse:
-    """
-    Desc: Get a source by id.
-    Args:
-        id (int): ID of the source.
-        service (ISourceService): The source service.
-    Returns:
-        return (SourceResponse): The found source.
-    """
     source = await service.get_by_id(id)
     return APIResponse.from_data(SourceOut.from_obj(source))
 
@@ -156,15 +117,6 @@ async def update_source(
     data: SourceUpdate,
     service: FromDishka[ISourceService],
 ) -> SourceResponse:
-    """
-    Desc: Patch a source by id.
-    Args:
-        id (int): ID of the source.
-        data (SourceUpdate): The fields to change.
-        service (ISourceService): The source service.
-    Returns:
-        return (SourceResponse): The updated source.
-    """
     source = await service.update(id, data)
     return APIResponse.from_data(SourceOut.from_obj(source))
 
@@ -178,14 +130,6 @@ async def remove_source(
     id: SourceID,
     service: FromDishka[ISourceService],
 ) -> SourceResponse:
-    """
-    Desc: Delete a source by id, its config cascading with it.
-    Args:
-        id (int): ID of the source.
-        service (ISourceService): The source service.
-    Returns:
-        return (SourceResponse): The deleted source.
-    """
     source = await service.remove(id)
     return APIResponse.from_data(SourceOut.from_obj(source))
 
@@ -199,14 +143,6 @@ async def clear_source_error(
     id: SourceID,
     service: FromDishka[ISourceService],
 ) -> SourceResponse:
-    """
-    Desc: Clear a source's recorded error.
-    Args:
-        id (int): ID of the source.
-        service (ISourceService): The source service.
-    Returns:
-        return (SourceResponse): The updated source.
-    """
     source = await service.clear_error(id)
     return APIResponse.from_data(SourceOut.from_obj(source))
 
@@ -220,14 +156,6 @@ async def get_source_config(
     id: SourceID,
     service: FromDishka[ISourceConfigService],
 ) -> SourceConfigResponse:
-    """
-    Desc: Get a source's config.
-    Args:
-        id (int): ID of the source.
-        service (ISourceConfigService): The source config service.
-    Returns:
-        return (SourceConfigResponse): The found config.
-    """
     config = await service.get_by_source_id(id)
     return APIResponse.from_data(SourceConfigOut.from_obj(config))
 
@@ -242,14 +170,5 @@ async def update_source_config(
     data: SourceConfigUpdate,
     service: FromDishka[ISourceConfigService],
 ) -> SourceConfigResponse:
-    """
-    Desc: Patch a source's config.
-    Args:
-        id (int): ID of the source.
-        data (SourceConfigUpdate): The fields to change.
-        service (ISourceConfigService): The source config service.
-    Returns:
-        return (SourceConfigResponse): The updated config.
-    """
     config = await service.update(id, data)
     return APIResponse.from_data(SourceConfigOut.from_obj(config))

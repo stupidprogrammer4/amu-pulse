@@ -1,16 +1,3 @@
-"""
-Persian (fa-IR) persentation helpers: digits, money, and Jalali date strings.
-
--only — these produce human-facing strings, never values you store
-or compute on (store UTC + raw integer Rial; see `date_utils`). Timezone
-handling is delegated to `date_utils.from_db`, so the DB-is-UTC / app-tz
-convention holds: pass the app timezone (`ServerConfig.timezone`) to the date
-formatters.
-
-Money convention: amounts are integer **Rial** (the storage unit). Toman is a
-display-only unit: 1 Toman = 10 Rial.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, tzinfo
@@ -33,18 +20,14 @@ Number = int | float | Decimal
 
 
 def to_persian_digits(value: str | int) -> str:
-    """ASCII/Arabic digits -> Persian digits (۰۱۲…)."""
     return digits.ar_to_fa(digits.en_to_fa(str(value)))
 
 
 def to_english_digits(value: str) -> str:
-    """Persian/Arabic digits -> ASCII digits — use before parsing user input."""
     return digits.fa_to_en(digits.ar_to_fa(value))
 
 
 def normalize_persian(text: str) -> str:
-    """Normalise Arabic letter forms to Persian (ك→ک, ي→ی) and digits to
-    Persian. Apply before storing/searching user-entered Persian text."""
     return to_persian_digits(characters.ar_to_fa(text))
 
 
@@ -65,23 +48,24 @@ def _group(value: Number) -> str:
 
 
 def format_number(value: Number, *, persian_digits: bool = True) -> str:
-    """Group thousands with the Persian separator (1_000_000 -> ۱،۰۰۰،۰۰۰)."""
     out = _group(value)
     return to_persian_digits(out) if persian_digits else out
 
 
-def format_rial(amount: Number, *, with_unit: bool = True, persian_digits: bool = True) -> str:
-    """Format an integer-Rial amount, e.g. 1_000_000 -> '۱،۰۰۰،۰۰۰ ریال'."""
+def format_rial(
+    amount: Number, *, with_unit: bool = True, persian_digits: bool = True
+) -> str:
     text = format_number(amount, persian_digits=persian_digits)
     return f"{text} {RIAL_UNIT}" if with_unit else text
 
 
-def format_toman(rial_amount: int, *, with_unit: bool = True, persian_digits: bool = True) -> str:
-    """Convert a Rial amount to Toman (÷10) for display, e.g.
-    1_000_000 Rial -> '۱۰۰،۰۰۰ تومان'. A non-zero Rial remainder is kept as a
-    fractional Toman."""
+def format_toman(
+    rial_amount: int, *, with_unit: bool = True, persian_digits: bool = True
+) -> str:
     toman, remainder = divmod(rial_amount, 10)
-    value: Number = Decimal(toman) + (Decimal(remainder) / 10 if remainder else 0)
+    value: Number = Decimal(toman) + (
+        Decimal(remainder) / 10 if remainder else 0
+    )
     text = format_number(value, persian_digits=persian_digits)
     return f"{text} {TOMAN_UNIT}" if with_unit else text
 
@@ -91,14 +75,13 @@ def _to_jalali(dt: datetime, tz: str | tzinfo) -> JalaliDateTime:
     return JalaliDateTime(from_db(dt, tz))
 
 
-def format_jalali_datetime(dt: datetime, tz: str | tzinfo, fmt: str = DEFAULT_DATETIME_FORMAT) -> str:
-    """Gregorian datetime -> localized Persian datetime string, e.g.
-    'سه‌شنبه ۲۹ اردیبهشت ۱۴۰۵ - ۰۰:۰۰'. ``dt`` is converted from UTC into
-    ``tz`` first (pass the app timezone)."""
+def format_jalali_datetime(
+    dt: datetime, tz: str | tzinfo, fmt: str = DEFAULT_DATETIME_FORMAT
+) -> str:
     return _to_jalali(dt, tz).strftime(fmt, locale="fa")
 
 
-def format_jalali_date(dt: datetime, tz: str | tzinfo, fmt: str = DEFAULT_DATE_FORMAT) -> str:
-    """Gregorian datetime -> localized Persian date string, e.g.
-    '۲۹ اردیبهشت ۱۴۰۵'."""
+def format_jalali_date(
+    dt: datetime, tz: str | tzinfo, fmt: str = DEFAULT_DATE_FORMAT
+) -> str:
     return _to_jalali(dt, tz).strftime(fmt, locale="fa")

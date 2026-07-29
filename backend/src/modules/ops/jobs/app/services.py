@@ -17,7 +17,11 @@ _RESULT_PREFIX = "taskiq_result"
 
 def _interval_seconds(interval: int | timedelta | None) -> int | None:
     """Normalize a schedule's interval to whole seconds."""
-    result: int | None = int(interval.total_seconds()) if isinstance(interval, timedelta) else interval
+    result: int | None = (
+        int(interval.total_seconds())
+        if isinstance(interval, timedelta)
+        else interval
+    )
     return result
 
 
@@ -36,8 +40,8 @@ class JobService:
         self.result_backend = result_backend
         self.schedule_source = schedule_source
         self.redis = redis
-        self.stream_name = stream_name      # broker's redis stream
-        self.group_name = group_name        # broker's consumer group
+        self.stream_name = stream_name  # broker's redis stream
+        self.group_name = group_name  # broker's consumer group
 
     async def get_status(self, task_id: str) -> JobStatusOut:
         """Get a single job's status (and error, once finished) by its task id.
@@ -50,9 +54,13 @@ class JobService:
         ready = await self.result_backend.is_result_ready(task_id)
         status = JobStatusOut(task_id=task_id, is_ready=ready)
         if ready:
-            result = await self.result_backend.get_result(task_id, with_logs=False)
+            result = await self.result_backend.get_result(
+                task_id, with_logs=False
+            )
             status.is_err = result.is_err
-            status.error = str(result.error) if result.error is not None else None
+            status.error = (
+                str(result.error) if result.error is not None else None
+            )
         return status
 
     async def overview(self) -> JobsOverviewOut:
@@ -93,7 +101,7 @@ class JobService:
                 self.stream_name, self.group_name, min="-", max="+", count=100
             )
         except ResponseError:
-            return []                           # NOGROUP — no worker has consumed yet
+            return []  # NOGROUP — no worker has consumed yet
         return [
             RunningJobOut(
                 message_id=str(entry["message_id"]),
@@ -107,7 +115,9 @@ class JobService:
     async def _count_results(self) -> int:
         """Count stored job results in redis (excludes progress keys)."""
         count = 0
-        async for key in self.redis.client.scan_iter(match=f"{_RESULT_PREFIX}:*"):
+        async for key in self.redis.client.scan_iter(
+            match=f"{_RESULT_PREFIX}:*"
+        ):
             if "progress" not in key:
                 count += 1
         return count

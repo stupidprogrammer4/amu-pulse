@@ -1,6 +1,3 @@
-"""The storage/media API: upload, list, fetch and delete media plus the
-file-download route."""
-
 from collections.abc import AsyncIterator
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
@@ -13,7 +10,9 @@ from src.modules.ops.storage.domain.schemas import MediaOut
 from src.modules.ops.storage.interfaces import IMediaService
 from src.web.response import APIResponse
 
-router = APIRouter(prefix="/storage", tags=["Storage"], route_class=DishkaRoute)
+router = APIRouter(
+    prefix="/storage", tags=["Storage"], route_class=DishkaRoute
+)
 
 MediaResponse = APIResponse[MediaOut, None]
 PagedMediaResponse = APIResponse[MediaOut, BaseMeta]
@@ -45,7 +44,9 @@ async def get_media_list(
     return APIResponse(
         success=True,
         data=MediaOut.from_objs(paged.items),
-        meta=BaseMeta(pager=PagerMeta.from_total(page, per_page, paged.total_items)),
+        meta=BaseMeta(
+            pager=PagerMeta.from_total(page, per_page, paged.total_items)
+        ),
     )
 
 

@@ -9,7 +9,9 @@ from src.infra.postgres.repository.base import (
     PGIDRepository,
     PGTimestampRepository,
 )
-from src.modules.price.sources.domain.enums import SourceSwitch
+from src.modules.price.sources.domain.enums import (
+    SourceSwitch,
+)
 from src.modules.price.sources.domain.models import (
     SourceConfigModel,
     SourceModel,

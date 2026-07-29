@@ -4,12 +4,6 @@ from elasticsearch import AsyncElasticsearch
 
 
 class ESClient:
-    """The async Elasticsearch client shared app-wide.
-
-    Use ``.client`` for raw calls, or pass it to an `ESRepository` /
-    `AsyncDocument` via ``using=``. ``close()`` is wired to app shutdown.
-    """
-
     def __init__(
         self,
         hosts: list[str],
@@ -20,7 +14,10 @@ class ESClient:
         verify_certs: bool = True,
         ca_certs: str | None = None,
     ) -> None:
-        options: dict[str, Any] = {"hosts": hosts, "verify_certs": verify_certs}
+        options: dict[str, Any] = {
+            "hosts": hosts,
+            "verify_certs": verify_certs,
+        }
         if username and password:
             options["basic_auth"] = (username, password)
         if api_key:

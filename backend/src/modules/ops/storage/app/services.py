@@ -10,13 +10,21 @@ from src.modules.ops.storage import resources
 from src.modules.ops.storage.app.helpers import StreamMeter
 from src.modules.ops.storage.domain.models import MediaModel
 from src.modules.ops.storage.infra.repository import MediaRepository
-from src.modules.ops.storage.infra.storage import InvalidStoragePath, LocalStorage
+from src.modules.ops.storage.infra.storage import (
+    InvalidStoragePath,
+    LocalStorage,
+)
 
 
 class MediaService(BaseIDService[MediaModel]):
     """Manages uploaded media: streamed storage, dedupe by hash, and the catalog."""
 
-    def __init__(self, repo: MediaRepository, storage: LocalStorage, config: StorageConfig) -> None:
+    def __init__(
+        self,
+        repo: MediaRepository,
+        storage: LocalStorage,
+        config: StorageConfig,
+    ) -> None:
         self.repo = repo
         self.storage = storage
         self.config = config
@@ -39,7 +47,9 @@ class MediaService(BaseIDService[MediaModel]):
             )
         return extension
 
-    async def upload(self, stream: AsyncIterator[bytes], filename: str | None) -> MediaModel:
+    async def upload(
+        self, stream: AsyncIterator[bytes], filename: str | None
+    ) -> MediaModel:
         """Stream an upload into the store and register it, deduplicating by hash.
 
         Args:
@@ -71,7 +81,10 @@ class MediaService(BaseIDService[MediaModel]):
         else:
             path = f"{digest[:2]}/{digest}.{extension}"
             await self.storage.move(temp_path, path)
-            content_type = mimetypes.guess_type(f"f.{extension}")[0] or "application/octet-stream"
+            content_type = (
+                mimetypes.guess_type(f"f.{extension}")[0]
+                or "application/octet-stream"
+            )
             result = await self.repo.create(
                 MediaModel(
                     backend=self.storage.backend,
@@ -97,7 +110,9 @@ class MediaService(BaseIDService[MediaModel]):
         media = self._check_for_id_existence(id, media)
         return media
 
-    async def get_paged(self, page: int, per_page: int) -> PagedType[MediaModel]:
+    async def get_paged(
+        self, page: int, per_page: int
+    ) -> PagedType[MediaModel]:
         """Get a page of media records, newest first.
 
         Args:
@@ -106,7 +121,9 @@ class MediaService(BaseIDService[MediaModel]):
         Returns:
             (PagedType[MediaModel]): The page rows and the total count.
         """
-        paged = await self.repo.get_paged(limit=per_page, offset=(page - 1) * per_page)
+        paged = await self.repo.get_paged(
+            limit=per_page, offset=(page - 1) * per_page
+        )
         return paged
 
     async def open(self, path: str) -> tuple[AsyncIterator[bytes], str]:

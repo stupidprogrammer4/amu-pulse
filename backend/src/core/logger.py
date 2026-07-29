@@ -17,18 +17,23 @@ class _ContextFilter(logging.Filter):
 
 
 class Logger:
-
-    def __init__(self, name: str = "app", level: int | str = logging.INFO) -> None:
+    def __init__(
+        self, name: str = "app", level: int | str = logging.INFO
+    ) -> None:
         self._logger = logging.getLogger(name)
         self._logger.setLevel(level)
         self._logger.propagate = False
 
-        if not any(isinstance(f, _ContextFilter) for f in self._logger.filters):
+        if not any(
+            isinstance(f, _ContextFilter) for f in self._logger.filters
+        ):
             self._logger.addFilter(_ContextFilter())
 
         if not self._logger.handlers:
             console = RichHandler(rich_tracebacks=True, show_path=False)
-            console.setFormatter(logging.Formatter("[%(request_id)s] %(message)s"))
+            console.setFormatter(
+                logging.Formatter("[%(request_id)s] %(message)s")
+            )
             self.add_handler(console)
 
     def add_handler(self, handler: logging.Handler) -> None:
@@ -54,7 +59,6 @@ class Logger:
 
     def critical(self, msg: object, *args: Any, **kw: Any) -> None:
         self._logger.critical(msg, *args, stacklevel=2, **kw)
-
 
 
 logger: Logger = Logger(

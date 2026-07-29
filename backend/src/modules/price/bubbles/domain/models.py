@@ -32,11 +32,6 @@ class BubbleModel(BaseIDTimestampModel, table=True):
 class BubbleConfigModel(BaseTimestampModel, table=True):
     @declared_attr.directive
     def __tablename__(cls) -> str:
-        """
-        Desc: Name the table, the class's auto-plural being wrong here.
-        Returns:
-            return (str): The table name.
-        """
         return "tbl_bubble_configs"
 
     bubble_id: int = ForeignKeyField(

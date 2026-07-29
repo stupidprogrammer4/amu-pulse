@@ -6,8 +6,6 @@ from src.modules.ops.storage import resources
 
 
 class StreamMeter:
-    """Passes a byte stream through while hashing and enforcing a size cap."""
-
     def __init__(self, stream: AsyncIterator[bytes], max_size: int) -> None:
         self.stream = stream
         self.max_size = max_size
@@ -19,11 +17,6 @@ class StreamMeter:
         return self._hasher.hexdigest()
 
     async def chunks(self) -> AsyncIterator[bytes]:
-        """Re-yield the wrapped stream, updating the hash and byte count.
-
-        Returns:
-            (AsyncIterator[bytes]): The unchanged chunks of the wrapped stream.
-        """
         async for chunk in self.stream:
             self.size += len(chunk)
             if self.size > self.max_size:
