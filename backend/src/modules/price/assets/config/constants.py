@@ -4,11 +4,12 @@ from pydantic import AfterValidator, PlainSerializer
 
 from src.common.bases.encryption import IDEncryption
 
-# a prime modulus, so every coefficient is coprime with it; the offset puts
-# the public ids of each module in a range of their own
+# a prime modulus, so every coefficient is coprime with it. It is kept under
+# the 100_000_000 offset step so each module's public ids land in a range of
+# their own: assets own [100_000_000, 199_999_988].
 ASSET_ID_ENCRYPTION = IDEncryption(
-    mod=999_999_937,
-    coff=314_159_263,
+    mod=99_999_989,
+    coff=31_415_926,
     offset=100_000_000,
 )
 
