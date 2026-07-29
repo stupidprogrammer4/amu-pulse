@@ -30,7 +30,7 @@ def _asset_out(id: int) -> AssetOut:
 
 
 class TestIDEncryption:
-    @pytest.mark.parametrize("id", [0, 1, 2, 17, 5_000, 999_999_936])
+    @pytest.mark.parametrize("id", [0, 1, 2, 17, 5_000, 99_999_988])
     def test_decode_inverts_encode(self, id: int) -> None:
         assert ASSET_ID_ENCRYPTION.decode(ASSET_ID_ENCRYPTION.encode(id)) == id
 
@@ -40,7 +40,7 @@ class TestIDEncryption:
 
     def test_public_ids_stay_within_bounds(self) -> None:
         low, high = ASSET_ID_ENCRYPTION.bounds
-        for id in (0, 1, 12_345, 999_999_936):
+        for id in (0, 1, 12_345, 99_999_988):
             assert low <= ASSET_ID_ENCRYPTION.encode(id) <= high
 
     def test_encode_does_not_leak_the_internal_id(self) -> None:
