@@ -71,7 +71,8 @@ class TestAssetServiceCRUD:
 
         config = await configs.get_by_asset_id(asset.id)
         assert config.asset_id == asset.id
-        assert config.scheduler_on is True
+        # a new asset is paused until an admin turns it on
+        assert config.scheduler_on is False
         assert config.scheduler_seconds == 60
         assert config.switch == SourceSwitch.IRAN_MARKET
         assert config.agg_type == AggregationType.MEDIAN
@@ -216,7 +217,7 @@ class TestAssetConfigService:
         )
 
         assert updated.scheduler_seconds == 120
-        assert updated.scheduler_on is True
+        assert updated.scheduler_on is False
         assert updated.agg_type == AggregationType.MEDIAN
 
     async def test_update_writes_every_field(self, uow: PGUnitOfWork) -> None:

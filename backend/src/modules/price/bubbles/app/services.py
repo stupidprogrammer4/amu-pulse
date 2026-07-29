@@ -19,8 +19,8 @@ from src.modules.price.bubbles.interfaces import IBubbleConfigService
 
 
 class BubbleConfigService(BaseService[BubbleConfigModel]):
-    # what a freshly created bubble polls with until an admin tunes it
-    default_scheduler_on = True
+    # a new bubble stays paused until an admin checks its publishers
+    default_scheduler_on = False
     default_scheduler_seconds = 60
     # the median shrugs off one publisher printing nonsense; with a single
     # source every aggregation returns that source's reading

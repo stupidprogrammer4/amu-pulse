@@ -17,8 +17,8 @@ from src.modules.price.sources.domain.enums import SourceSwitch
 
 
 class AssetConfigService(BaseService[AssetConfigModel]):
-    # what a freshly created asset polls with until an admin tunes it
-    default_scheduler_on = True
+    # a new asset stays paused until an admin points it at a market
+    default_scheduler_on = False
     default_scheduler_seconds = 60
     default_switch = SourceSwitch.IRAN_MARKET
     default_agg_type = AggregationType.MEDIAN
