@@ -7,26 +7,28 @@ from src.modules.price.sources.domain.enums import SourceCode, SourceSwitch
 from src.modules.price.sources.domain.models import SourceConfigModel
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class SourceContext:
     code: SourceCode
     id: int
-    swith: SourceSwitch
+    switch: SourceSwitch
     cfg: SourceConfigModel
 
-@dataclass
+
+@dataclass(frozen=True, slots=True)
+class AssetRefContext:
+    code: AssetCode
+    id: int
+
+
+@dataclass(frozen=True, slots=True)
 class AssetContext:
     code: AssetCode
     id: int
     cfg: AssetConfigModel
 
-@dataclass
-class ALLCFGContext:
-    sources: Sequence[SourceContext]
-    assets: Sequence[AssetContext]
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class CFGContext:
     sources: Sequence[SourceContext]
-    asset: AssetContext
-
+    assets: Sequence[AssetRefContext]
