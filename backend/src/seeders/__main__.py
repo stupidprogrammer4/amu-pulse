@@ -1,6 +1,5 @@
 # isort: skip_file
-# the broker boots the modules; importing it after them re-enters a
-# half-imported package, so it has to come first (see CLAUDE.md, Tasks)
+# the broker boots the modules, so it has to be imported first
 import asyncio
 
 import src.tasks.broker  # noqa: F401
@@ -9,23 +8,17 @@ from src.core.config import get_settings
 from src.infra.postgres.connection import PGConnection
 from src.infra.postgres.uow import PGUnitOfWork
 from src.seeders.assets import seed_assets
+from src.seeders.bubbles import seed_bubbles
 from src.seeders.sources import seed_sources
 
 
 async def seed_all(uow: PGUnitOfWork) -> None:
-    """
-    Desc: Run every seeder in dependency order on one unit of work.
-    Args:
-        uow (PGUnitOfWork): Unit of work the seeders write through.
-    """
     print(f"seeded {len(await seed_assets(uow))} assets")
     print(f"seeded {len(await seed_sources(uow))} sources")
+    print(f"seeded {len(await seed_bubbles(uow))} bubbles")
 
 
 async def main() -> None:
-    """
-    Desc: Open a Postgres connection and run every seeder through it.
-    """
     settings = get_settings()
     pg = PGConnection(
         dsn=settings.postgresql.dsn,

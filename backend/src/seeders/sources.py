@@ -29,7 +29,7 @@ _GLOBAL = SourceSwitch.GLOBAL_MARKET
 
 
 SOURCES: list[SourceSeed] = [
-    # --- supplier: Iranian gold shops ---
+    # --- supplier: the wholesalers we actually buy from ---
     SourceSeed(
         SourceCode.TALALAND,
         "طلالند",
@@ -49,65 +49,65 @@ SOURCES: list[SourceSeed] = [
         "دیجی‌کالا",
         "https://www.digikala.com",
         "#ef4056",
-        _SUPPLIER,
+        _IRAN,
     ),
     SourceSeed(
         SourceCode.TALINE,
         "تلاین",
         "https://tlyn.ir",
         "#d4af37",
-        _SUPPLIER,
+        _IRAN,
     ),
     SourceSeed(
         SourceCode.GOLDIKA,
         "گلدیکا",
         "https://goldika.ir",
         "#e8b923",
-        _SUPPLIER,
+        _IRAN,
     ),
     SourceSeed(
         SourceCode.MELIGOLD,
         "ملی‌گلد",
         "https://melligold.com",
         "#b8860b",
-        _SUPPLIER,
+        _IRAN,
     ),
     SourceSeed(
         SourceCode.MILIGOLD,
         "میلی‌گلد",
         "https://milli.gold",
         "#f2c94c",
-        _SUPPLIER,
+        _IRAN,
     ),
     SourceSeed(
         SourceCode.TECHNOGOLD,
         "تکنوگلد",
         "https://technogold.gold",
         "#a67c00",
-        _SUPPLIER,
+        _IRAN,
     ),
     SourceSeed(
         SourceCode.WALLGOLD,
         "وال‌گلد",
         "https://wallgold.ir",
         "#caa64a",
-        _SUPPLIER,
+        _IRAN,
     ),
     SourceSeed(
         SourceCode.TALASEA,
         "طلاسی",
         "https://talasea.ir",
         "#dfb244",
-        _SUPPLIER,
+        _IRAN,
     ),
     SourceSeed(
         SourceCode.NOGHRESEA,
         "نقره‌سی",
         "https://noghresea.ir",
         "#9aa5ab",
-        _SUPPLIER,
+        _IRAN,
     ),
-    # --- iran_market: rial-denominated gold and USD quotes ---
+    # --- iran_market: rate aggregators and the online shops ---
     SourceSeed(
         SourceCode.TGJU,
         "شبکه اطلاع‌رسانی طلا و ارز",
@@ -134,6 +134,13 @@ SOURCES: list[SourceSeed] = [
         "نرخ‌ای‌پی‌آی",
         "https://nerkh-api.ir",
         "#5b6ee1",
+        _IRAN,
+    ),
+    SourceSeed(
+        SourceCode.WALLEX,
+        "والکس",
+        "https://wallex.ir",
+        "#2f6fed",
         _IRAN,
     ),
     # --- global_market: XAU spot ---
@@ -268,13 +275,6 @@ SOURCES: list[SourceSeed] = [
 
 
 def _favicon(website_url: str) -> str:
-    """
-    Desc: Build a source's icon url via google's favicon service.
-    Args:
-        website_url (str): Home page url of the source.
-    Returns:
-        return (str): Url of the source's 64px favicon.
-    """
     domain = (
         website_url.removeprefix("https://").removeprefix("http://").strip("/")
     )
@@ -282,26 +282,12 @@ def _favicon(website_url: str) -> str:
 
 
 def _service(uow: PGUnitOfWork) -> SourceService:
-    """
-    Desc: Build the source service over the unit of work.
-    Args:
-        uow (PGUnitOfWork): Unit of work the service writes through.
-    Returns:
-        return (SourceService): The assembled service.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     service = SourceService(SourceRepository(uow), configs)
     return service
 
 
 async def seed_sources(uow: PGUnitOfWork) -> list[SourceModel]:
-    """
-    Desc: Create every missing source through the service, with its config.
-    Args:
-        uow (PGUnitOfWork): Unit of work the service writes through.
-    Returns:
-        return (list[SourceModel]): The sources created by this run.
-    """
     service = _service(uow)
     existing = await service.get_all()
     taken = {source.code for source in existing}
