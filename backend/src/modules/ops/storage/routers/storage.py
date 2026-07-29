@@ -1,21 +1,19 @@
-"""The storage/media API: upload, list, fetch and delete media (each managing
-route guarded by Scope.STORAGE) plus the unauthenticated file-download route."""
+"""The storage/media API: upload, list, fetch and delete media plus the
+file-download route."""
 
 from collections.abc import AsyncIterator
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, File, UploadFile
 from fastapi.responses import StreamingResponse
 
 from src.common.bases.schemas import BaseMeta, PagerMeta
 from src.common.types import PageType, PerPageType
 from src.modules.ops.storage.domain.schemas import MediaOut
 from src.modules.ops.storage.interfaces import IMediaService
-from src.web.dependencies import Scope, require_access
 from src.web.response import APIResponse
 
 router = APIRouter(prefix="/storage", tags=["Storage"], route_class=DishkaRoute)
-_guarded = [Depends(require_access(Scope.STORAGE))]
 
 MediaResponse = APIResponse[MediaOut, None]
 PagedMediaResponse = APIResponse[MediaOut, BaseMeta]
@@ -28,7 +26,7 @@ async def _chunks(file: UploadFile) -> AsyncIterator[bytes]:
         yield chunk
 
 
-@router.post("", response_model=MediaResponse, dependencies=_guarded)
+@router.post("", response_model=MediaResponse)
 async def upload_media(
     service: FromDishka[IMediaService],
     data: UploadFile = File(...),
@@ -37,7 +35,7 @@ async def upload_media(
     return APIResponse.from_data(MediaOut.from_obj(media))
 
 
-@router.get("", response_model=PagedMediaResponse, dependencies=_guarded)
+@router.get("", response_model=PagedMediaResponse)
 async def get_media_list(
     service: FromDishka[IMediaService],
     page: PageType = 1,
@@ -60,7 +58,7 @@ async def download_media(
     return StreamingResponse(stream, media_type=content_type)
 
 
-@router.get("/{id}", response_model=MediaResponse, dependencies=_guarded)
+@router.get("/{id}", response_model=MediaResponse)
 async def get_media(
     id: int,
     service: FromDishka[IMediaService],
@@ -69,7 +67,7 @@ async def get_media(
     return APIResponse.from_data(MediaOut.from_obj(media))
 
 
-@router.delete("/{id}", response_model=MediaResponse, dependencies=_guarded)
+@router.delete("/{id}", response_model=MediaResponse)
 async def remove_media(
     id: int,
     service: FromDishka[IMediaService],

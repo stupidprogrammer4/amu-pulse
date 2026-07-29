@@ -1,19 +1,17 @@
-"""The back-office jobs API (Scope.JOBS): task overview, running jobs and
+"""The back-office jobs API : task overview, running jobs and
 per-task status lookup."""
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 from src.modules.ops.jobs.domain.schemas import JobStatusOut, JobsOverviewOut, RunningJobOut
 from src.modules.ops.jobs.interfaces import IJobService
-from src.web.dependencies import Scope, require_access
 from src.web.response import APIResponse
 
 router = APIRouter(
     prefix="/jobs",
     tags=["Jobs"],
     route_class=DishkaRoute,
-    dependencies=[Depends(require_access(Scope.JOBS))],
 )
 
 

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from math import ceil
-from typing import Any, Generic, Self, TypeVar, override
+from typing import Any, ClassVar, Generic, Self, TypeVar, override
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
+from src.common.bases.encryption import IDEncryption
 from src.common.enums import FilterType
 
 I = TypeVar("I")
@@ -72,6 +73,29 @@ class BaseOutput(BaseModel):
         for key, val in extra.items():
             if key in model_fields:
                 setattr(self, key, val)
+
+
+class BaseIDOutput(BaseOutput):
+    # the id stays internal in memory; only the wire output is encoded, so a
+    # re-validation (FastAPI's response_model pass) never double-encodes it
+    __encryption__: ClassVar[IDEncryption | None] = None
+
+    id: int
+
+    @field_serializer("id")
+    def _encode_id(self, id: int) -> int:
+        """
+        Desc: Encode the internal id into the public one on serialization.
+        Args:
+            id (int): The internal id.
+        Returns:
+            return (int): The public id, or the id itself when unencrypted.
+        """
+        encryption = type(self).__encryption__
+        result = id
+        if encryption is not None:
+            result = encryption.encode(id)
+        return result
 
 
 O = TypeVar("O", bound=BaseOutput)
