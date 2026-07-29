@@ -1,14 +1,22 @@
+from collections.abc import Awaitable
+from typing import TypeVar, cast
+
 from redis.asyncio import Redis
+
+T = TypeVar("T")
+
+
+async def resolve(value: Awaitable[T] | T) -> T:
+    result: T
+    if isinstance(value, Awaitable):
+        # the isinstance is the proof, but it cannot carry T along with it
+        result = await cast("Awaitable[T]", value)
+    else:
+        result = value
+    return result
 
 
 class RedisClient:
-    """The async Redis client shared app-wide.
-
-    `Redis` owns its connection pool internally, so one instance is the single
-    client to inject everywhere. Use ``.client`` for any operation
-    (``await rc.client.get(...)``); ``close()`` is wired to app shutdown.
-    """
-
     def __init__(
         self,
         url: str,

@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
+# gold
+# grams of 18-carat gold in one mazane: a mesghal is 4.6083 g, quoted at 17
+# carat, so 4.6083 * (0.705 / 0.750). Suppliers quote the mazane; everything
+# downstream is per-gram.
+MAZANE_FACTOR = Decimal("4.331802")
+
 # numbers
 INT32_MAX = 2_147_483_647
 INT32_MIN = -2_147_483_648
