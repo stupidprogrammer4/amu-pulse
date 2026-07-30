@@ -1,6 +1,12 @@
 from dishka import Provider, Scope, provide
 
-from src.modules.price.engine.app.services import PricingEngineService
+from src.modules.price.engine.app.services import (
+    CacheFlusherService,
+    CFGReaderService,
+    CrawlerService,
+    PersistFlusherService,
+    RunnerService,
+)
 from src.modules.price.engine.infra.cache import (
     AssetPriceCache,
     BubbleCache,
@@ -12,19 +18,40 @@ from src.modules.price.engine.infra.readers import (
     SourceReader,
     SymbolReader,
 )
-from src.modules.price.engine.interfaces import IPricingEngineService
+from src.modules.price.engine.interfaces import (
+    ICacheFlusherService,
+    ICFGReaderService,
+    ICrawlerService,
+    IPersistFlusherService,
+    IRunnerService,
+)
 
 
 class EngineProvider(Provider):
-    scope = Scope.REQUEST
+    # nothing below touches postgres, so none of it pins a connection
+    asset_price_cache = provide(AssetPriceCache, scope=Scope.APP)
+    source_price_cache = provide(SourcePriceCache, scope=Scope.APP)
+    bubble_cache = provide(BubbleCache, scope=Scope.APP)
+    bubble_source_cache = provide(BubbleSourceCache, scope=Scope.APP)
+    crawler_service = provide(
+        CrawlerService, provides=ICrawlerService, scope=Scope.APP
+    )
+    cache_flusher_service = provide(
+        CacheFlusherService, provides=ICacheFlusherService, scope=Scope.APP
+    )
+    runner_service = provide(
+        RunnerService, provides=IRunnerService, scope=Scope.APP
+    )
 
-    asset_price_cache = provide(AssetPriceCache)
-    source_price_cache = provide(SourcePriceCache)
-    bubble_cache = provide(BubbleCache)
-    bubble_source_cache = provide(BubbleSourceCache)
-    asset_reader = provide(AssetReader)
-    source_reader = provide(SourceReader)
-    symbol_reader = provide(SymbolReader)
-    pricing_engine_service = provide(
-        PricingEngineService, provides=IPricingEngineService
+    # these hold a session for as long as their scope lives
+    asset_reader = provide(AssetReader, scope=Scope.REQUEST)
+    source_reader = provide(SourceReader, scope=Scope.REQUEST)
+    symbol_reader = provide(SymbolReader, scope=Scope.REQUEST)
+    cfg_reader_service = provide(
+        CFGReaderService, provides=ICFGReaderService, scope=Scope.REQUEST
+    )
+    persist_flusher_service = provide(
+        PersistFlusherService,
+        provides=IPersistFlusherService,
+        scope=Scope.REQUEST,
     )

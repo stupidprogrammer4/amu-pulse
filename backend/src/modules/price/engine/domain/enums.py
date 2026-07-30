@@ -5,6 +5,7 @@ class QuoteKind(StrEnum):
     # whether a supplier quotes a mazane (per-mesghal) or a per-gram price
     MAZANE = "mazane"
     PER_GRAM = "per_gram"
+    OUNCE = "ounce"
 
 
 class SelectionReason(StrEnum):

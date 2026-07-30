@@ -1,21 +1,19 @@
 from datetime import datetime
-from decimal import Decimal
-from typing import Self
 
 from pydantic import BaseModel
 
-from src.common.utils import currency_utils, date_utils
 from src.modules.price.engine.domain.enums import SelectionReason
+from src.modules.price.symbols.domain.enums import CurrencyType
 
 
 class PriceResult(BaseModel):
     buy_price: int
     sell_price: int
     price: int
-    buy_spread_rial: int
-    sell_spread_rial: int
-    buy_spread_rate: Decimal
-    sell_spread_rate: Decimal
+    buy_spread: int
+    sell_spread: int
+    buy_spread_rate: float
+    sell_spread_rate: float
     priced_at: datetime
 
 
@@ -23,39 +21,20 @@ class AssetPriceResult(PriceResult):
     asset_id: int
 
 
+class FeeResult(BaseModel):
+    buy_fee_rate: float
+    sell_fee_rate: float
+    buy_fee_rial: int
+    sell_fee_rial: int
+
+
 class SourcePriceResult(PriceResult):
     symbol_id: int
     source_id: int
+    currency: CurrencyType
     is_selected: bool = False
+    fee: FeeResult | None = None
     reason: SelectionReason | None = None
-
-    @classmethod
-    def from_sides(
-        cls,
-        source_id: int,
-        symbol_id: int,
-        selling: int,
-        buying: int,
-    ) -> Self:
-        selling = currency_utils.round_rial(selling)
-        buying = currency_utils.round_rial(buying)
-        price = currency_utils.round_rial((selling + buying) / 2)
-        sell_spread = selling - price
-        buy_spread = price - buying
-        divisor = Decimal(price) if price else Decimal(1)
-        result = cls(
-            source_id=source_id,
-            symbol_id=symbol_id,
-            sell_price=selling,
-            buy_price=buying,
-            price=price,
-            sell_spread_rial=sell_spread,
-            buy_spread_rial=buy_spread,
-            sell_spread_rate=Decimal(sell_spread) / divisor,
-            buy_spread_rate=Decimal(buy_spread) / divisor,
-            priced_at=date_utils.utc_now(),
-        )
-        return result
 
 
 class BubbleResult(BaseModel):
@@ -65,21 +44,4 @@ class BubbleResult(BaseModel):
 
 
 class SourceBubbleResult(BubbleResult):
-    source_id: int
-
-
-class PriceWindowResult(BaseModel):
-    open: int
-    high: int
-    low: int
-    close: int
-    bucket: datetime
-
-
-class AssetPriceWindowResult(PriceWindowResult):
-    asset_id: int
-
-
-class SourcePriceWindowResult(PriceWindowResult):
-    symbol_id: int
     source_id: int

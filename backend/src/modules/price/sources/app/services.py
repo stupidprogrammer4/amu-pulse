@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Mapping, Sequence
 
 from src.common.bases.results import PagedType
 from src.common.bases.services import BaseIDService, BaseService
@@ -242,3 +242,31 @@ class SourceService(BaseIDService[SourceModel]):
         source = await self.repo.delete_by_id(id)
         source = self._check_for_id_existence(id, source)
         return source
+
+
+class SourceErrorService(BaseIDService[SourceModel]):
+    def __init__(self, repo: SourceRepository) -> None:
+        """
+        Desc: Build the service with its repository.
+        Args:
+            repo (SourceRepository): The source repository.
+        """
+        self.repo = repo
+
+    async def apply_errors(
+        self,
+        errors: Mapping[int, SourceErrorInfo | None],
+    ) -> Sequence[SourceModel]:
+        """
+        Desc: Record what a crawl learned about every source it called.
+        Args:
+            errors (Mapping[int, SourceErrorInfo | None]): The failure of
+                each source, or None where it answered.
+        Returns:
+            return (Sequence[SourceModel]): The updated sources.
+        """
+        rows = self._check_not_empty_dict(dict(errors))
+        sources = await self.repo.bulk_update(
+            [SourceModel(id=id, error=error) for id, error in rows.items()]
+        )
+        return sources

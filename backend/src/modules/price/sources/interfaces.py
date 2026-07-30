@@ -1,4 +1,4 @@
-from typing import Protocol, Sequence
+from typing import Mapping, Protocol, Sequence
 
 from src.common.bases.results import PagedType
 from src.modules.price.sources.domain.dtos import (
@@ -56,3 +56,10 @@ class ISourceService(Protocol):
     async def clear_error(self, id: int) -> SourceModel: ...
 
     async def remove(self, id: int) -> SourceModel: ...
+
+
+class ISourceErrorService(Protocol):
+    async def apply_errors(
+        self,
+        errors: Mapping[int, SourceErrorInfo | None],
+    ) -> Sequence[SourceModel]: ...

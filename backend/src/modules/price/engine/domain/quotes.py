@@ -1,11 +1,9 @@
 from dataclasses import dataclass
-from decimal import Decimal
 from typing import Self, Sequence
 
 from src.common.utils import currency_utils
 from src.common.utils.currency_utils import QuotedAmount
 from src.modules.price.assets.domain.enums import AssetCode
-from src.modules.price.engine.domain.enums import QuoteKind
 from src.modules.price.sources.domain.enums import ErrorType, SourceCode
 from src.modules.price.symbols.domain.enums import SymbolCode
 
@@ -29,7 +27,6 @@ class SupplierSourceQuote:
     # the fetcher names the line, so nothing downstream assumes it
     code: SourceCode
     symbol: SymbolCode
-    kind: QuoteKind
     selling_mazane: int
     buying_mazane: int
     is_closed: bool = False
@@ -40,7 +37,6 @@ class SupplierSourceQuote:
         cls,
         code: SourceCode,
         symbol: SymbolCode,
-        kind: QuoteKind,
         first: QuotedAmount,
         second: QuotedAmount,
         is_closed: bool = False,
@@ -51,7 +47,6 @@ class SupplierSourceQuote:
         quote = cls(
             code=code,
             symbol=symbol,
-            kind=kind,
             selling_mazane=currency_utils.round_rial(
                 max(first_rial, second_rial)
             ),
@@ -67,13 +62,11 @@ class SupplierSourceQuote:
         cls,
         code: SourceCode,
         symbol: SymbolCode,
-        kind: QuoteKind,
         error: ErrorQuote,
     ) -> Self:
         quote = cls(
             code=code,
             symbol=symbol,
-            kind=kind,
             selling_mazane=0,
             buying_mazane=0,
             error=error,
@@ -178,11 +171,11 @@ class IranSourceQuote:
 
 @dataclass(frozen=True, slots=True)
 class GlobalSourceQuote:
-    # a world feed: priced in USD, so Decimal rather than integer Rial
+    # a world feed prices in dollars, so its unit is the cent
     code: SourceCode
     symbol: SymbolCode
-    selling: Decimal
-    buying: Decimal
+    selling_cent: int
+    buying_cent: int
     error: ErrorQuote | None = None
 
     @classmethod
@@ -193,13 +186,13 @@ class GlobalSourceQuote:
         first: QuotedAmount,
         second: QuotedAmount,
     ) -> Self:
-        first_usd = currency_utils.to_decimal(first)
-        second_usd = currency_utils.to_decimal(second)
+        first_cent = currency_utils.to_cent(first)
+        second_cent = currency_utils.to_cent(second)
         quote = cls(
             code=code,
             symbol=symbol,
-            selling=max(first_usd, second_usd),
-            buying=min(first_usd, second_usd),
+            selling_cent=max(first_cent, second_cent),
+            buying_cent=min(first_cent, second_cent),
         )
         return quote
 
@@ -210,8 +203,10 @@ class GlobalSourceQuote:
         symbol: SymbolCode,
         price: QuotedAmount,
     ) -> Self:
-        mid = currency_utils.to_decimal(price)
-        quote = cls(code=code, symbol=symbol, selling=mid, buying=mid)
+        mid = currency_utils.to_cent(price)
+        quote = cls(
+            code=code, symbol=symbol, selling_cent=mid, buying_cent=mid
+        )
         return quote
 
     @classmethod
@@ -224,8 +219,8 @@ class GlobalSourceQuote:
         quote = cls(
             code=code,
             symbol=symbol,
-            selling=Decimal(0),
-            buying=Decimal(0),
+            selling_cent=0,
+            buying_cent=0,
             error=error,
         )
         return quote

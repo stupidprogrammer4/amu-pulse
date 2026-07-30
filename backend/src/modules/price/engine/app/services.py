@@ -1,16 +1,26 @@
 import asyncio
+from collections import defaultdict
 from typing import Awaitable, Sequence
 
+from dishka import AsyncContainer
+
+from src.common.utils import currency_utils, date_utils
+from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.engine.domain.context import CFGContext
 from src.modules.price.engine.domain.quotes import (
     BubbleQuote,
+    ErrorQuote,
     GlobalSourceQuote,
     IranSourceQuote,
     SourceQuote,
     SupplierSourceQuote,
 )
+from src.modules.price.engine.domain.results import (
+    FeeResult,
+    SourceBubbleResult,
+    SourcePriceResult,
+)
 from src.modules.price.engine.infra.cache import (
-    BubbleCache,
     BubbleSourceCache,
     SourcePriceCache,
 )
@@ -25,40 +35,38 @@ from src.modules.price.engine.infra.readers import (
     SourceReader,
     SymbolReader,
 )
+from src.modules.price.engine.interfaces import (
+    ICacheFlusherService,
+    ICFGReaderService,
+    ICrawlerService,
+    IPersistFlusherService,
+)
+from src.modules.price.sources.domain.errors import SourceErrorInfo
+from src.modules.price.sources.interfaces import ISourceErrorService
+from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
 
 
-class PricingEngineService:
+class CFGReaderService:
     def __init__(
         self,
         assets: AssetReader,
         symbols: SymbolReader,
         sources: SourceReader,
-        prices: SourcePriceCache,
-        bubbles: BubbleCache,
-        source_bubbles: BubbleSourceCache,
     ) -> None:
         """
-        Desc: Build the service with the readers it crawls from and the
-        caches it writes to.
+        Desc: Build the service with the readers it reads through.
         Args:
             assets (AssetReader): Reader over the assets module's tables.
             symbols (SymbolReader): Reader over the symbols module's tables.
             sources (SourceReader): Reader over the sources module's tables.
-            prices (SourcePriceCache): Where each source's reading lands.
-            bubbles (BubbleCache): Where the settled premium is read from.
-            source_bubbles (BubbleSourceCache): Where each source's raw
-                premium lands.
         """
         self.assets = assets
         self.symbols = symbols
         self.sources = sources
-        self.prices = prices
-        self.bubbles = bubbles
-        self.source_bubbles = source_bubbles
 
-    async def _fetch_all_db(self) -> CFGContext:
+    async def read_context(self) -> CFGContext:
         """
-        Desc: Read what the crawl needs: every source, and the ids a quoted
+        Desc: Read what a crawl needs: every source, and the ids a quoted
         code maps to.
         Returns:
             return (CFGContext): The sources to call, and the symbols and
@@ -70,20 +78,26 @@ class PricingEngineService:
         context = CFGContext(sources=sources, symbols=symbols, assets=assets)
         return context
 
-    async def _fetch_all_http(self, context: CFGContext) -> SourceQuote:
+
+class CrawlerService:
+    async def crawl(
+        self,
+        cfg: CFGContext,
+    ) -> tuple[SourceQuote, SourceQuote]:
         """
-        Desc: Call every source that has a fetcher, all at once.
+        Desc: Call every source that has a fetcher, all at once, and split
+        what answered from what failed.
         Args:
-            context (CFGContext): The sources to call, with their configs.
+            cfg (CFGContext): The sources to call, with their configs.
         Returns:
-            return (SourceQuote): Every quote the crawl came back with,
-                split by the family that produced it.
+            return (tuple[SourceQuote, SourceQuote]): The answered quotes,
+                then the failed ones.
         """
         suppliers: list[Awaitable[Sequence[SupplierSourceQuote]]] = []
         irans: list[Awaitable[Sequence[IranSourceQuote]]] = []
         globals_: list[Awaitable[Sequence[GlobalSourceQuote]]] = []
         bubbles: list[Awaitable[Sequence[BubbleQuote]]] = []
-        for source in context.sources:
+        for source in cfg.sources:
             headers = source.cfg.headers_credentials
             timeout = source.cfg.timeout
             supplier_cls = SUPPLIER_FETCHERS.get(source.code)
@@ -110,37 +124,273 @@ class PricingEngineService:
             asyncio.gather(*globals_),
             asyncio.gather(*bubbles),
         )
-        quote = SourceQuote(
-            suppliers=[q for rows in supplier_rows for q in rows],
-            irans=[q for rows in iran_rows for q in rows],
-            globals=[q for rows in global_rows for q in rows],
-            bubbles=[q for rows in bubble_rows for q in rows],
+        supplied = [q for rows in supplier_rows for q in rows]
+        iraned = [q for rows in iran_rows for q in rows]
+        worlded = [q for rows in global_rows for q in rows]
+        bubbled = [q for rows in bubble_rows for q in rows]
+        answered = SourceQuote(
+            suppliers=[q for q in supplied if q.error is None],
+            irans=[q for q in iraned if q.error is None],
+            globals=[q for q in worlded if q.error is None],
+            bubbles=[q for q in bubbled if q.error is None],
         )
-        return quote
+        failed = SourceQuote(
+            suppliers=[q for q in supplied if q.error is not None],
+            irans=[q for q in iraned if q.error is not None],
+            globals=[q for q in worlded if q.error is not None],
+            bubbles=[q for q in bubbled if q.error is not None],
+        )
+        return answered, failed
 
-    async def _save_all(
+
+class CacheFlusherService:
+    def __init__(
         self,
-        context: CFGContext,
-        quote: SourceQuote,
+        prices: SourcePriceCache,
+        source_bubbles: BubbleSourceCache,
+    ) -> None:
+        """
+        Desc: Build the service with the caches it writes to.
+        Args:
+            prices (SourcePriceCache): Where each source's reading lands.
+            source_bubbles (BubbleSourceCache): Where each source's raw
+                premium lands.
+        """
+        self.prices = prices
+        self.source_bubbles = source_bubbles
+
+    def _reading(
+        self,
+        source_id: int,
+        symbol_id: int,
+        currency: CurrencyType,
+        selling: int,
+        buying: int,
+        fee: FeeResult | None = None,
+    ) -> SourcePriceResult:
+        """
+        Desc: Turn the two sides a source quoted into one reading.
+        Args:
+            source_id (int): ID of the source that quoted it.
+            symbol_id (int): ID of the line it was quoted for.
+            currency (CurrencyType): What the numbers are counted in.
+            selling (int): The selling side, in the currency's own unit.
+            buying (int): The buying side, in the currency's own unit.
+            fee (FeeResult | None): What the source charges on each side.
+        Returns:
+            return (SourcePriceResult): The reading.
+        """
+        price = round((selling + buying) / 2)
+        if currency is CurrencyType.RIAL:
+            price = currency_utils.round_rial(price)
+        sell_spread = selling - price
+        buy_spread = price - buying
+        divisor = price or 1
+        reading = SourcePriceResult(
+            source_id=source_id,
+            symbol_id=symbol_id,
+            currency=currency,
+            buy_price=buying,
+            sell_price=selling,
+            price=price,
+            buy_spread=buy_spread,
+            sell_spread=sell_spread,
+            buy_spread_rate=buy_spread / divisor,
+            sell_spread_rate=sell_spread / divisor,
+            priced_at=date_utils.utc_now(),
+            fee=fee,
+        )
+        return reading
+
+    async def flush_results(
+        self,
+        cfg: CFGContext,
+        quotes: SourceQuote,
     ) -> int:
         """
-        Desc: Price every quote the crawl produced and cache it under the
-        asset it belongs to.
+        Desc: Cache every quote under the symbol it was read for, and every
+        premium under its asset.
         Args:
-            context (CFGContext): What the crawl ran against, holding the
-                ids the quotes have to be attributed to.
-            quote (SourceQuote): What the crawl came back with.
+            cfg (CFGContext): What the crawl ran against, holding the ids
+                the quotes have to be attributed to.
+            quotes (SourceQuote): What the crawl came back with.
         Returns:
             return (int): How many readings were cached.
         """
-        # TODO: implement once the asset spec design is settled
-        raise NotImplementedError
+        source_ids = {source.code: source.id for source in cfg.sources}
+        symbol_ids = {symbol.code: symbol.id for symbol in cfg.symbols}
+        asset_ids = {asset.code: asset.id for asset in cfg.assets}
+        readings: dict[SymbolCode, list[SourcePriceResult]] = defaultdict(list)
 
-    async def run(self) -> int:
+        for iran in quotes.irans:
+            source_id = source_ids.get(iran.code)
+            symbol_id = symbol_ids.get(iran.symbol)
+            if source_id is None or symbol_id is None:
+                continue
+            fee = None
+            if iran.fee is not None:
+                fee = FeeResult(
+                    buy_fee_rate=iran.fee.buy_rate,
+                    sell_fee_rate=iran.fee.sell_rate,
+                    buy_fee_rial=iran.buy_fee_rial,
+                    sell_fee_rial=iran.sell_fee_rial,
+                )
+            readings[iran.symbol].append(
+                self._reading(
+                    source_id=source_id,
+                    symbol_id=symbol_id,
+                    currency=CurrencyType.RIAL,
+                    selling=iran.sell_price_rial,
+                    buying=iran.buy_price_rial,
+                    fee=fee,
+                )
+            )
+
+        # a mesghal is a line of its own; turning it into grams is the
+        # calculator's job, not the crawl's
+        for supplier in quotes.suppliers:
+            source_id = source_ids.get(supplier.code)
+            symbol_id = symbol_ids.get(supplier.symbol)
+            if source_id is None or symbol_id is None:
+                continue
+            readings[supplier.symbol].append(
+                self._reading(
+                    source_id=source_id,
+                    symbol_id=symbol_id,
+                    currency=CurrencyType.RIAL,
+                    selling=supplier.selling_mazane,
+                    buying=supplier.buying_mazane,
+                )
+            )
+
+        for world in quotes.globals:
+            source_id = source_ids.get(world.code)
+            symbol_id = symbol_ids.get(world.symbol)
+            if source_id is None or symbol_id is None:
+                continue
+            readings[world.symbol].append(
+                self._reading(
+                    source_id=source_id,
+                    symbol_id=symbol_id,
+                    currency=CurrencyType.USD,
+                    selling=world.selling_cent,
+                    buying=world.buying_cent,
+                )
+            )
+
+        premiums: dict[AssetCode, list[SourceBubbleResult]] = defaultdict(list)
+        for bubble in quotes.bubbles:
+            source_id = source_ids.get(bubble.code)
+            asset_id = asset_ids.get(bubble.asset)
+            if source_id is None or asset_id is None:
+                continue
+            premiums[bubble.asset].append(
+                SourceBubbleResult(
+                    source_id=source_id,
+                    asset_id=asset_id,
+                    amount=bubble.amount,
+                    priced_at=date_utils.utc_now(),
+                )
+            )
+
+        if readings:
+            await self.prices.set_many(readings)
+        if premiums:
+            await self.source_bubbles.set_many(premiums)
+        return sum(len(rows) for rows in readings.values())
+
+
+class PersistFlusherService:
+    def __init__(self, errors: ISourceErrorService) -> None:
         """
-        Desc: Crawl every source once and cache what they quoted.
+        Desc: Build the service with the source service it writes through.
+        Args:
+            errors (ISourceErrorService): Where a source's failure is kept.
+        """
+        self.errors = errors
+
+    def _as_info(self, error: ErrorQuote) -> SourceErrorInfo:
+        """
+        Desc: Turn what a gateway reported into what a source row stores.
+        Args:
+            error (ErrorQuote): What the fetcher came back with.
         Returns:
-            return (int): How many readings were cached.
+            return (SourceErrorInfo): The row payload.
         """
-        # TODO: implement once _save_all is implemented
-        raise NotImplementedError
+        info = SourceErrorInfo(kind=error.error_type, message=error.message)
+        if error.http_error is not None:
+            info["status_code"] = int(error.http_error.status_code)
+            info["raw_content"] = error.http_error.raw_content
+        return info
+
+    async def flush_errors(
+        self,
+        cfg: CFGContext,
+        quotes: SourceQuote,
+    ) -> int:
+        """
+        Desc: Stamp every source that failed, and clear the error every
+        other crawled source carried from the last run.
+        Args:
+            cfg (CFGContext): What the crawl ran against.
+            quotes (SourceQuote): The quotes that came back failed.
+        Returns:
+            return (int): How many sources were stamped.
+        """
+        source_ids = {source.code: source.id for source in cfg.sources}
+        # a source without a fetcher was never called, so it is not judged
+        called = {
+            *SUPPLIER_FETCHERS,
+            *IRAN_FETCHERS,
+            *GLOBAL_FETCHERS,
+            *BUBBLE_FETCHERS,
+        }
+        errors: dict[int, SourceErrorInfo | None] = {
+            id: None for code, id in source_ids.items() if code in called
+        }
+        rows = (
+            list(quotes.irans)
+            + list(quotes.suppliers)
+            + list(quotes.globals)
+            + list(quotes.bubbles)
+        )
+        for row in rows:
+            source_id = source_ids.get(row.code)
+            if source_id is None or row.error is None:
+                continue
+            errors[source_id] = self._as_info(row.error)
+        if errors:
+            await self.errors.apply_errors(errors)
+        return len(errors)
+
+
+class RunnerService:
+    def __init__(self, container: AsyncContainer) -> None:
+        """
+        Desc: Build the service with the container it opens its scopes on.
+        Args:
+            container (AsyncContainer): The application container.
+        """
+        self.container = container
+
+    async def run(self) -> bool:
+        """
+        Desc: Read the config, crawl every source, then write what came
+        back, holding a database connection only for the two db phases.
+        Returns:
+            return (bool): Whether anything was cached.
+        """
+        async with self.container() as scope:
+            reader = await scope.get(ICFGReaderService)
+            cfg = await reader.read_context()
+
+        crawler = await self.container.get(ICrawlerService)
+        answered, failed = await crawler.crawl(cfg)
+
+        flusher = await self.container.get(ICacheFlusherService)
+        saved = await flusher.flush_results(cfg, answered)
+
+        async with self.container() as scope:
+            persist = await scope.get(IPersistFlusherService)
+            await persist.flush_errors(cfg, failed)
+        return saved > 0

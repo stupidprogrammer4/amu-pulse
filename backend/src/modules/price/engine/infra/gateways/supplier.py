@@ -2,7 +2,6 @@ from typing import Sequence
 
 import httpx
 
-from src.modules.price.engine.domain.enums import QuoteKind
 from src.modules.price.engine.domain.quotes import (
     ErrorQuote,
     SupplierSourceQuote,
@@ -17,15 +16,12 @@ from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class AbstractSupplierFetcher(AbstractFetcher[SupplierSourceQuote]):
-    __kind__: QuoteKind = QuoteKind.MAZANE
     # a supplier dealing in another metal would say so here
     __symbol__: SymbolCode = SymbolCode.GOLD18_MAZANE
 
     def _failed(self, error: ErrorQuote) -> Sequence[SupplierSourceQuote]:
         return [
-            SupplierSourceQuote.failed(
-                self.__code__, self.__symbol__, self.__kind__, error
-            )
+            SupplierSourceQuote.failed(self.__code__, self.__symbol__, error)
         ]
 
 
@@ -47,7 +43,6 @@ class TalalandFetcher(AbstractSupplierFetcher):
         quote = SupplierSourceQuote.from_pair(
             self.__code__,
             self.__symbol__,
-            self.__kind__,
             float(data["bidPrice"]) * 10,
             float(data["askPrice"]) * 10,
             is_closed=not data["marketIsOpen"],
@@ -84,7 +79,6 @@ class MirrokniFetcher(AbstractSupplierFetcher):
         quote = SupplierSourceQuote.from_pair(
             self.__code__,
             self.__symbol__,
-            self.__kind__,
             sell,
             buy,
             is_closed=not (buy and sell),

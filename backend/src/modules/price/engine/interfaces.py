@@ -1,29 +1,32 @@
 from typing import Protocol
 
-from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.engine.domain.context import CFGContext
 from src.modules.price.engine.domain.quotes import SourceQuote
 
 
-class IPricingEngineService(Protocol):
-    # ---------- crawl all sources and save their prices ----------
-    async def _fetch_all_db(self) -> CFGContext: ...
+class ICFGReaderService(Protocol):
+    async def read_context(self) -> CFGContext: ...
 
-    async def _fetch_all_http(self, context: CFGContext) -> SourceQuote: ...
 
-    async def _save_all(
-        self, context: CFGContext, quote: SourceQuote
+class ICrawlerService(Protocol):
+    async def crawl(
+        self, cfg: CFGContext
+    ) -> tuple[SourceQuote, SourceQuote]: ...
+
+
+class ICacheFlusherService(Protocol):
+    async def flush_results(
+        self, cfg: CFGContext, quotes: SourceQuote
     ) -> int: ...
 
-    async def run(self) -> int: ...
+
+class IPersistFlusherService(Protocol):
+    async def flush_errors(
+        self,
+        cfg: CFGContext,
+        quotes: SourceQuote,
+    ) -> int: ...
 
 
-class IPriceCalculatorService(Protocol):
-    # ---------- use cached prices in redis to calculate final price ----------
-    async def calculate_all(self) -> bool: ...
-
-    async def calculate(self, asset_code: AssetCode) -> bool: ...
-
-    async def calculate_bubble_all(self) -> bool: ...
-
-    async def calculate_bubble(self, asset_code: AssetCode) -> bool: ...
+class IRunnerService(Protocol):
+    async def run(self) -> bool: ...

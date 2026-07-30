@@ -102,6 +102,21 @@ class SourceRepository(PGIDRepository[SourceModel]):
         result = await self.session.execute(stmt)
         return result.unique().scalars().all()
 
+    async def bulk_update(
+        self,
+        rows: Sequence[SourceModel],
+    ) -> Sequence[SourceModel]:
+        """
+        Desc: Write each given source's own columns in one statement.
+        Args:
+            rows (Sequence[SourceModel]): The sources to write.
+        Returns:
+            return (Sequence[SourceModel]): The written sources.
+        """
+        stmt = self._bulk_update_stmt(rows, col(SourceModel.id))
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
 
 class SourceConfigRepository(PGTimestampRepository[SourceConfigModel]):
     async def get_by_source_id(
