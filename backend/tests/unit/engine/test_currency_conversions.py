@@ -12,16 +12,15 @@ class TestMazane:
         assert currency_utils.from_mazane(4_331_802) == 1_000_000
 
     def test_a_per_gram_price_converts_to_its_mazane(self) -> None:
-        assert currency_utils.to_mazane(1_000_000) == 4_331_802
+        # every rial price is rounded to the ten it sits on
+        assert currency_utils.to_mazane(1_000_000) == 4_331_800
 
-    @pytest.mark.parametrize(
-        "per_gram", [1, 1_000, 185_820_000, 197_631_000]
-    )
-    def test_the_round_trip_holds_within_a_rial(self, per_gram: int) -> None:
-        # each leg rounds to whole rial, so a rial of drift is expected
+    @pytest.mark.parametrize("per_gram", [1_000, 185_820_000, 197_631_000])
+    def test_the_round_trip_holds_within_a_ten(self, per_gram: int) -> None:
+        # each leg rounds to the nearest ten, so ten of drift is expected
         back = currency_utils.from_mazane(currency_utils.to_mazane(per_gram))
 
-        assert abs(back - per_gram) <= 1
+        assert abs(back - per_gram) <= 10
 
     def test_a_mazane_is_worth_more_than_a_gram(self) -> None:
         # a mazane is 4.33 grams; getting this inverted would be silent
@@ -39,11 +38,11 @@ class TestDollarAndBubble:
 
         assert rial == 193_190_000
 
-    def test_a_fractional_amount_keeps_its_precision(self) -> None:
+    def test_a_fractional_amount_lands_on_a_ten(self) -> None:
         # an ounce price divided down to a gram is never a round number
         rial = currency_utils.from_usd(Decimal("96.452240"), 1_931_900)
 
-        assert rial == round(Decimal("96.452240") * 1_931_900)
+        assert rial == 186_336_080
 
     def test_a_positive_bubble_lifts_the_price(self) -> None:
         assert currency_utils.with_bubble(190_000_000, 3_241_000) == (
@@ -58,3 +57,22 @@ class TestDollarAndBubble:
 
     def test_a_zero_bubble_leaves_the_price_alone(self) -> None:
         assert currency_utils.with_bubble(190_000_000, 0) == 190_000_000
+
+
+class TestRoundRial:
+    def test_a_price_always_ends_in_a_zero(self) -> None:
+        assert currency_utils.round_rial(197_631_004) == 197_631_000
+
+    def test_it_rounds_to_the_nearest_ten(self) -> None:
+        assert currency_utils.round_rial(195) == 200
+        assert currency_utils.round_rial(194) == 190
+
+    def test_it_takes_a_decimal(self) -> None:
+        assert currency_utils.round_rial(Decimal("1934.5")) == 1930
+
+    def test_it_leaves_a_round_price_alone(self) -> None:
+        assert currency_utils.round_rial(1_931_900) == 1_931_900
+
+    def test_a_negative_amount_still_lands_on_a_ten(self) -> None:
+        # a bubble under world parity is a real, signed number
+        assert currency_utils.round_rial(-2_137_544) == -2_137_540

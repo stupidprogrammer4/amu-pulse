@@ -9,12 +9,14 @@ from src.modules.price.engine.domain.context import (
     AssetContext,
     AssetRefContext,
     SourceContext,
+    SymbolRefContext,
 )
 from src.modules.price.sources.domain.enums import SourceSwitch
 from src.modules.price.sources.domain.models import (
     SourceConfigModel,
     SourceModel,
 )
+from src.modules.price.symbols.domain.models import SymbolModel
 
 
 class AssetReader(PGReader):
@@ -155,3 +157,27 @@ class SourceReader(PGReader):
             )
             for source, cfg in rows
         ]
+
+
+class SymbolReader(PGReader):
+    def __init__(self, uow: PGUnitOfWork):
+        """
+        Desc: Build the reader over the unit of work.
+        Args:
+            uow (PGUnitOfWork): Unit of work whose session runs the query.
+        """
+        super().__init__(uow)
+
+    async def read_refs(self) -> Sequence[SymbolRefContext]:
+        """
+        Desc: Read every symbol's identity, oldest first.
+        Returns:
+            return (Sequence[SymbolRefContext]): Each symbol's code and id,
+                enough to turn a quoted code into a symbol_id.
+        """
+        stmt = select(SymbolModel.id, SymbolModel.code).order_by(
+            col(SymbolModel.id)
+        )
+        result = await self.session.execute(stmt)
+        rows = result.all()
+        return [SymbolRefContext(code=code, id=id) for id, code in rows]

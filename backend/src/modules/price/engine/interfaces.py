@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.engine.domain.context import CFGContext
 from src.modules.price.engine.domain.quotes import SourceQuote
 
@@ -21,4 +22,8 @@ class IPriceCalculatorService(Protocol):
     # ---------- use cached prices in redis to calculate final price ----------
     async def calculate_all(self) -> bool: ...
 
-    async def calculate(self, asset_id: int) -> bool: ...
+    async def calculate(self, asset_code: AssetCode) -> bool: ...
+
+    async def calculate_bubble_all(self) -> bool: ...
+
+    async def calculate_bubble(self, asset_code: AssetCode) -> bool: ...

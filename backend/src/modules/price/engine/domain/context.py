@@ -5,6 +5,7 @@ from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.assets.domain.models import AssetConfigModel
 from src.modules.price.sources.domain.enums import SourceCode, SourceSwitch
 from src.modules.price.sources.domain.models import SourceConfigModel
+from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +23,12 @@ class AssetRefContext:
 
 
 @dataclass(frozen=True, slots=True)
+class SymbolRefContext:
+    code: SymbolCode
+    id: int
+
+
+@dataclass(frozen=True, slots=True)
 class AssetContext:
     code: AssetCode
     id: int
@@ -31,4 +38,5 @@ class AssetContext:
 @dataclass(frozen=True, slots=True)
 class CFGContext:
     sources: Sequence[SourceContext]
+    symbols: Sequence[SymbolRefContext]
     assets: Sequence[AssetRefContext]

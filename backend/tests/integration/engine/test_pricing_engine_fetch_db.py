@@ -16,8 +16,16 @@ from src.modules.price.assets.infra.repository import (
     AssetRepository,
 )
 from src.modules.price.engine.app.services import PricingEngineService
-from src.modules.price.engine.infra.cache import SourcePriceCache
-from src.modules.price.engine.infra.readers import AssetReader, SourceReader
+from src.modules.price.engine.infra.cache import (
+    BubbleCache,
+    BubbleSourceCache,
+    SourcePriceCache,
+)
+from src.modules.price.engine.infra.readers import (
+    AssetReader,
+    SourceReader,
+    SymbolReader,
+)
 from src.modules.price.sources.app.services import (
     SourceConfigService,
     SourceService,
@@ -41,10 +49,15 @@ def _engine(uow: PGUnitOfWork) -> PricingEngineService:
     """
     # these cover the read and crawl halves; nothing here writes, so the
     # cache is stood up over a fake rather than a live Redis
-    cache = SourcePriceCache(
-        cast(RedisClient, SimpleNamespace(client=_FakeRedis()))
+    client = cast(RedisClient, SimpleNamespace(client=_FakeRedis()))
+    return PricingEngineService(
+        AssetReader(uow),
+        SymbolReader(uow),
+        SourceReader(uow),
+        SourcePriceCache(client),
+        BubbleCache(client),
+        BubbleSourceCache(client),
     )
-    return PricingEngineService(AssetReader(uow), SourceReader(uow), cache)
 
 
 def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:

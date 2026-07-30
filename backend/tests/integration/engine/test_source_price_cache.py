@@ -7,9 +7,9 @@ from redis.exceptions import RedisError
 
 from src.core.config import Settings
 from src.infra.redis.client import RedisClient
-from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.engine.domain.results import SourcePriceResult
 from src.modules.price.engine.infra.cache import SourcePriceCache
+from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class _TestSourcePriceCache(SourcePriceCache):
@@ -57,7 +57,7 @@ def _reading(source_id: int, price: int) -> SourcePriceResult:
     """
     return SourcePriceResult(
         source_id=source_id,
-        asset_id=1,
+        symbol_id=1,
         buy_price=price - 1000,
         sell_price=price + 1000,
         price=price,
@@ -74,24 +74,24 @@ class TestSourcePriceCacheAgainstRedis:
         self, cache: _TestSourcePriceCache
     ) -> None:
         await cache.set(
-            AssetCode.GOLD18,
+            SymbolCode.GOLD18_GRAM,
             [_reading(1, 185_820_000), _reading(2, 187_455_000)],
         )
 
-        found = await cache.get(AssetCode.GOLD18)
+        found = await cache.get(SymbolCode.GOLD18_GRAM)
 
         assert found is not None
         assert [r.source_id for r in found] == [1, 2]
         assert found[0].buy_spread_rate == Decimal("0.00125")
         assert found[0].priced_at.tzinfo is not None
 
-    async def test_both_assets_come_back_in_one_read(
+    async def test_both_symbols_come_back_in_one_read(
         self, cache: _TestSourcePriceCache
     ) -> None:
         await cache.set_many(
             {
-                AssetCode.GOLD18: [_reading(1, 185_820_000)],
-                AssetCode.USD: [
+                SymbolCode.GOLD18_GRAM: [_reading(1, 185_820_000)],
+                SymbolCode.USD_RIAL: [
                     _reading(2, 1_931_900),
                     _reading(3, 1_934_030),
                 ],
@@ -101,14 +101,14 @@ class TestSourcePriceCacheAgainstRedis:
         found = await cache.get_all()
 
         assert {code: len(rows) for code, rows in found.items()} == {
-            AssetCode.GOLD18: 1,
-            AssetCode.USD: 2,
+            SymbolCode.GOLD18_GRAM: 1,
+            SymbolCode.USD_RIAL: 2,
         }
 
     async def test_it_really_is_one_hash(
         self, cache: _TestSourcePriceCache
     ) -> None:
-        await cache.set(AssetCode.GOLD18, [_reading(1, 1)])
+        await cache.set(SymbolCode.GOLD18_GRAM, [_reading(1, 1)])
 
         kind = await cache.redis.client.type(cache.namespace)
 
@@ -117,10 +117,10 @@ class TestSourcePriceCacheAgainstRedis:
     async def test_remove_leaves_the_other_asset_alone(
         self, cache: _TestSourcePriceCache
     ) -> None:
-        await cache.set(AssetCode.GOLD18, [_reading(1, 1)])
-        await cache.set(AssetCode.USD, [_reading(2, 2)])
+        await cache.set(SymbolCode.GOLD18_GRAM, [_reading(1, 1)])
+        await cache.set(SymbolCode.USD_RIAL, [_reading(2, 2)])
 
-        await cache.remove(AssetCode.GOLD18)
+        await cache.remove(SymbolCode.GOLD18_GRAM)
         found = await cache.get_all()
 
-        assert set(found) == {AssetCode.USD}
+        assert set(found) == {SymbolCode.USD_RIAL}

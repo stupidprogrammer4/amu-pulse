@@ -5,8 +5,9 @@ from typing import Self, Sequence
 from src.common.utils import currency_utils
 from src.common.utils.currency_utils import QuotedAmount
 from src.modules.price.assets.domain.enums import AssetCode
-from src.modules.price.engine.domain.enums import GlobalSymbol, QuoteKind
+from src.modules.price.engine.domain.enums import QuoteKind
 from src.modules.price.sources.domain.enums import ErrorType, SourceCode
+from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,12 +26,12 @@ class ErrorQuote:
 
 @dataclass(frozen=True, slots=True)
 class SupplierSourceQuote:
-    # the fetcher names the metal, so nothing downstream assumes it
+    # the fetcher names the line, so nothing downstream assumes it
     code: SourceCode
-    asset: AssetCode
+    symbol: SymbolCode
     kind: QuoteKind
-    selling: int
-    buying: int
+    selling_mazane: int
+    buying_mazane: int
     is_closed: bool = False
     error: ErrorQuote | None = None
 
@@ -38,7 +39,7 @@ class SupplierSourceQuote:
     def from_pair(
         cls,
         code: SourceCode,
-        asset: AssetCode,
+        symbol: SymbolCode,
         kind: QuoteKind,
         first: QuotedAmount,
         second: QuotedAmount,
@@ -49,10 +50,14 @@ class SupplierSourceQuote:
         second_rial = currency_utils.to_rial(second)
         quote = cls(
             code=code,
-            asset=asset,
+            symbol=symbol,
             kind=kind,
-            selling=max(first_rial, second_rial),
-            buying=min(first_rial, second_rial),
+            selling_mazane=currency_utils.round_rial(
+                max(first_rial, second_rial)
+            ),
+            buying_mazane=currency_utils.round_rial(
+                min(first_rial, second_rial)
+            ),
             is_closed=is_closed,
         )
         return quote
@@ -61,40 +66,93 @@ class SupplierSourceQuote:
     def failed(
         cls,
         code: SourceCode,
-        asset: AssetCode,
+        symbol: SymbolCode,
         kind: QuoteKind,
         error: ErrorQuote,
     ) -> Self:
         quote = cls(
-            code=code, asset=asset, kind=kind, selling=0, buying=0, error=error
+            code=code,
+            symbol=symbol,
+            kind=kind,
+            selling_mazane=0,
+            buying_mazane=0,
+            error=error,
         )
         return quote
 
 
 @dataclass(frozen=True, slots=True)
+class FeeQuote:
+    sell_rate: float
+    buy_rate: float
+
+
+@dataclass(frozen=True, slots=True)
 class IranSourceQuote:
-    # an Iranian market feed: rial prices, one row per asset it quotes
+    # an Iranian market feed: rial prices, one row per line it quotes
     code: SourceCode
-    asset: AssetCode
-    selling: int
-    buying: int
+    symbol: SymbolCode
+    price_rial: int
+    buy_fee_rial: int
+    sell_fee_rial: int
+    buy_price_rial: int
+    sell_price_rial: int
+    fee: FeeQuote | None = None
+
     error: ErrorQuote | None = None
 
     @classmethod
-    def from_pair(
+    def from_price_and_fee(
         cls,
         code: SourceCode,
-        asset: AssetCode,
-        first: QuotedAmount,
-        second: QuotedAmount,
+        symbol: SymbolCode,
+        price_rial: QuotedAmount,
+        fee: FeeQuote,
     ) -> Self:
-        first_rial = currency_utils.to_rial(first)
-        second_rial = currency_utils.to_rial(second)
+        # one mid price, with the fee opening the spread around it
+        price = currency_utils.round_rial(currency_utils.to_rial(price_rial))
+        buy_fee = round(price * fee.buy_rate)
+        sell_fee = round(price * fee.sell_rate)
         quote = cls(
             code=code,
-            asset=asset,
-            selling=max(first_rial, second_rial),
-            buying=min(first_rial, second_rial),
+            symbol=symbol,
+            price_rial=price,
+            buy_fee_rial=buy_fee,
+            sell_fee_rial=sell_fee,
+            buy_price_rial=currency_utils.round_rial(price - buy_fee),
+            sell_price_rial=currency_utils.round_rial(price + sell_fee),
+            fee=fee,
+        )
+        return quote
+
+    @classmethod
+    def from_buying_selling(
+        cls,
+        code: SourceCode,
+        symbol: SymbolCode,
+        first: QuotedAmount,
+        second: QuotedAmount,
+        fee: FeeQuote | None = None,
+    ) -> Self:
+        # sources quote numbers as strings; compare them as Rial, not text
+        first_rial = currency_utils.to_rial(first)
+        second_rial = currency_utils.to_rial(second)
+        buying = min(first_rial, second_rial)
+        selling = max(first_rial, second_rial)
+        buy_fee = 0
+        sell_fee = 0
+        if fee is not None:
+            buy_fee = round(buying * fee.buy_rate)
+            sell_fee = round(selling * fee.sell_rate)
+        quote = cls(
+            code=code,
+            symbol=symbol,
+            price_rial=currency_utils.round_rial((buying + selling) / 2),
+            buy_fee_rial=buy_fee,
+            sell_fee_rial=sell_fee,
+            buy_price_rial=currency_utils.round_rial(buying - buy_fee),
+            sell_price_rial=currency_utils.round_rial(selling + sell_fee),
+            fee=fee,
         )
         return quote
 
@@ -102,10 +160,19 @@ class IranSourceQuote:
     def failed(
         cls,
         code: SourceCode,
-        asset: AssetCode,
+        symbol: SymbolCode,
         error: ErrorQuote,
     ) -> Self:
-        quote = cls(code=code, asset=asset, selling=0, buying=0, error=error)
+        quote = cls(
+            code=code,
+            symbol=symbol,
+            price_rial=0,
+            buy_fee_rial=0,
+            sell_fee_rial=0,
+            buy_price_rial=0,
+            sell_price_rial=0,
+            error=error,
+        )
         return quote
 
 
@@ -113,7 +180,7 @@ class IranSourceQuote:
 class GlobalSourceQuote:
     # a world feed: priced in USD, so Decimal rather than integer Rial
     code: SourceCode
-    symbol: GlobalSymbol
+    symbol: SymbolCode
     selling: Decimal
     buying: Decimal
     error: ErrorQuote | None = None
@@ -122,7 +189,7 @@ class GlobalSourceQuote:
     def from_pair(
         cls,
         code: SourceCode,
-        symbol: GlobalSymbol,
+        symbol: SymbolCode,
         first: QuotedAmount,
         second: QuotedAmount,
     ) -> Self:
@@ -140,7 +207,7 @@ class GlobalSourceQuote:
     def from_mid(
         cls,
         code: SourceCode,
-        symbol: GlobalSymbol,
+        symbol: SymbolCode,
         price: QuotedAmount,
     ) -> Self:
         mid = currency_utils.to_decimal(price)
@@ -151,7 +218,7 @@ class GlobalSourceQuote:
     def failed(
         cls,
         code: SourceCode,
-        symbol: GlobalSymbol,
+        symbol: SymbolCode,
         error: ErrorQuote,
     ) -> Self:
         quote = cls(
@@ -166,7 +233,7 @@ class GlobalSourceQuote:
 
 @dataclass(frozen=True, slots=True)
 class BubbleQuote:
-    # a published premium, not a price; negative below world parity
+    # a published premium of a whole asset, not of one quoted line
     code: SourceCode
     asset: AssetCode
     amount: int

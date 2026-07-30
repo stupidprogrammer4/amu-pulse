@@ -2,7 +2,6 @@ from typing import Sequence
 
 import httpx
 
-from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.engine.domain.enums import QuoteKind
 from src.modules.price.engine.domain.quotes import (
     ErrorQuote,
@@ -14,17 +13,18 @@ from src.modules.price.engine.infra.gateways.base import (
     user_agent,
 )
 from src.modules.price.sources.domain.enums import SourceCode
+from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class AbstractSupplierFetcher(AbstractFetcher[SupplierSourceQuote]):
     __kind__: QuoteKind = QuoteKind.MAZANE
     # a supplier dealing in another metal would say so here
-    __asset__: AssetCode = AssetCode.GOLD18
+    __symbol__: SymbolCode = SymbolCode.GOLD18_MAZANE
 
     def _failed(self, error: ErrorQuote) -> Sequence[SupplierSourceQuote]:
         return [
             SupplierSourceQuote.failed(
-                self.__code__, self.__asset__, self.__kind__, error
+                self.__code__, self.__symbol__, self.__kind__, error
             )
         ]
 
@@ -46,7 +46,7 @@ class TalalandFetcher(AbstractSupplierFetcher):
         data = json_path(resp.json(), "result")
         quote = SupplierSourceQuote.from_pair(
             self.__code__,
-            self.__asset__,
+            self.__symbol__,
             self.__kind__,
             float(data["bidPrice"]) * 10,
             float(data["askPrice"]) * 10,
@@ -83,7 +83,7 @@ class MirrokniFetcher(AbstractSupplierFetcher):
         buy, sell = info.get("FeeBuy", 0), info.get("FeeSell", 0)
         quote = SupplierSourceQuote.from_pair(
             self.__code__,
-            self.__asset__,
+            self.__symbol__,
             self.__kind__,
             sell,
             buy,

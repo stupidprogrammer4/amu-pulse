@@ -2,7 +2,6 @@ from typing import Sequence
 
 import httpx
 
-from src.modules.price.engine.domain.enums import GlobalSymbol
 from src.modules.price.engine.domain.quotes import (
     ErrorQuote,
     GlobalSourceQuote,
@@ -10,13 +9,13 @@ from src.modules.price.engine.domain.quotes import (
 from src.modules.price.engine.infra.gateways.base import (
     AbstractFetcher,
     json_path,
-    user_agent,
 )
 from src.modules.price.sources.domain.enums import SourceCode
+from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class AbstractGlobalFetcher(AbstractFetcher[GlobalSourceQuote]):
-    __symbol__: GlobalSymbol = GlobalSymbol.XAU
+    __symbol__: SymbolCode = SymbolCode.XAU_OUNCE
 
     def _failed(self, error: ErrorQuote) -> Sequence[GlobalSourceQuote]:
         return [
@@ -56,33 +55,7 @@ class GoldPriceDevFetcher(AbstractGlobalFetcher):
         return [quote]
 
 
-# --- the USD side of the FX board ---
-
-
-class FrankfurterFetcher(AbstractGlobalFetcher):
-    # verified live: keyless
-    __code__ = SourceCode.FRANKFURTER
-    __symbol__ = GlobalSymbol.USD
-    __url__ = "https://api.frankfurter.dev/v1/latest"
-    # the currency the dollar is measured against
-    against = "EUR"
-
-    async def _request(self, client: httpx.AsyncClient) -> httpx.Response:
-        headers = {"User-Agent": user_agent, **self.headers_credentials}
-        params = {"base": "USD", "symbols": self.against}
-        resp = await client.get(self.__url__, headers=headers, params=params)
-        return resp
-
-    def _parse(self, resp: httpx.Response) -> Sequence[GlobalSourceQuote]:
-        rates = json_path(resp.json(), "rates")
-        quote = GlobalSourceQuote.from_mid(
-            self.__code__, self.__symbol__, json_path(rates, self.against)
-        )
-        return [quote]
-
-
 GLOBAL_FETCHERS: dict[SourceCode, type[AbstractGlobalFetcher]] = {
-    SourceCode.FRANKFURTER: FrankfurterFetcher,
     SourceCode.GOLD_API: GoldApiComFetcher,
     SourceCode.GOLDPRICE_DEV: GoldPriceDevFetcher,
 }

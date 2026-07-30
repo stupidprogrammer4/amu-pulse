@@ -7,6 +7,8 @@ from decimal import Decimal
 # carat, so 4.6083 * (0.705 / 0.750). Suppliers quote the mazane; everything
 # downstream is per-gram.
 MAZANE_FACTOR = Decimal("4.331802")
+# grams in a troy ounce, the unit every world feed quotes gold in
+TROY_OUNCE_GRAMS = Decimal("31.1034768")
 
 # numbers
 INT32_MAX = 2_147_483_647

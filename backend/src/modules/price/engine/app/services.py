@@ -1,10 +1,6 @@
 import asyncio
-from collections import defaultdict
 from typing import Awaitable, Sequence
 
-from src.common.constants import MAZANE_FACTOR
-from src.common.utils import currency_utils
-from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.engine.domain.context import CFGContext
 from src.modules.price.engine.domain.quotes import (
     BubbleQuote,
@@ -13,50 +9,65 @@ from src.modules.price.engine.domain.quotes import (
     SourceQuote,
     SupplierSourceQuote,
 )
-from src.modules.price.engine.domain.results import (
-    SourcePriceResult,
-    SupplierComputation,
+from src.modules.price.engine.infra.cache import (
+    BubbleCache,
+    BubbleSourceCache,
+    SourcePriceCache,
 )
-from src.modules.price.engine.infra.cache import SourcePriceCache
 from src.modules.price.engine.infra.gateways.bubble import BUBBLE_FETCHERS
 from src.modules.price.engine.infra.gateways.global_market import (
     GLOBAL_FETCHERS,
 )
 from src.modules.price.engine.infra.gateways.iran_market import IRAN_FETCHERS
 from src.modules.price.engine.infra.gateways.supplier import SUPPLIER_FETCHERS
-from src.modules.price.engine.infra.readers import AssetReader, SourceReader
+from src.modules.price.engine.infra.readers import (
+    AssetReader,
+    SourceReader,
+    SymbolReader,
+)
 
 
 class PricingEngineService:
     def __init__(
         self,
         assets: AssetReader,
+        symbols: SymbolReader,
         sources: SourceReader,
         prices: SourcePriceCache,
+        bubbles: BubbleCache,
+        source_bubbles: BubbleSourceCache,
     ) -> None:
         """
         Desc: Build the service with the readers it crawls from and the
-        cache it writes to.
+        caches it writes to.
         Args:
             assets (AssetReader): Reader over the assets module's tables.
+            symbols (SymbolReader): Reader over the symbols module's tables.
             sources (SourceReader): Reader over the sources module's tables.
             prices (SourcePriceCache): Where each source's reading lands.
+            bubbles (BubbleCache): Where the settled premium is read from.
+            source_bubbles (BubbleSourceCache): Where each source's raw
+                premium lands.
         """
         self.assets = assets
+        self.symbols = symbols
         self.sources = sources
         self.prices = prices
+        self.bubbles = bubbles
+        self.source_bubbles = source_bubbles
 
     async def _fetch_all_db(self) -> CFGContext:
         """
-        Desc: Read what the crawl needs: every source, and the asset ids a
-        quoted code maps to.
+        Desc: Read what the crawl needs: every source, and the ids a quoted
+        code maps to.
         Returns:
-            return (CFGContext): The sources to call and the assets to
-                attribute their quotes to.
+            return (CFGContext): The sources to call, and the symbols and
+                assets to attribute their quotes to.
         """
         sources = await self.sources.read_all()
-        refs = await self.assets.read_refs()
-        context = CFGContext(sources=sources, assets=refs)
+        symbols = await self.symbols.read_refs()
+        assets = await self.assets.read_refs()
+        context = CFGContext(sources=sources, symbols=symbols, assets=assets)
         return context
 
     async def _fetch_all_http(self, context: CFGContext) -> SourceQuote:
@@ -113,8 +124,8 @@ class PricingEngineService:
         quote: SourceQuote,
     ) -> int:
         """
-        Desc: Price every rial quote the crawl produced and cache it under
-        the asset it belongs to.
+        Desc: Price every quote the crawl produced and cache it under the
+        asset it belongs to.
         Args:
             context (CFGContext): What the crawl ran against, holding the
                 ids the quotes have to be attributed to.
@@ -122,48 +133,8 @@ class PricingEngineService:
         Returns:
             return (int): How many readings were cached.
         """
-        source_ids = {source.code: source.id for source in context.sources}
-        asset_ids = {asset.code: asset.id for asset in context.assets}
-        readings: dict[AssetCode, list[SourcePriceResult]] = defaultdict(list)
-
-        for row in quote.irans:
-            source_id = source_ids.get(row.code)
-            asset_id = asset_ids.get(row.asset)
-            if row.error is not None or source_id is None or asset_id is None:
-                continue
-            readings[row.asset].append(
-                SourcePriceResult.from_sides(
-                    source_id=source_id,
-                    asset_id=asset_id,
-                    selling=row.selling,
-                    buying=row.buying,
-                )
-            )
-
-        for row in quote.suppliers:
-            source_id = source_ids.get(row.code)
-            asset_id = asset_ids.get(row.asset)
-            if row.error is not None or source_id is None or asset_id is None:
-                continue
-            selling = currency_utils.from_mazane(row.selling)
-            buying = currency_utils.from_mazane(row.buying)
-            readings[row.asset].append(
-                SourcePriceResult.from_sides(
-                    source_id=source_id,
-                    asset_id=asset_id,
-                    selling=selling,
-                    buying=buying,
-                    computation=SupplierComputation(
-                        selling_mazane=row.selling,
-                        buying_mazane=row.buying,
-                        mazane_factor=MAZANE_FACTOR,
-                        final_price=round((selling + buying) / 2),
-                    ),
-                )
-            )
-
-        await self.prices.set_many(readings)
-        return sum(len(rows) for rows in readings.values())
+        # TODO: implement once the asset spec design is settled
+        raise NotImplementedError
 
     async def run(self) -> int:
         """
@@ -171,7 +142,5 @@ class PricingEngineService:
         Returns:
             return (int): How many readings were cached.
         """
-        context = await self._fetch_all_db()
-        quote = await self._fetch_all_http(context)
-        saved = await self._save_all(context, quote)
-        return saved
+        # TODO: implement once _save_all is implemented
+        raise NotImplementedError

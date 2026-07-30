@@ -7,13 +7,7 @@ class QuoteKind(StrEnum):
     PER_GRAM = "per_gram"
 
 
-class ComputationKind(StrEnum):
-    # which arithmetic produced a price, and so which working it carries
-    SUPPLIER = "supplier"
-    GLOBAL = "global"
-
-
-class GlobalSymbol(StrEnum):
-    # what a global source is quoting, priced in USD
-    XAU = "xau"
-    USD = "usd"
+class SelectionReason(StrEnum):
+    # why a reading was left out of the asset's final price
+    OUTLIER = "outlier"
+    SWITCH_OFF = "switch_off"

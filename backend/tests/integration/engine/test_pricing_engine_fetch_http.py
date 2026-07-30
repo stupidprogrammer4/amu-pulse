@@ -6,12 +6,19 @@ import pytest
 
 from src.infra.postgres.uow import PGUnitOfWork
 from src.infra.redis.client import RedisClient
-from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.engine.app.services import PricingEngineService
 from src.modules.price.engine.domain.context import CFGContext, SourceContext
-from src.modules.price.engine.infra.cache import SourcePriceCache
+from src.modules.price.engine.infra.cache import (
+    BubbleCache,
+    BubbleSourceCache,
+    SourcePriceCache,
+)
 from src.modules.price.engine.infra.gateways import iran_market
-from src.modules.price.engine.infra.readers import AssetReader, SourceReader
+from src.modules.price.engine.infra.readers import (
+    AssetReader,
+    SourceReader,
+    SymbolReader,
+)
 from src.modules.price.sources.app.services import (
     SourceConfigService,
     SourceService,
@@ -23,6 +30,7 @@ from src.modules.price.sources.infra.repository import (
     SourceConfigRepository,
     SourceRepository,
 )
+from src.modules.price.symbols.domain.enums import SymbolCode
 from tests.unit.engine.test_asset_price_cache import _FakeRedis
 
 
@@ -36,10 +44,15 @@ def _engine(uow: PGUnitOfWork) -> PricingEngineService:
     """
     # these cover the read and crawl halves; nothing here writes, so the
     # cache is stood up over a fake rather than a live Redis
-    cache = SourcePriceCache(
-        cast(RedisClient, SimpleNamespace(client=_FakeRedis()))
+    client = cast(RedisClient, SimpleNamespace(client=_FakeRedis()))
+    return PricingEngineService(
+        AssetReader(uow),
+        SymbolReader(uow),
+        SourceReader(uow),
+        SourcePriceCache(client),
+        BubbleCache(client),
+        BubbleSourceCache(client),
     )
-    return PricingEngineService(AssetReader(uow), SourceReader(uow), cache)
 
 
 def _sources(uow: PGUnitOfWork) -> SourceService:
@@ -82,7 +95,7 @@ def _context(*sources: SourceContext) -> CFGContext:
     Returns:
         return (CFGContext): The context.
     """
-    return CFGContext(sources=list(sources), assets=[])
+    return CFGContext(sources=list(sources), symbols=[], assets=[])
 
 
 def _source_context(
@@ -159,9 +172,9 @@ class TestFetchAllHTTP:
 
         quote = await _engine(uow)._fetch_all_http(context)
 
-        assert {q.asset for q in quote.irans} == {
-            AssetCode.GOLD18,
-            AssetCode.USD,
+        assert {q.symbol for q in quote.irans} == {
+            SymbolCode.GOLD18_GRAM,
+            SymbolCode.USD_RIAL,
         }
         assert all(q.error is None for q in quote.irans)
 

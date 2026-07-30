@@ -2,23 +2,27 @@ from typing import Sequence
 
 import httpx
 
-from src.modules.price.assets.domain.enums import AssetCode
-from src.modules.price.engine.domain.quotes import ErrorQuote, IranSourceQuote
+from src.modules.price.engine.domain.quotes import (
+    ErrorQuote,
+    FeeQuote,
+    IranSourceQuote,
+)
 from src.modules.price.engine.infra.gateways.base import (
     AbstractFetcher,
     json_path,
 )
 from src.modules.price.sources.domain.enums import SourceCode
+from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class AbstractIranFetcher(AbstractFetcher[IranSourceQuote]):
-    # a failed fetch answers per asset, so none silently disappears
-    __assets__: tuple[AssetCode, ...] = (AssetCode.GOLD18,)
+    # a failed fetch answers per line, so none silently disappears
+    __symbols__: tuple[SymbolCode, ...] = (SymbolCode.GOLD18_GRAM,)
 
     def _failed(self, error: ErrorQuote) -> Sequence[IranSourceQuote]:
         return [
-            IranSourceQuote.failed(self.__code__, asset, error)
-            for asset in self.__assets__
+            IranSourceQuote.failed(self.__code__, symbol, error)
+            for symbol in self.__symbols__
         ]
 
 
@@ -32,7 +36,7 @@ class TgjuFetcher(AbstractIranFetcher):
         "https://call4.tgju.org/ajax.json"
         "?rev=pf2MFAghbHqfa4c5jYzDfSq8c8PmqUq4aZatIEutGCv93T8b0rhYJzSfvjI9"
     )
-    __assets__ = (AssetCode.GOLD18, AssetCode.USD)
+    __symbols__ = (SymbolCode.GOLD18_GRAM, SymbolCode.USD_RIAL)
     # the board keys each row by symbol and prices it under "p"
     gold_sell_key = "tgju_gold_irg18"
     gold_buy_key = "tgju_gold_irg18_buy"
@@ -43,14 +47,14 @@ class TgjuFetcher(AbstractIranFetcher):
         # the dollar comes as one mid price, gold as a two-sided pair
         dollar = json_path(board, self.dollar_key, "p")
         quotes = [
-            IranSourceQuote.from_pair(
+            IranSourceQuote.from_buying_selling(
                 self.__code__,
-                AssetCode.GOLD18,
+                SymbolCode.GOLD18_GRAM,
                 json_path(board, self.gold_sell_key, "p"),
                 json_path(board, self.gold_buy_key, "p"),
             ),
-            IranSourceQuote.from_pair(
-                self.__code__, AssetCode.USD, dollar, dollar
+            IranSourceQuote.from_buying_selling(
+                self.__code__, SymbolCode.USD_RIAL, dollar, dollar
             ),
         ]
         return quotes
@@ -60,7 +64,7 @@ class WallexFetcher(AbstractIranFetcher):
     # verified live: keyless
     __code__ = SourceCode.WALLEX
     __url__ = "https://api.wallex.ir/v1/depth?symbol=USDTTMN"
-    __assets__ = (AssetCode.USD,)
+    __symbols__ = (SymbolCode.USD_RIAL,)
     # the book quotes Toman; storage is Rial
     toman_to_rial = 10
 
@@ -68,9 +72,9 @@ class WallexFetcher(AbstractIranFetcher):
         book = json_path(resp.json(), "result")
         ask = json_path(book, "ask", 0, "price")
         bid = json_path(book, "bid", 0, "price")
-        quote = IranSourceQuote.from_pair(
+        quote = IranSourceQuote.from_buying_selling(
             self.__code__,
-            AssetCode.USD,
+            SymbolCode.USD_RIAL,
             float(ask) * self.toman_to_rial,
             float(bid) * self.toman_to_rial,
         )
@@ -87,11 +91,11 @@ class DigikalaFetcher(AbstractIranFetcher):
 
     def _parse(self, resp: httpx.Response) -> Sequence[IranSourceQuote]:
         price = int(json_path(resp.json(), "gold18", "price")) * 1000
-        quote = IranSourceQuote.from_pair(
+        quote = IranSourceQuote.from_price_and_fee(
             self.__code__,
-            AssetCode.GOLD18,
-            round(price * (1 - self.fee)),
-            round(price * (1 + self.fee)),
+            SymbolCode.GOLD18_GRAM,
+            price,
+            FeeQuote(sell_rate=self.fee, buy_rate=self.fee),
         )
         return [quote]
 
@@ -105,9 +109,9 @@ class TalineFetcher(AbstractIranFetcher):
         for row in json_path(resp.json(), "prices"):
             if row["symbol"] == "GOLD18":
                 price = row["price"]
-                quote = IranSourceQuote.from_pair(
+                quote = IranSourceQuote.from_buying_selling(
                     self.__code__,
-                    AssetCode.GOLD18,
+                    SymbolCode.GOLD18_GRAM,
                     float(price["buy"]) * 10_100,
                     float(price["sell"]) * 10_000,
                 )
@@ -123,8 +127,8 @@ class GoldikaFetcher(AbstractIranFetcher):
 
     def _parse(self, resp: httpx.Response) -> Sequence[IranSourceQuote]:
         price = json_path(resp.json(), "data", "price")
-        quote = IranSourceQuote.from_pair(
-            self.__code__, AssetCode.GOLD18, price["sell"], price["buy"]
+        quote = IranSourceQuote.from_buying_selling(
+            self.__code__, SymbolCode.GOLD18_GRAM, price["sell"], price["buy"]
         )
         return [quote]
 
@@ -132,14 +136,14 @@ class GoldikaFetcher(AbstractIranFetcher):
 class MeligoldFetcher(AbstractIranFetcher):
     __code__ = SourceCode.MELIGOLD
     __url__ = "https://melligold.com/api/v1/exchange/buy-sell-price/"
-    fee = 0.005
 
     def _parse(self, resp: httpx.Response) -> Sequence[IranSourceQuote]:
         data = json_path(resp.json(), "data")
-        buy = round(int(data["price_buy"]) * 10 * (1 + self.fee))
-        sell = round(int(data["price_sell"]) * 10 * (1 - self.fee))
-        quote = IranSourceQuote.from_pair(
-            self.__code__, AssetCode.GOLD18, sell, buy
+        quote = IranSourceQuote.from_buying_selling(
+            self.__code__,
+            SymbolCode.GOLD18_GRAM,
+            int(data["price_buy"]) * 10,
+            int(data["price_sell"]) * 10,
         )
         return [quote]
 
@@ -151,11 +155,11 @@ class MiligoldFetcher(AbstractIranFetcher):
 
     def _parse(self, resp: httpx.Response) -> Sequence[IranSourceQuote]:
         price = int(json_path(resp.json(), "data", "price18")) * 1000
-        quote = IranSourceQuote.from_pair(
+        quote = IranSourceQuote.from_price_and_fee(
             self.__code__,
-            AssetCode.GOLD18,
-            round(price * (1 - self.fee)),
-            round(price * (1 + self.fee)),
+            SymbolCode.GOLD18_GRAM,
+            price,
+            FeeQuote(sell_rate=self.fee, buy_rate=self.fee),
         )
         return [quote]
 
@@ -166,9 +170,9 @@ class TechnogoldFetcher(AbstractIranFetcher):
 
     def _parse(self, resp: httpx.Response) -> Sequence[IranSourceQuote]:
         results = json_path(resp.json(), "results")
-        quote = IranSourceQuote.from_pair(
+        quote = IranSourceQuote.from_buying_selling(
             self.__code__,
-            AssetCode.GOLD18,
+            SymbolCode.GOLD18_GRAM,
             int(results["sell_price"]) * 10,
             int(results["buy_price"]) * 10,
         )
@@ -183,11 +187,12 @@ class WallgoldFetcher(AbstractIranFetcher):
     fee = 0.0005
 
     def _parse(self, resp: httpx.Response) -> Sequence[IranSourceQuote]:
-        price = int(json_path(resp.json(), "result", "price"))
-        buy = round(price * (1 + self.fee) * 10)
-        sell = round(price * (1 - self.fee) * 10)
-        quote = IranSourceQuote.from_pair(
-            self.__code__, AssetCode.GOLD18, sell, buy
+        price = int(json_path(resp.json(), "result", "price")) * 10
+        quote = IranSourceQuote.from_price_and_fee(
+            self.__code__,
+            SymbolCode.GOLD18_GRAM,
+            price,
+            FeeQuote(sell_rate=self.fee, buy_rate=self.fee),
         )
         return [quote]
 
@@ -200,11 +205,11 @@ class TalaseaFetcher(AbstractIranFetcher):
         data = resp.json()
         price = int(json_path(data, "price")) * 10_000
         fee = float(json_path(data, "feeTable", 0, "fee"))
-        quote = IranSourceQuote.from_pair(
+        quote = IranSourceQuote.from_price_and_fee(
             self.__code__,
-            AssetCode.GOLD18,
-            round(price * (1 - fee)),
-            round(price * (1 + fee)),
+            SymbolCode.GOLD18_GRAM,
+            price,
+            FeeQuote(sell_rate=fee, buy_rate=fee),
         )
         return [quote]
 

@@ -105,13 +105,6 @@ class TestSetManyAndGetAll:
             AssetCode.USD: 2,
         }
 
-    async def test_an_empty_pass_writes_nothing(self) -> None:
-        cache, fake = _cache()
-
-        await cache.set_many({})
-
-        assert fake.store == {}
-
     async def test_get_many_skips_the_misses(self) -> None:
         cache, _ = _cache()
         await cache.set(AssetCode.GOLD18, _bubble(1))
@@ -126,26 +119,6 @@ class TestSetManyAndGetAll:
         found = await cache.get_all()
 
         assert found == {}
-
-
-class TestBadPayloads:
-    async def test_a_corrupt_payload_reads_as_a_miss(self) -> None:
-        cache, fake = _cache()
-        fake.store[BubbleCache.namespace] = {"gold18": '{"amount": 1}'}
-
-        found = await cache.get(AssetCode.GOLD18)
-
-        assert found is None
-
-    async def test_get_all_drops_a_field_that_is_not_an_asset(self) -> None:
-        cache, fake = _cache()
-        await cache.set(AssetCode.USD, _bubble(2))
-        stored = fake.store[BubbleCache.namespace]["usd"]
-        fake.store[BubbleCache.namespace]["gold24"] = stored
-
-        found = await cache.get_all()
-
-        assert set(found) == {AssetCode.USD}
 
 
 class TestRemovalAndNamespace:

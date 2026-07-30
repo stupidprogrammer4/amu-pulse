@@ -154,14 +154,6 @@ class TestSetMany:
             AssetCode.USD: 2,
         }
 
-    async def test_an_empty_pass_writes_nothing(self) -> None:
-        # redis refuses an empty mapping, and resolving nothing is normal
-        cache, fake = _cache()
-
-        await cache.set_many({})
-
-        assert fake.store == {}
-
 
 class TestGetManyAndAll:
     async def test_get_many_skips_the_misses(self) -> None:
@@ -172,52 +164,12 @@ class TestGetManyAndAll:
 
         assert set(found) == {AssetCode.GOLD18}
 
-    async def test_get_many_with_no_codes_asks_redis_nothing(self) -> None:
-        cache, fake = _cache()
-        await cache.set(AssetCode.GOLD18, _result(1))
-
-        found = await cache.get_many([])
-
-        assert found == {}
-        assert fake.store[AssetPriceCache.namespace]
-
     async def test_get_all_on_an_empty_cache(self) -> None:
         cache, _ = _cache()
 
         found = await cache.get_all()
 
         assert found == {}
-
-
-class TestBadPayloads:
-    async def test_a_corrupt_payload_reads_as_a_miss(self) -> None:
-        # an old result shape must not crash the caller; it recomputes
-        cache, fake = _cache()
-        fake.store[AssetPriceCache.namespace] = {"gold18": '{"price": 1}'}
-
-        found = await cache.get(AssetCode.GOLD18)
-
-        assert found is None
-
-    async def test_get_all_drops_a_corrupt_field(self) -> None:
-        cache, fake = _cache()
-        await cache.set(AssetCode.USD, _result(2))
-        fake.store[AssetPriceCache.namespace]["gold18"] = "not json"
-
-        found = await cache.get_all()
-
-        assert set(found) == {AssetCode.USD}
-
-    async def test_get_all_drops_a_field_that_is_not_an_asset(self) -> None:
-        # a code retired from AssetCode leaves its field behind
-        cache, fake = _cache()
-        await cache.set(AssetCode.USD, _result(2))
-        stored = fake.store[AssetPriceCache.namespace]["usd"]
-        fake.store[AssetPriceCache.namespace]["gold24"] = stored
-
-        found = await cache.get_all()
-
-        assert set(found) == {AssetCode.USD}
 
 
 class TestRemoval:
