@@ -1,8 +1,9 @@
 from typing import TypeVar
+
 from .base import (
-    BaseModel,
     BaseIDModel,
     BaseIDTimestampModel,
+    BaseModel,
     BaseTimestampModel,
 )
 

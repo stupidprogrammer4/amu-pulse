@@ -14,7 +14,8 @@ class PGUnitOfWork:
     def session(self):
         if not self._session:
             raise RuntimeError(
-                "Session not initialized. Use 'async with' or call 'begin()' first."
+                "Session not initialized. Use 'async with' or"
+                " call 'begin()' first."
             )
         return self._session
 

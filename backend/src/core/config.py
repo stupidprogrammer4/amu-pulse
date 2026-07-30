@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field
 
 
 class FastAPIConfig(BaseModel):
@@ -44,7 +44,7 @@ class JWTConfig(BaseModel):
     algorithm: str
     secret_key: str
     access_token_expire_minutes: int = Field(ge=1)
-    # long-lived refresh token; trades for a fresh access token at /auth/*/refresh
+    # long-lived refresh token; trades for a fresh access token
     refresh_token_expire_minutes: int = Field(default=60 * 24 * 14, ge=1)
     api_secret: str
 

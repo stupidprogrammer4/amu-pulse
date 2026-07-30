@@ -112,7 +112,7 @@ class ESRepository(Generic[TDoc]):
         return result
 
     def search(self) -> AsyncSearch[TDoc]:
-        """A search bound to this client — build the query and ``await .execute()``."""
+        """A search bound to this client; build it, then await execute."""
         return self.__document__.search(using=self._using)
 
 

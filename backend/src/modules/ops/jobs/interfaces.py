@@ -1,8 +1,8 @@
 from typing import Protocol
 
 from src.modules.ops.jobs.domain.schemas import (
-    JobStatusOut,
     JobsOverviewOut,
+    JobStatusOut,
     RunningJobOut,
 )
 

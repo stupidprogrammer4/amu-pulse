@@ -42,7 +42,7 @@ class _NullScheduleSource(ScheduleSource):
 def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
-    """Auto-mark tests by their folder: tests/unit -> unit, tests/integration -> integration."""
+    """Auto-mark tests by folder: tests/unit and tests/integration."""
     for item in items:
         path = str(item.fspath).replace("\\", "/")
         if "/tests/integration/" in path:
@@ -60,7 +60,7 @@ def make_obj():
     return obj
 
 
-# --- integration: real test database --------------------------------------------
+# --- integration: real test database ---------------------------------
 
 
 def _load_settings() -> Settings:
@@ -257,7 +257,7 @@ async def dishka_container(integration_settings: Settings, test_dsn: str):
             finally:
                 await client.close()
 
-    # Module providers are discovered automatically — new modules need no edit here.
+    # module providers are discovered; a new module needs no edit here
     container = make_async_container(
         TestCoreProvider(), *get_bootstrapper().boot_providers()
     )

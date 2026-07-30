@@ -23,7 +23,8 @@ def _split(name: str) -> tuple[str, str]:
     ]
     if not parts or len(parts) > 2:
         raise typer.BadParameter(
-            "expected <name> or <group>.<name>, e.g. product or catalog.product"
+            "expected <name> or <group>.<name>, e.g. product or"
+            " catalog.product"
         )
     group = parts[0].lower() if len(parts) == 2 else ""
     return group, parts[-1]
@@ -55,7 +56,7 @@ def _render(
     )
 
 
-# --- templates ------------------------------------------------------------------
+# --- templates --------------------------------------------------------
 
 MODELS = """from src.infra.postgres.models.base import BaseIDTimestampModel
 
@@ -157,10 +158,15 @@ class <<P>>ESRepository(ESRepository[<<P>>Document]):
 """
 
 PROJECTIONS = """from src.common.bases.projection import AbstractESProjection
-from src.modules.<<M>>.infra.repository import <<P>>ESRepository, <<P>>Repository
+from src.modules.<<M>>.infra.repository import (
+    <<P>>ESRepository,
+    <<P>>Repository,
+)
 
 
-class <<P>>Projection(AbstractESProjection[<<P>>Repository, <<P>>ESRepository]):
+class <<P>>Projection(
+    AbstractESProjection[<<P>>Repository, <<P>>ESRepository]
+):
     async def project(self, id: int) -> bool:
         # read the PG row, then save the mapped <<P>>Document into ES
         return True
@@ -189,7 +195,10 @@ PROVIDERS_CQRS = """from dishka import Provider, Scope, provide
 from src.modules.<<M>>.interfaces import I<<P>>Service
 from src.modules.<<M>>.app.services import <<P>>Service
 from src.modules.<<M>>.infra.projections import <<P>>Projection
-from src.modules.<<M>>.infra.repository import <<P>>ESRepository, <<P>>Repository
+from src.modules.<<M>>.infra.repository import (
+    <<P>>ESRepository,
+    <<P>>Repository,
+)
 
 
 class <<P>>Provider(Provider):
@@ -232,7 +241,7 @@ router = APIRouter(prefix="/<<PL>>", tags=["<<PL>>"])
 
 TASKS = "# taskiq background tasks for the <<S>> module\n"
 
-# --- context-module templates ---------------------------------------------------
+# --- context-module templates -----------------------------------------
 
 CONTEXT = """from dataclasses import dataclass
 
@@ -294,8 +303,8 @@ from src.modules.<<M>>.infra.readers import <<P>>Reader
 class <<P>>Service:
     \"\"\"The <<S>> engine.
 
-    ``run`` is the only place that touches I/O: it reads the context, then hands
-    it to ``calculate``, which stays pure and directly unit-testable.
+    ``run`` is the only place that touches I/O: it reads the context,
+    then hands it to ``calculate``, which stays pure and unit-testable.
     \"\"\"
 
     def __init__(self, reader: <<P>>Reader) -> None:
@@ -382,7 +391,10 @@ def _layout(
 def module(
     name: str = typer.Argument(
         ...,
-        help="module as <singular-name> or <group>.<singular-name>, e.g. product or catalog.product",
+        help=(
+            "module as <singular-name> or <group>.<singular-name>,"
+            " e.g. product or catalog.product"
+        ),
     ),
     cqrs: bool = typer.Option(
         False, "--cqrs", help="add ES read-model + projection"
@@ -411,7 +423,7 @@ def module(
     snake, pascal = _names(raw)
     if not snake:
         raise typer.BadParameter("module name is empty")
-    # a context module is an engine, not a collection of rows — its name stays as written
+    # a context module is an engine, not rows; its name stays as written
     folder = snake if context else _pluralize(snake)
     dotted = f"{group}.{folder}" if group else folder
 

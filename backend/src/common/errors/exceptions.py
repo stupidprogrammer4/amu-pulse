@@ -93,7 +93,7 @@ class NotFoundException(APPException[NotFoundErrorOut]):
         self.identifier_value = identifier_value
 
     def as_schema(self) -> NotFoundErrorOut:
-        # identifier_value is Any (int ids, str slugs, …); the wire schema is str.
+        # identifier_value is Any (int ids, str slugs, …), the wire is str
         return NotFoundErrorOut(
             message_code=self.message_code,
             message=self.message,

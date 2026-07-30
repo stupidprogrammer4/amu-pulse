@@ -2,8 +2,8 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
 from src.modules.ops.jobs.domain.schemas import (
-    JobStatusOut,
     JobsOverviewOut,
+    JobStatusOut,
     RunningJobOut,
 )
 from src.modules.ops.jobs.interfaces import IJobService

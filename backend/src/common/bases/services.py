@@ -1,7 +1,7 @@
-from typing import Generic, Any, Sequence, TypeVar, get_args, get_origin
+from typing import Any, Generic, Sequence, TypeVar, get_args, get_origin
 
-from src.common.errors.exceptions import NotFoundException, ValidationException
 from src.common.bases.results import BatchResultType
+from src.common.errors.exceptions import NotFoundException, ValidationException
 from src.core import resources
 from src.infra.postgres.models.typing import TIDModel, TModel
 
@@ -56,7 +56,10 @@ class BaseService(Generic[TModel]):
             raise NotFoundException(
                 identifier=identifier,
                 identifier_value=identifier_value,
-                message=f"Cannot find {self.__model_name__} by {identifier} with value {identifier_value}",
+                message=(
+                    f"Cannot find {self.__model_name__} by {identifier} "
+                    f"with value {identifier_value}"
+                ),
                 message_code=resources.NOT_FOUND_ERROR,
                 entity=self.__model_name__,
             )
@@ -74,7 +77,9 @@ class BaseService(Generic[TModel]):
             if id not in set_founded_ids:
                 errors.append(
                     ValidationException(
-                        message=f"Cannot find {self.__model_name__} with id {id}",
+                        message=(
+                            f"Cannot find {self.__model_name__} with id {id}"
+                        ),
                         message_code=resources.NOT_FOUND_ERROR,
                         loc=prefix_loc + [idx],
                     )
@@ -105,7 +110,9 @@ class BaseIDService(BaseService[TIDModel]):
             else:
                 errors.append(
                     ValidationException(
-                        message=f"Cannot find {self.__model_name__} with id {id}",
+                        message=(
+                            f"Cannot find {self.__model_name__} with id {id}"
+                        ),
                         message_code=resources.NOT_FOUND_ERROR,
                         loc=base_loc + [idx],
                     )

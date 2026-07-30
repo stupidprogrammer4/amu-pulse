@@ -5,8 +5,8 @@ from taskiq import AsyncResultBackend, ScheduleSource
 
 from src.infra.redis.client import RedisClient
 from src.modules.ops.jobs.domain.schemas import (
-    JobStatusOut,
     JobsOverviewOut,
+    JobStatusOut,
     RunningJobOut,
     ScheduledJobOut,
 )
@@ -64,10 +64,11 @@ class JobService:
         return status
 
     async def overview(self) -> JobsOverviewOut:
-        """Get an overview of the task system: scheduled + running jobs + result count.
+        """Get an overview of the task system: scheduled and running
+        jobs, plus the result count.
 
         Returns:
-            (JobsOverviewOut): The scheduled and running jobs with their counts.
+            (JobsOverviewOut): The jobs with their counts.
         """
         schedules = await self.schedule_source.get_schedules()
         scheduled = [
@@ -91,10 +92,10 @@ class JobService:
         )
 
     async def running(self) -> list[RunningJobOut]:
-        """Get the jobs currently being processed (delivered but not yet acked).
+        """Get the jobs being processed (delivered but not yet acked).
 
         Returns:
-            (list[RunningJobOut]): The in-flight jobs; empty if none / no worker yet.
+            (list[RunningJobOut]): The in-flight jobs; empty if none.
         """
         try:
             pending = await self.redis.client.xpending_range(

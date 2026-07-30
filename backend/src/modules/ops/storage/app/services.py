@@ -17,7 +17,7 @@ from src.modules.ops.storage.infra.storage import (
 
 
 class MediaService(BaseIDService[MediaModel]):
-    """Manages uploaded media: streamed storage, dedupe by hash, and the catalog."""
+    """Uploaded media: streamed storage, dedupe by hash, the catalog."""
 
     def __init__(
         self,
@@ -30,7 +30,7 @@ class MediaService(BaseIDService[MediaModel]):
         self.config = config
 
     def _validate_extension(self, filename: str | None) -> str:
-        """Extract and validate a file's extension against the configured whitelist.
+        """Extract and validate an extension against the whitelist.
 
         Args:
             filename (str | None): The original file name.
@@ -50,13 +50,15 @@ class MediaService(BaseIDService[MediaModel]):
     async def upload(
         self, stream: AsyncIterator[bytes], filename: str | None
     ) -> MediaModel:
-        """Stream an upload into the store and register it, deduplicating by hash.
+        """Stream an upload into the store and register it, deduping
+        by hash.
 
         Args:
             stream (AsyncIterator[bytes]): The file contents as a chunk stream.
-            filename (str | None): The original file name (extension is validated).
+            filename (str | None): The original name; extension checked.
         Returns:
-            (MediaModel): The stored media record (an existing one on duplicate content).
+            (MediaModel): The stored record, or the existing one when
+                the content is a duplicate.
         """
         extension = self._validate_extension(filename)
         temp_path = f"{self.config.temp_dir}/{uuid4().hex}"
@@ -132,7 +134,8 @@ class MediaService(BaseIDService[MediaModel]):
         Args:
             path (str): The stored path (as returned by ``upload``).
         Returns:
-            (tuple[AsyncIterator[bytes], str]): A chunk iterator and the content type.
+            (tuple[AsyncIterator[bytes], str]): The chunks and the
+                content type.
         """
         media = await self.repo.get_by_path(path)
         media = self._check_for_existence("path", path, media)

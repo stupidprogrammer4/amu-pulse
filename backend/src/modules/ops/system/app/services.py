@@ -16,8 +16,8 @@ from src.modules.ops.system.domain.schemas import (
 
 
 class SystemService:
-    """Liveness/health of the backing services + basic runtime info. No DB model
-    of its own — it just probes the shared infra adapters."""
+    """Liveness of the backing services plus basic runtime info; it has
+    no model of its own and only probes the shared infra adapters."""
 
     def __init__(
         self,

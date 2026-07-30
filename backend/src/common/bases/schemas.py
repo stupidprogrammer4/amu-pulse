@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 from src.common.bases.encryption import IDEncryption
 from src.common.enums import FilterType
 
-I = TypeVar("I")
+TIn = TypeVar("TIn")
 T = TypeVar("T")
 
 
@@ -28,15 +28,15 @@ class ExtraField(Generic[T]):
         return instance.__dict__.get(self._name)
 
 
-class HookField(Generic[I, T]):
-    def __init__(self, hook: Callable[[I], T]) -> None:
+class HookField(Generic[TIn, T]):
+    def __init__(self, hook: Callable[[TIn], T]) -> None:
         super().__init__()
         self.hook = hook
 
     def __set_name__(self, owner: type, name: str) -> None:
         self._name = name
 
-    def __set__(self, instance: object, value: I) -> None:
+    def __set__(self, instance: object, value: TIn) -> None:
         instance.__dict__[self._name] = self.hook(value)
 
     def __get__(
@@ -98,7 +98,7 @@ class BaseIDOutput(BaseOutput):
         return result
 
 
-O = TypeVar("O", bound=BaseOutput)
+TOut = TypeVar("TOut", bound=BaseOutput)
 
 
 class PagerMeta(BaseModel):
@@ -118,12 +118,12 @@ class PagerMeta(BaseModel):
         )
 
 
-class FilterMeta(BaseModel, Generic[O]):
-    # id of the entity behind the facet (e.g. the attribute id), when it has one
+class FilterMeta(BaseModel, Generic[TOut]):
+    # id of the entity behind the facet, when it has one
     id: int | None = None
     type: FilterType
     title: str | None = None
-    options: list[O]
+    options: list[TOut]
 
 
 class BaseMeta(BaseModel):

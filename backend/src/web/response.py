@@ -1,28 +1,28 @@
-from pydantic import BaseModel
+from typing import Generic, Optional, Sequence, TypeVar, Union
+
 from fastapi.exceptions import RequestValidationError as PydanticError
+from pydantic import BaseModel
 
-from typing import Union, Optional, TypeVar, Generic, Sequence
-
-from src.core import resources
-from src.common.bases.schemas import BaseOutput, BaseMeta
-from src.common.errors.schemas import (
-    errors_types,
-    ValidationErrorOut,
-    BaseErrorOut,
-)
+from src.common.bases.schemas import BaseMeta, BaseOutput
 from src.common.errors.base import APPException
+from src.common.errors.schemas import (
+    BaseErrorOut,
+    ValidationErrorOut,
+    errors_types,
+)
+from src.core import resources
 
 ErrorType = Union[*errors_types]
 
-O = TypeVar("O", bound=BaseOutput | None)
+TOut = TypeVar("TOut", bound=BaseOutput | None)
 M = TypeVar("M", bound=BaseMeta | None)
 E = TypeVar("E", bound=APPException)
 
 
-class APIResponse(BaseModel, Generic[O, M]):
+class APIResponse(BaseModel, Generic[TOut, M]):
     success: bool
     message_code: Optional[str] = None
-    data: Optional[Union[O, Sequence[O]]] = None
+    data: Optional[Union[TOut, Sequence[TOut]]] = None
     meta: Optional[M] = None
     error: Optional[ErrorType] = None
     errors: Optional[Sequence[ErrorType]] = None
@@ -30,7 +30,7 @@ class APIResponse(BaseModel, Generic[O, M]):
     @classmethod
     def from_data(
         cls,
-        data: Union[O, Sequence[O]],
+        data: Union[TOut, Sequence[TOut]],
         message_code: Optional[str] = None,
         errors: Optional[Sequence[E]] = None,
     ):

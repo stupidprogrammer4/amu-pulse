@@ -41,7 +41,7 @@ class ColumnKwargs(TypedDict, total=False):
     system: bool
 
 
-# Keys SQLModel manages on the Field itself; the rest are forwarded to the Column.
+# Keys SQLModel manages on the Field; the rest go to the Column.
 _FIELD_MANAGED_KEYS = ("nullable", "index", "unique", "primary_key")
 
 

@@ -4,12 +4,11 @@ from dishka import Provider, Scope, provide
 from taskiq import ScheduleSource
 from taskiq_redis import RedisScheduleSource
 
+from src.core.config import Settings, get_settings
+from src.infra.es.client import ESClient
 from src.infra.postgres.connection import PGConnection
 from src.infra.postgres.uow import PGUnitOfWork
-from src.infra.es.client import ESClient
 from src.infra.redis.client import RedisClient
-
-from src.core.config import Settings, get_settings
 
 
 class CoreProvider(Provider):
