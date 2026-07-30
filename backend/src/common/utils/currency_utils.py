@@ -55,6 +55,12 @@ def to_decimal(value: QuotedAmount) -> Decimal:
     return number
 
 
+def to_cent(value: QuotedAmount) -> int:
+    # a world feed quotes dollars; the smallest unit it prices in is a cent
+    cents = round(to_decimal(value) * 100)
+    return cents
+
+
 def to_mazane(per_gram: int) -> int:
     return round_rial(per_gram * MAZANE_FACTOR)
 
