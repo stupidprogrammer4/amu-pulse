@@ -63,10 +63,21 @@ Each source is a **pluggable adapter** that writes clean, normalized data into o
 
 ## Roadmap
 
-- [ ] Source adapters: buy/sell sites, global price API, USD rate, premium
-- [ ] Clean-data schema and price-history storage
+### Landed
+
+- [x] **Source catalogue** — every source with its own config, credentials and the error its last fetch left behind
+- [x] **Assets** — what we publish a price for, and the order of markets each one is priced from (two markets may share a level)
+- [x] **Symbols** — the lines a source actually quotes: a gram of 18 carat in Rial, a mesghal from a wholesaler, an ounce abroad. Three symbols, one asset
+- [x] **Source adapters** — Iranian market boards, wholesalers, world XAU feeds, and the published premium. A gateway never raises: it answers with a quote or with an error
+- [x] **Sign-in** — the sources that need credentials are signed in on their own weekly schedule
+- [x] **The crawl** — every 30 seconds: read the config, call every source at once, cache each reading under its symbol, and stamp every source with what it just did
+
+### Next
+
+- [ ] **Price calculator** — fold a symbol's readings into one price per asset: convert units (mesghal → gram, ounce → gram) and currency (cent → Rial), drop the outliers, aggregate the rest by the asset's own rule
+- [ ] **Bubble** — settle the published premiums, and derive the premium ourselves where the local market and world parity disagree
+- [ ] Price-history storage and charting endpoints
 - [ ] User-defined aggregations
-- [ ] Charting endpoints
 - [ ] News ingestion
 - [ ] Analysis component → score in [-1, 1] + confidence + reason
 - [ ] Automatic evaluation loop from realized future prices
