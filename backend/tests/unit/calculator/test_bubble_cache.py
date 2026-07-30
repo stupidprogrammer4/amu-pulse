@@ -4,13 +4,13 @@ from typing import cast
 
 from src.infra.redis.client import RedisClient
 from src.modules.price.assets.domain.enums import AssetCode
-from src.modules.price.engine.domain.results import BubbleResult
-from src.modules.price.engine.infra.cache import (
+from src.modules.price.calculator.domain.results import BubbleResult
+from src.modules.price.calculator.infra.cache import (
     AssetPriceCache,
     BubbleCache,
-    SourcePriceCache,
 )
-from tests.unit.engine.test_asset_price_cache import _FakeRedis
+from src.modules.price.engine.infra.cache import SourcePriceCache
+from tests.unit.calculator.test_asset_price_cache import _FakeRedis
 
 
 def _cache() -> tuple[BubbleCache, _FakeRedis]:

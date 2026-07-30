@@ -7,8 +7,8 @@ from redis.exceptions import RedisError
 from src.core.config import Settings
 from src.infra.redis.client import RedisClient
 from src.modules.price.assets.domain.enums import AssetCode
-from src.modules.price.engine.domain.results import BubbleResult
-from src.modules.price.engine.infra.cache import BubbleCache
+from src.modules.price.calculator.domain.results import BubbleResult
+from src.modules.price.calculator.infra.cache import BubbleCache
 
 
 class _TestBubbleCache(BubbleCache):

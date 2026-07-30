@@ -17,10 +17,6 @@ class PriceResult(BaseModel):
     priced_at: datetime
 
 
-class AssetPriceResult(PriceResult):
-    asset_id: int
-
-
 class FeeResult(BaseModel):
     buy_fee_rate: float
     sell_fee_rate: float
@@ -37,11 +33,8 @@ class SourcePriceResult(PriceResult):
     reason: SelectionReason | None = None
 
 
-class BubbleResult(BaseModel):
+class SourceBubbleResult(BaseModel):
     asset_id: int
+    source_id: int
     amount: int
     priced_at: datetime
-
-
-class SourceBubbleResult(BubbleResult):
-    source_id: int

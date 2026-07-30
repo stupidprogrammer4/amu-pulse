@@ -1,7 +1,9 @@
-from typing import Protocol
+from typing import Protocol, Sequence
 
 from src.modules.price.engine.domain.context import CFGContext
 from src.modules.price.engine.domain.quotes import SourceQuote
+from src.modules.price.engine.domain.results import SourcePriceResult
+from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class ICFGReaderService(Protocol):
@@ -30,3 +32,17 @@ class IPersistFlusherService(Protocol):
 
 class IRunnerService(Protocol):
     async def run(self) -> bool: ...
+
+
+class ICacheReaderService(Protocol):
+    async def get_by_symbol(
+        self, symbol: SymbolCode
+    ) -> Sequence[SourcePriceResult]: ...
+
+    async def get_many_by_symbols(
+        self, symbols: Sequence[SymbolCode]
+    ) -> dict[SymbolCode, Sequence[SourcePriceResult]]: ...
+
+    async def get_all(
+        self,
+    ) -> dict[SymbolCode, Sequence[SourcePriceResult]]: ...

@@ -7,8 +7,8 @@ from redis.exceptions import RedisError
 from src.core.config import Settings
 from src.infra.redis.client import RedisClient
 from src.modules.price.assets.domain.enums import AssetCode
-from src.modules.price.engine.domain.results import AssetPriceResult
-from src.modules.price.engine.infra.cache import AssetPriceCache
+from src.modules.price.calculator.domain.results import AssetPriceResult
+from src.modules.price.calculator.infra.cache import AssetPriceCache
 
 
 class _TestAssetPriceCache(AssetPriceCache):

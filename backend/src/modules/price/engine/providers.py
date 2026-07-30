@@ -2,14 +2,13 @@ from dishka import Provider, Scope, provide
 
 from src.modules.price.engine.app.services import (
     CacheFlusherService,
+    CacheReaderService,
     CFGReaderService,
     CrawlerService,
     PersistFlusherService,
     RunnerService,
 )
 from src.modules.price.engine.infra.cache import (
-    AssetPriceCache,
-    BubbleCache,
     BubbleSourceCache,
     SourcePriceCache,
 )
@@ -20,6 +19,7 @@ from src.modules.price.engine.infra.readers import (
 )
 from src.modules.price.engine.interfaces import (
     ICacheFlusherService,
+    ICacheReaderService,
     ICFGReaderService,
     ICrawlerService,
     IPersistFlusherService,
@@ -29,15 +29,16 @@ from src.modules.price.engine.interfaces import (
 
 class EngineProvider(Provider):
     # nothing below touches postgres, so none of it pins a connection
-    asset_price_cache = provide(AssetPriceCache, scope=Scope.APP)
     source_price_cache = provide(SourcePriceCache, scope=Scope.APP)
-    bubble_cache = provide(BubbleCache, scope=Scope.APP)
     bubble_source_cache = provide(BubbleSourceCache, scope=Scope.APP)
     crawler_service = provide(
         CrawlerService, provides=ICrawlerService, scope=Scope.APP
     )
     cache_flusher_service = provide(
         CacheFlusherService, provides=ICacheFlusherService, scope=Scope.APP
+    )
+    cache_reader_service = provide(
+        CacheReaderService, provides=ICacheReaderService, scope=Scope.APP
     )
     runner_service = provide(
         RunnerService, provides=IRunnerService, scope=Scope.APP

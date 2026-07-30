@@ -300,6 +300,58 @@ class CacheFlusherService:
         return sum(len(rows) for rows in readings.values())
 
 
+class CacheReaderService:
+    def __init__(self, prices: SourcePriceCache) -> None:
+        """
+        Desc: Build the service with the cache it reads from.
+        Args:
+            prices (SourcePriceCache): Where each source's reading lands.
+        """
+        self.prices = prices
+
+    async def get_by_symbol(
+        self,
+        symbol: SymbolCode,
+    ) -> Sequence[SourcePriceResult]:
+        """
+        Desc: Read what every source last quoted for one line.
+        Args:
+            symbol (SymbolCode): The line to read.
+        Returns:
+            return (Sequence[SourcePriceResult]): The readings, empty when
+                no crawl has cached that line yet.
+        """
+        readings = await self.prices.get(symbol)
+        return readings or []
+
+    async def get_many_by_symbols(
+        self,
+        symbols: Sequence[SymbolCode],
+    ) -> dict[SymbolCode, Sequence[SourcePriceResult]]:
+        """
+        Desc: Read what every source last quoted for several lines.
+        Args:
+            symbols (Sequence[SymbolCode]): The lines to read.
+        Returns:
+            return (dict[SymbolCode, Sequence[SourcePriceResult]]): The
+                readings of each line that has any.
+        """
+        readings = await self.prices.get_many(symbols)
+        return {code: rows for code, rows in readings.items()}
+
+    async def get_all(
+        self,
+    ) -> dict[SymbolCode, Sequence[SourcePriceResult]]:
+        """
+        Desc: Read the whole board the last crawl left behind.
+        Returns:
+            return (dict[SymbolCode, Sequence[SourcePriceResult]]): Every
+                line that has readings.
+        """
+        readings = await self.prices.get_all()
+        return {code: rows for code, rows in readings.items()}
+
+
 class PersistFlusherService:
     def __init__(self, errors: ISourceErrorService) -> None:
         """

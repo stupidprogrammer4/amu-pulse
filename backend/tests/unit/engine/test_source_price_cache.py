@@ -9,7 +9,7 @@ from src.modules.price.symbols.domain.enums import (
     CurrencyType,
     SymbolCode,
 )
-from tests.unit.engine.test_asset_price_cache import _FakeRedis
+from tests.unit.calculator.test_asset_price_cache import _FakeRedis
 
 
 def _cache() -> tuple[SourcePriceCache, _FakeRedis]:
