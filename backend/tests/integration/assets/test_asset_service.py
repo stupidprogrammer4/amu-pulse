@@ -16,7 +16,6 @@ from src.modules.price.assets.infra.repository import (
     AssetConfigRepository,
     AssetRepository,
 )
-from src.modules.price.sources.domain.enums import SourceSwitch
 
 
 def _services(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
@@ -74,7 +73,6 @@ class TestAssetServiceCRUD:
         # a new asset is paused until an admin turns it on
         assert config.scheduler_on is False
         assert config.scheduler_seconds == 60
-        assert config.switch == SourceSwitch.IRAN_MARKET
         assert config.agg_type == AggregationType.MEDIAN
 
     async def test_get_by_id_returns_asset(self, uow: PGUnitOfWork) -> None:
@@ -229,14 +227,12 @@ class TestAssetConfigService:
             AssetConfigUpdate(
                 scheduler_on=False,
                 scheduler_seconds=300,
-                switch=SourceSwitch.GLOBAL_MARKET,
                 agg_type=AggregationType.THIRD_QUARTILE,
             ),
         )
 
         assert updated.scheduler_on is False
         assert updated.scheduler_seconds == 300
-        assert updated.switch == SourceSwitch.GLOBAL_MARKET
         assert updated.agg_type == AggregationType.THIRD_QUARTILE
 
     async def test_update_empty_patch_raises_validation(

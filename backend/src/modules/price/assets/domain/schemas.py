@@ -3,6 +3,7 @@ from datetime import datetime
 from src.common.bases.schemas import BaseIDOutput, BaseOutput
 from src.modules.price.assets.config.constants import (
     ASSET_ID_ENCRYPTION,
+    ASSET_SWITCH_ID_ENCRYPTION,
     AssetIDField,
 )
 from src.modules.price.assets.domain.enums import AggregationType, AssetCode
@@ -13,7 +14,6 @@ class AssetConfigOut(BaseOutput):
     asset_id: AssetIDField
     scheduler_on: bool
     scheduler_seconds: int
-    switch: SourceSwitch
     agg_type: AggregationType
     created_at: datetime
     updated_at: datetime
@@ -31,3 +31,13 @@ class AssetOut(BaseIDOutput):
 
 class AssetWithConfigOut(AssetOut):
     config: AssetConfigOut
+
+
+class AssetSwitchOut(BaseIDOutput):
+    __encryption__ = ASSET_SWITCH_ID_ENCRYPTION
+
+    asset_id: AssetIDField
+    switch: SourceSwitch
+    priority: int
+    created_at: datetime
+    updated_at: datetime

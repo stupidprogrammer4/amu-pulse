@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import Mapped, declared_attr
 from sqlmodel import Relationship
 
@@ -12,6 +13,7 @@ from src.infra.postgres.types import (
     CharField,
     ForeignKeyField,
     IntField,
+    SmallIntField,
     TextField,
 )
 from src.modules.price.assets.domain.enums import AggregationType, AssetCode
@@ -41,7 +43,19 @@ class AssetConfigModel(BaseTimestampModel, table=True):
     )
     scheduler_on: bool = BoolField()
     scheduler_seconds: int = IntField()
-    switch: SourceSwitch = CharField(55)
     agg_type: AggregationType = CharField(55)
 
     asset: Optional[AssetModel] = Relationship(back_populates="config")
+
+
+class AssetSwitchModel(BaseIDTimestampModel, table=True):
+    __table_args__ = (UniqueConstraint("asset_id", "switch"),)
+
+    @declared_attr.directive
+    def __tablename__(cls) -> str:
+        return "tbl_asset_switches"
+
+    asset_id: int = ForeignKeyField("tbl_assets.id", ondelete="CASCADE")
+    switch: SourceSwitch = CharField(55)
+    # lower comes first; two markets may share a level
+    priority: int = SmallIntField()

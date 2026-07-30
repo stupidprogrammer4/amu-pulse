@@ -138,23 +138,6 @@ class TestAssetReader:
 
         assert list(found) == []
 
-    async def test_the_context_carries_the_configured_market(
-        self, uow: PGUnitOfWork
-    ) -> None:
-        assets, configs = _assets(uow)
-        created = await assets.create(
-            AssetCreate(title="طلا", code=AssetCode.GOLD18)
-        )
-        await configs.update(
-            created.id,
-            AssetConfigUpdate(switch=SourceSwitch.GLOBAL_MARKET),
-        )
-
-        context = await AssetReader(uow).read(created.id)
-
-        assert context is not None
-        assert context.cfg.switch == SourceSwitch.GLOBAL_MARKET
-
 
 @pytest.mark.usefixtures("migrated_test_db", "clean_db")
 class TestSourceReader:
