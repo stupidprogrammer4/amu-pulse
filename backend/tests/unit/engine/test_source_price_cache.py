@@ -1,12 +1,14 @@
 from datetime import UTC, datetime
-from decimal import Decimal
 from types import SimpleNamespace
 from typing import cast
 
 from src.infra.redis.client import RedisClient
 from src.modules.price.engine.domain.results import SourcePriceResult
 from src.modules.price.engine.infra.cache import SourcePriceCache
-from src.modules.price.symbols.domain.enums import SymbolCode
+from src.modules.price.symbols.domain.enums import (
+    CurrencyType,
+    SymbolCode,
+)
 from tests.unit.engine.test_asset_price_cache import _FakeRedis
 
 
@@ -38,13 +40,14 @@ def _reading(
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=symbol_id,
+        currency=CurrencyType.RIAL,
         buy_price=price - 1000,
         sell_price=price + 1000,
         price=price,
-        buy_spread_rial=1000,
-        sell_spread_rial=1000,
-        buy_spread_rate=Decimal("0.00125"),
-        sell_spread_rate=Decimal("0.00125"),
+        buy_spread=1000,
+        sell_spread=1000,
+        buy_spread_rate=0.00125,
+        sell_spread_rate=0.00125,
         priced_at=datetime(2026, 7, 29, 12, 0, tzinfo=UTC),
     )
 
@@ -68,7 +71,7 @@ class TestSetAndGet:
         found = await cache.get(SymbolCode.GOLD18_GRAM)
 
         assert found is not None
-        assert found[0].buy_spread_rate == Decimal("0.00125")
+        assert found[0].buy_spread_rate == 0.00125
 
     async def test_the_source_order_is_kept(self) -> None:
         # the aggregation reads positionally when it picks a median

@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, Sequence, cast
 
@@ -76,10 +75,10 @@ def _result(price: int, asset_id: int = 1) -> AssetPriceResult:
         buy_price=price - 1000,
         sell_price=price + 1000,
         price=price,
-        buy_spread_rial=1000,
-        sell_spread_rial=1000,
-        buy_spread_rate=Decimal("0.001"),
-        sell_spread_rate=Decimal("0.001"),
+        buy_spread=1000,
+        sell_spread=1000,
+        buy_spread_rate=0.001,
+        sell_spread_rate=0.001,
         priced_at=datetime(2026, 7, 29, 12, 0, tzinfo=UTC),
     )
 
@@ -95,15 +94,14 @@ class TestSetAndGet:
         assert found.price == 185_000_000
         assert found.asset_id == 1
 
-    async def test_the_decimal_spread_survives_the_round_trip(self) -> None:
-        # a rate that went through a float would come back drifting
+    async def test_the_spread_rate_survives_the_round_trip(self) -> None:
         cache, _ = _cache()
 
         await cache.set(AssetCode.GOLD18, _result(1))
         found = await cache.get(AssetCode.GOLD18)
 
         assert found is not None
-        assert found.buy_spread_rate == Decimal("0.001")
+        assert found.buy_spread_rate == 0.001
 
     async def test_priced_at_keeps_its_timezone(self) -> None:
         cache, _ = _cache()

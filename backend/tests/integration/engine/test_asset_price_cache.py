@@ -1,6 +1,5 @@
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from decimal import Decimal
 
 import pytest
 from redis.exceptions import RedisError
@@ -61,10 +60,10 @@ def _result(price: int, asset_id: int = 1) -> AssetPriceResult:
         buy_price=price - 1000,
         sell_price=price + 1000,
         price=price,
-        buy_spread_rial=1000,
-        sell_spread_rial=1000,
-        buy_spread_rate=Decimal("0.00125"),
-        sell_spread_rate=Decimal("0.00125"),
+        buy_spread=1000,
+        sell_spread=1000,
+        buy_spread_rate=0.00125,
+        sell_spread_rate=0.00125,
         priced_at=datetime(2026, 7, 29, 12, 0, tzinfo=UTC),
     )
 
@@ -80,7 +79,7 @@ class TestAssetPriceCacheAgainstRedis:
         assert found is not None
         assert found.price == 185_820_000
         # the rate is the one field a float round trip would corrupt
-        assert found.buy_spread_rate == Decimal("0.00125")
+        assert found.buy_spread_rate == 0.00125
         assert found.priced_at.tzinfo is not None
 
     async def test_the_whole_board_comes_back_in_one_read(

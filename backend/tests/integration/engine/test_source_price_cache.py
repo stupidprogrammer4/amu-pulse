@@ -1,6 +1,5 @@
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from decimal import Decimal
 
 import pytest
 from redis.exceptions import RedisError
@@ -9,7 +8,10 @@ from src.core.config import Settings
 from src.infra.redis.client import RedisClient
 from src.modules.price.engine.domain.results import SourcePriceResult
 from src.modules.price.engine.infra.cache import SourcePriceCache
-from src.modules.price.symbols.domain.enums import SymbolCode
+from src.modules.price.symbols.domain.enums import (
+    CurrencyType,
+    SymbolCode,
+)
 
 
 class _TestSourcePriceCache(SourcePriceCache):
@@ -58,13 +60,14 @@ def _reading(source_id: int, price: int) -> SourcePriceResult:
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=1,
+        currency=CurrencyType.RIAL,
         buy_price=price - 1000,
         sell_price=price + 1000,
         price=price,
-        buy_spread_rial=1000,
-        sell_spread_rial=1000,
-        buy_spread_rate=Decimal("0.00125"),
-        sell_spread_rate=Decimal("0.00125"),
+        buy_spread=1000,
+        sell_spread=1000,
+        buy_spread_rate=0.00125,
+        sell_spread_rate=0.00125,
         priced_at=datetime(2026, 7, 29, 12, 0, tzinfo=UTC),
     )
 
@@ -82,7 +85,7 @@ class TestSourcePriceCacheAgainstRedis:
 
         assert found is not None
         assert [r.source_id for r in found] == [1, 2]
-        assert found[0].buy_spread_rate == Decimal("0.00125")
+        assert found[0].buy_spread_rate == 0.00125
         assert found[0].priced_at.tzinfo is not None
 
     async def test_both_symbols_come_back_in_one_read(

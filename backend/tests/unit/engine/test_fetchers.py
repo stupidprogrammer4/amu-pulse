@@ -1,11 +1,9 @@
-from decimal import Decimal
 from typing import Any, Sequence
 
 import httpx
 import pytest
 
 from src.common.utils.currency_utils import round_rial
-from src.modules.price.engine.domain.enums import QuoteKind
 from src.modules.price.engine.infra.gateways.base import AbstractFetcher
 from src.modules.price.engine.infra.gateways.global_market import (
     GLOBAL_FETCHERS,
@@ -163,7 +161,6 @@ class TestSupplierFetchers:
 
         quotes = await _fetch(TalalandFetcher(), payload)
 
-        assert quotes[0].kind == QuoteKind.MAZANE
         assert quotes[0].selling_mazane == 812_000_000
         assert quotes[0].buying_mazane == 810_000_000
         assert quotes[0].is_closed is False
@@ -229,16 +226,16 @@ class TestGlobalFetchers:
         )
 
         assert quotes[0].symbol == SymbolCode.XAU_OUNCE
-        assert quotes[0].selling == Decimal("4039.600098")
-        assert quotes[0].selling == quotes[0].buying
+        assert quotes[0].selling_cent == 403_960
+        assert quotes[0].selling_cent == quotes[0].buying_cent
 
     async def test_goldprice_dev_reads_bid_and_ask(self) -> None:
         payload = {"price": "4038.41", "bid": "4037.47", "ask": "4039.34"}
 
         quotes = await _fetch(GoldPriceDevFetcher(), payload)
 
-        assert quotes[0].selling == Decimal("4039.34")
-        assert quotes[0].buying == Decimal("4037.47")
+        assert quotes[0].selling_cent == 403_934
+        assert quotes[0].buying_cent == 403_747
 
 
 class TestFetchNeverRaises:
@@ -273,8 +270,8 @@ class TestFetchNeverRaises:
     async def test_a_failed_fetch_is_zero_priced(self) -> None:
         quotes = await _fetch(GoldApiComFetcher(), {"junk": 1})
 
-        assert quotes[0].selling == Decimal(0)
-        assert quotes[0].buying == Decimal(0)
+        assert quotes[0].selling_cent == 0
+        assert quotes[0].buying_cent == 0
 
     async def test_a_transport_failure_is_caught(self) -> None:
         fetcher = TgjuFetcher()
