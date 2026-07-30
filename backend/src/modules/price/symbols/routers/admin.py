@@ -1,0 +1,92 @@
+from dishka.integrations.fastapi import DishkaRoute, FromDishka
+from fastapi import APIRouter
+
+from src.modules.price.assets.config.dependencies import AssetID
+from src.modules.price.symbols.config.dependencies import SymbolID
+from src.modules.price.symbols.domain.dtos import SymbolCreate, SymbolUpdate
+from src.modules.price.symbols.domain.schemas import SymbolOut
+from src.modules.price.symbols.interfaces import ISymbolService
+from src.web.response import APIResponse
+
+# open until the auth module lands and brings the guard with it
+router = APIRouter(
+    prefix="/symbols",
+    tags=["Symbols"],
+    route_class=DishkaRoute,
+)
+
+SymbolResponse = APIResponse[SymbolOut, None]
+
+
+@router.post(
+    "", response_model=SymbolResponse, response_model_exclude_defaults=True
+)
+async def create_symbol(
+    data: SymbolCreate,
+    service: FromDishka[ISymbolService],
+) -> SymbolResponse:
+    symbol = await service.create(data)
+    return APIResponse.from_data(SymbolOut.from_obj(symbol))
+
+
+@router.get(
+    "", response_model=SymbolResponse, response_model_exclude_defaults=True
+)
+async def get_symbols(
+    service: FromDishka[ISymbolService],
+) -> SymbolResponse:
+    symbols = await service.get_all()
+    return APIResponse.from_data(SymbolOut.from_objs(symbols))
+
+
+@router.get(
+    "/assets/{asset_id:int}",
+    response_model=SymbolResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_asset_symbols(
+    asset_id: AssetID,
+    service: FromDishka[ISymbolService],
+) -> SymbolResponse:
+    symbols = await service.get_by_asset_id(asset_id)
+    return APIResponse.from_data(SymbolOut.from_objs(symbols))
+
+
+@router.get(
+    "/{id:int}",
+    response_model=SymbolResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_symbol(
+    id: SymbolID,
+    service: FromDishka[ISymbolService],
+) -> SymbolResponse:
+    symbol = await service.get_by_id(id)
+    return APIResponse.from_data(SymbolOut.from_obj(symbol))
+
+
+@router.patch(
+    "/{id:int}",
+    response_model=SymbolResponse,
+    response_model_exclude_defaults=True,
+)
+async def update_symbol(
+    id: SymbolID,
+    data: SymbolUpdate,
+    service: FromDishka[ISymbolService],
+) -> SymbolResponse:
+    symbol = await service.update(id, data)
+    return APIResponse.from_data(SymbolOut.from_obj(symbol))
+
+
+@router.delete(
+    "/{id:int}",
+    response_model=SymbolResponse,
+    response_model_exclude_defaults=True,
+)
+async def remove_symbol(
+    id: SymbolID,
+    service: FromDishka[ISymbolService],
+) -> SymbolResponse:
+    symbol = await service.remove(id)
+    return APIResponse.from_data(SymbolOut.from_obj(symbol))

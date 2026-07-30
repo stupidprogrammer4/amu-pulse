@@ -27,3 +27,6 @@ AssetIDField = Annotated[
 AssetSwitchIDInput = Annotated[
     int, AfterValidator(ASSET_SWITCH_ID_ENCRYPTION.decode)
 ]
+
+# the input side: a public id a DTO decodes back, 422 on a malformed one
+AssetIDInput = Annotated[int, AfterValidator(ASSET_ID_ENCRYPTION.decode)]
