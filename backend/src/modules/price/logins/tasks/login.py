@@ -13,10 +13,11 @@ from src.tasks.events import on
 
 @broker.task(
     task_name="logins.refresh_all",
+    queue_name="logins_queue",
     # a session outlives a week, so a weekly sweep is enough
     schedule=[{"cron": "0 3 * * 5"}],
 )
-@inject
+@inject(patch_module=True)
 async def refresh_all_logins(
     service: FromDishka[ISourceLoginService],
 ) -> int:
@@ -25,8 +26,11 @@ async def refresh_all_logins(
     return saved
 
 
-@broker.task(task_name="logins.refresh_codes")
-@inject
+@broker.task(
+    task_name="logins.refresh_codes",
+    queue_name="logins_queue",
+)
+@inject(patch_module=True)
 async def refresh_logins(
     codes: Sequence[SourceCode],
     service: FromDishka[ISourceLoginService],
