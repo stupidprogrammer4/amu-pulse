@@ -1,0 +1,6 @@
+INVALID_CREDENTIALS = "invalid_credentials"
+MOBILE_CONFLICT = "mobile_confilict_error"
+INACTIVE_USER = "inactive_user"
+ACCOUNT_LOCKED = "account_locked"
+REFRESH_TOKEN_INVALID = "refresh_token_invalid"
+ROLE_MISCONFIGURED = "default_role_missing"
