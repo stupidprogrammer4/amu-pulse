@@ -41,8 +41,6 @@ class BubbleConfigModel(BaseTimestampModel, table=True):
     )
     scheduler_on: bool = BoolField()
     scheduler_seconds: int = IntField()
-    # how to fold several publishers into one number; with a single source
-    # every aggregation returns that source's reading
     agg_type: AggregationType = CharField(55)
 
     bubble: Optional[BubbleModel] = Relationship(back_populates="config")
