@@ -1,0 +1,13 @@
+from typing import Protocol
+
+
+class ICalculatorService(Protocol):
+    async def calculate_all(self) -> int: ...
+
+    async def calculate(self, asset_id: int) -> int: ...
+
+
+class IBubbleCalculatorService(Protocol):
+    async def calculate_all(self) -> int: ...
+
+    async def calculate(self, bubble_id: int) -> int: ...

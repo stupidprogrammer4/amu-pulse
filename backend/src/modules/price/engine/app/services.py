@@ -301,13 +301,20 @@ class CacheFlusherService:
 
 
 class CacheReaderService:
-    def __init__(self, prices: SourcePriceCache) -> None:
+    def __init__(
+        self,
+        prices: SourcePriceCache,
+        source_bubbles: BubbleSourceCache,
+    ) -> None:
         """
-        Desc: Build the service with the cache it reads from.
+        Desc: Build the service with the caches it reads from.
         Args:
             prices (SourcePriceCache): Where each source's reading lands.
+            source_bubbles (BubbleSourceCache): Where each source's raw
+                premium lands.
         """
         self.prices = prices
+        self.source_bubbles = source_bubbles
 
     async def get_by_symbol(
         self,
@@ -350,6 +357,33 @@ class CacheReaderService:
         """
         readings = await self.prices.get_all()
         return {code: rows for code, rows in readings.items()}
+
+    async def get_bubbles_by_asset(
+        self,
+        code: AssetCode,
+    ) -> Sequence[SourceBubbleResult]:
+        """
+        Desc: Read what every source last published as one asset's premium.
+        Args:
+            code (AssetCode): The asset to read.
+        Returns:
+            return (Sequence[SourceBubbleResult]): The premiums, empty when
+                no crawl has cached one for that asset yet.
+        """
+        premiums = await self.source_bubbles.get(code)
+        return premiums or []
+
+    async def get_all_bubbles(
+        self,
+    ) -> dict[AssetCode, Sequence[SourceBubbleResult]]:
+        """
+        Desc: Read every premium the last crawl left behind.
+        Returns:
+            return (dict[AssetCode, Sequence[SourceBubbleResult]]): Every
+                asset a source published a premium for.
+        """
+        premiums = await self.source_bubbles.get_all()
+        return {code: rows for code, rows in premiums.items()}
 
 
 class PersistFlusherService:
