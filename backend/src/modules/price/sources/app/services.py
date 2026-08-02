@@ -145,6 +145,20 @@ class SourceService(BaseIDService[SourceModel]):
         source = self._check_for_id_existence(id, source)
         return source
 
+    async def get_by_ids(
+        self,
+        ids: list[int],
+    ) -> Sequence[SourceModel]:
+        """
+        Desc: Get the sources the given ids belong to.
+        Args:
+            ids (list[int]): IDs of the sources to read.
+        Returns:
+            return (Sequence[SourceModel]): The sources that exist.
+        """
+        sources = await self.repo.get_by_ids(ids)
+        return sources
+
     async def get_all(self) -> Sequence[SourceModel]:
         """
         Desc: Get every source.

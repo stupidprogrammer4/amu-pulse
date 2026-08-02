@@ -220,3 +220,29 @@ class TestSymbolServiceCRUD:
         await assets.remove(asset.id)
 
         assert await symbols.get_all() == []
+
+
+@pytest.mark.usefixtures("migrated_test_db", "clean_db")
+class TestGetByIds:
+    async def test_it_reads_only_the_lines_asked_for(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        symbols = _service(uow)
+        asset = await _asset(uow)
+        gram = await symbols.create(_create(asset))
+        await symbols.create(_create(asset, SymbolCode.GOLD18_MAZANE))
+
+        found = await symbols.get_by_ids([gram.id])
+
+        assert [symbol.id for symbol in found] == [gram.id]
+
+    async def test_an_id_nothing_carries_is_left_out(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        symbols = _service(uow)
+        asset = await _asset(uow)
+        gram = await symbols.create(_create(asset))
+
+        found = await symbols.get_by_ids([gram.id, 4040])
+
+        assert [symbol.id for symbol in found] == [gram.id]

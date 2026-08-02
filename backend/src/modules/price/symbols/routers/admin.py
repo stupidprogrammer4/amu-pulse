@@ -1,6 +1,14 @@
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
+from src.modules.chart.ticker.domain.enums import ChartType
+from src.modules.chart.ticker.domain.schemas import (
+    SourceChartMeta,
+    SourceChartOutput,
+)
+from src.modules.chart.ticker.interfaces import (
+    ISourcePriceTickerService,
+)
 from src.modules.price.assets.config.dependencies import AssetID
 from src.modules.price.symbols.config.dependencies import SymbolID
 from src.modules.price.symbols.domain.dtos import SymbolCreate, SymbolUpdate
@@ -16,6 +24,7 @@ router = APIRouter(
 )
 
 SymbolResponse = APIResponse[SymbolOut, None]
+SymbolChartResponse = APIResponse[SourceChartOutput, SourceChartMeta]
 
 
 @router.post(
@@ -90,3 +99,17 @@ async def remove_symbol(
 ) -> SymbolResponse:
     symbol = await service.remove(id)
     return APIResponse.from_data(SymbolOut.from_obj(symbol))
+
+
+@router.get(
+    "/{id:int}/chart",
+    response_model=SymbolChartResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_symbol_chart(
+    id: SymbolID,
+    type: ChartType,
+    service: FromDishka[ISourcePriceTickerService],
+) -> SymbolChartResponse:
+    result = await service.get_chart_by_symbol(id, type)
+    return APIResponse(success=True, data=result.data, meta=result.meta)

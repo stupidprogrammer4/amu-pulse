@@ -305,3 +305,37 @@ class TestTheDollarDefaults:
 
         assert config.scheduler_on is False
         assert config.scheduler_seconds == 60
+
+
+@pytest.mark.usefixtures("migrated_test_db", "clean_db")
+class TestGetByIds:
+    async def test_it_reads_only_the_assets_asked_for(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        assets, _ = _services(uow)
+        gold = await assets.create(_create_data())
+        await assets.create(_create_data(AssetCode.USD))
+
+        found = await assets.get_by_ids([gold.id])
+
+        assert [asset.id for asset in found] == [gold.id]
+
+    async def test_an_id_nothing_carries_is_left_out(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        assets, _ = _services(uow)
+        gold = await assets.create(_create_data())
+
+        found = await assets.get_by_ids([gold.id, 9999])
+
+        assert [asset.id for asset in found] == [gold.id]
+
+    async def test_asking_for_nothing_reads_nothing(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        assets, _ = _services(uow)
+        await assets.create(_create_data())
+
+        found = await assets.get_by_ids([])
+
+        assert list(found) == []

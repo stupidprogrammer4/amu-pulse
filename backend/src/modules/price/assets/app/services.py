@@ -406,6 +406,20 @@ class AssetService(BaseIDService[AssetModel]):
         asset = self._check_for_id_existence(id, asset)
         return asset
 
+    async def get_by_ids(
+        self,
+        ids: list[int],
+    ) -> Sequence[AssetModel]:
+        """
+        Desc: Get the assets the given ids belong to.
+        Args:
+            ids (list[int]): IDs of the assets to read.
+        Returns:
+            return (Sequence[AssetModel]): The assets that exist.
+        """
+        assets = await self.repo.get_by_ids(ids)
+        return assets
+
     async def get_all(self) -> Sequence[AssetModel]:
         """
         Desc: Get every asset.

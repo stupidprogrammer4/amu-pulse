@@ -463,3 +463,27 @@ class TestSourceConfigService:
         found = await configs.get_all()
 
         assert {c.source_id for c in found} == {first.id, second.id}
+
+
+@pytest.mark.usefixtures("migrated_test_db", "clean_db")
+class TestGetByIds:
+    async def test_it_reads_only_the_sources_asked_for(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        sources, _ = _services(uow)
+        tgju = await sources.create(_create_data(SourceCode.TGJU))
+        await sources.create(_create_data(SourceCode.TALALAND))
+
+        found = await sources.get_by_ids([tgju.id])
+
+        assert [source.id for source in found] == [tgju.id]
+
+    async def test_an_id_nothing_carries_is_left_out(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        sources, _ = _services(uow)
+        tgju = await sources.create(_create_data(SourceCode.TGJU))
+
+        found = await sources.get_by_ids([tgju.id, 9999])
+
+        assert [source.id for source in found] == [tgju.id]

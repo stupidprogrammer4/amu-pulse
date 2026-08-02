@@ -3,6 +3,12 @@ from fastapi import APIRouter
 
 from src.common.errors.exceptions import NotFoundException
 from src.core import resources
+from src.modules.chart.ticker.domain.enums import ChartType
+from src.modules.chart.ticker.domain.schemas import (
+    ChartMeta,
+    ChartOutput,
+)
+from src.modules.chart.ticker.interfaces import IPriceTickerService
 from src.modules.price.assets.config.dependencies import (
     AssetID,
     AssetSwitchID,
@@ -48,6 +54,7 @@ AssetWithConfigResponse = APIResponse[AssetWithConfigOut, None]
 AssetConfigResponse = APIResponse[AssetConfigOut, None]
 AssetSwitchResponse = APIResponse[AssetSwitchOut, None]
 AssetPriceResponse = APIResponse[AssetPriceOut, None]
+AssetChartResponse = APIResponse[ChartOutput, ChartMeta]
 RepriceResponse = APIResponse[RepriceOut, None]
 
 
@@ -293,3 +300,17 @@ async def get_asset_price(
             entity="Price",
         )
     return APIResponse.from_data(AssetPriceOut.from_obj(price))
+
+
+@router.get(
+    "/{id:int}/chart",
+    response_model=AssetChartResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_asset_chart(
+    id: AssetID,
+    type: ChartType,
+    service: FromDishka[IPriceTickerService],
+) -> AssetChartResponse:
+    result = await service.get_chart(id, type)
+    return APIResponse(success=True, data=result.data, meta=result.meta)

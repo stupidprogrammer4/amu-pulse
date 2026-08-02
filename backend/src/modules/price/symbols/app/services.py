@@ -54,6 +54,20 @@ class SymbolService(BaseIDService[SymbolModel]):
         symbol = self._check_for_id_existence(id, symbol)
         return symbol
 
+    async def get_by_ids(
+        self,
+        ids: list[int],
+    ) -> Sequence[SymbolModel]:
+        """
+        Desc: Get the symbols the given ids belong to.
+        Args:
+            ids (list[int]): IDs of the symbols to read.
+        Returns:
+            return (Sequence[SymbolModel]): The symbols that exist.
+        """
+        symbols = await self.repo.get_by_ids(ids)
+        return symbols
+
     async def get_all(self) -> Sequence[SymbolModel]:
         """
         Desc: Get every symbol.
