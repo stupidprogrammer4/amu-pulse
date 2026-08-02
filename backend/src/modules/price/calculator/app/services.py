@@ -322,3 +322,69 @@ class CalculatorService:
         if priced:
             await self.prices.set_many(priced)
         return len(priced)
+
+
+class CacheReaderService:
+    def __init__(
+        self,
+        prices: AssetPriceCache,
+        bubbles: BubbleCache,
+    ) -> None:
+        """
+        Desc: Build the service with the caches it reads from.
+        Args:
+            prices (AssetPriceCache): Where each asset's price lands.
+            bubbles (BubbleCache): Where each settled premium lands.
+        """
+        self.prices = prices
+        self.bubbles = bubbles
+
+    async def get_price(
+        self,
+        asset_code: AssetCode,
+    ) -> AssetPriceResult | None:
+        """
+        Desc: Read what one asset was last priced at.
+        Args:
+            asset_code (AssetCode): The asset to read.
+        Returns:
+            return (AssetPriceResult | None): Its price, or None when it
+                has not been priced yet.
+        """
+        found = await self.prices.get(asset_code)
+        return found
+
+    async def get_bubble_amount(
+        self,
+        bubble_code: AssetCode,
+    ) -> BubbleResult | None:
+        """
+        Desc: Read one asset's last settled premium.
+        Args:
+            bubble_code (AssetCode): The asset whose premium to read.
+        Returns:
+            return (BubbleResult | None): Its premium, or None when none
+                has been settled yet.
+        """
+        found = await self.bubbles.get(bubble_code)
+        return found
+
+    async def get_all_bubble_amounts(self) -> Sequence[BubbleResult]:
+        """
+        Desc: Read every premium that has been settled.
+        Returns:
+            return (Sequence[BubbleResult]): The settled premiums, empty
+                when none has been.
+        """
+        found = await self.bubbles.get_all()
+        return list(found.values())
+
+    async def get_all_prices(self) -> Sequence[AssetPriceResult]:
+        """
+        Desc: Read the price of every asset that has one.
+        Returns:
+            return (Sequence[AssetPriceResult]): The prices, empty when
+                nothing has been priced yet.
+        """
+        found = await self.prices.get_all()
+        return list(found.values())

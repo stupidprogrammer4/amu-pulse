@@ -2,6 +2,7 @@ from dishka import Provider, Scope, provide
 
 from src.modules.price.calculator.app.services import (
     BubbleCalculatorService,
+    CacheReaderService,
     CalculatorService,
 )
 from src.modules.price.calculator.infra.cache import (
@@ -17,6 +18,7 @@ from src.modules.price.calculator.infra.readers import (
 )
 from src.modules.price.calculator.interfaces import (
     IBubbleCalculatorService,
+    ICacheReaderService,
     ICalculatorService,
 )
 
@@ -27,6 +29,9 @@ class CalculatorProvider(Provider):
     # neither cache touches postgres, so neither pins a connection
     asset_price_cache = provide(AssetPriceCache, scope=Scope.APP)
     bubble_cache = provide(BubbleCache, scope=Scope.APP)
+    cache_reader_service = provide(
+        CacheReaderService, provides=ICacheReaderService, scope=Scope.APP
+    )
     symbol_reader = provide(SymbolReader)
     asset_reader = provide(AssetReader)
     bubble_reader = provide(BubbleReader)
