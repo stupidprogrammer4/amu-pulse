@@ -23,6 +23,7 @@ def _asset_out(id: int) -> AssetOut:
         id=id,
         title="طلای ۱۸ عیار",
         code=AssetCode.GOLD18,
+        primary_color="#c8a44b",
         description=None,
         created_at=now,
         updated_at=now,

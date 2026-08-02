@@ -46,7 +46,9 @@ async def _asset(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
     assets = AssetService(AssetRepository(uow), configs)
-    asset = await assets.create(AssetCreate(title="طلا", code=code))
+    asset = await assets.create(
+        AssetCreate(title="طلا", code=code, primary_color="#c8a44b")
+    )
     return asset
 
 

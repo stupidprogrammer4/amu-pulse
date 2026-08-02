@@ -4,6 +4,7 @@ from pydantic import Field
 
 from src.common.bases.dtos import BaseDTO
 from src.common.types import (
+    ColorType,
     LStrType,
     MediaUrlType,
     PageType,
@@ -13,10 +14,6 @@ from src.common.types import (
 )
 from src.modules.price.sources.domain.enums import SourceCode, SourceSwitch
 
-# a hex colour the front end paints the source's badge with
-ColorType = Annotated[
-    str, Field(pattern=r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
-]
 # how long one fetch of a source may take, in whole seconds
 TimeoutType = Annotated[int, Field(ge=1, le=60)]
 

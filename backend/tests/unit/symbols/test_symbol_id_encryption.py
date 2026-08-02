@@ -25,6 +25,7 @@ def _symbol_out(id: int) -> SymbolOut:
         code=SymbolCode.GOLD18_GRAM,
         asset_id=1,
         currency=CurrencyType.RIAL,
+        primary_color="#c8a44b",
         description=None,
         created_at=now,
         updated_at=now,

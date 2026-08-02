@@ -19,6 +19,7 @@ def _create(**over: object) -> SymbolCreate:
         "code": SymbolCode.GOLD18_GRAM,
         "asset_id": ASSET_ID_ENCRYPTION.encode(1),
         "currency": CurrencyType.RIAL,
+        "primary_color": "#c8a44b",
     }
     data.update(over)
     return SymbolCreate(**data)  # type: ignore[arg-type]

@@ -49,7 +49,9 @@ async def _asset(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
     assets = AssetService(AssetRepository(uow), configs)
-    asset = await assets.create(AssetCreate(title="طلا", code=code))
+    asset = await assets.create(
+        AssetCreate(title="طلا", code=code, primary_color="#c8a44b")
+    )
     return asset
 
 
@@ -71,6 +73,7 @@ def _create(
         title="هر گرم طلای ۱۸ عیار",
         code=code,
         asset_id=ASSET_ID_ENCRYPTION.encode(asset.id),
+        primary_color="#c8a44b",
         currency=currency,
     )
     return data

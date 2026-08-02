@@ -84,7 +84,9 @@ async def _asset(
         return (AssetModel): The created asset.
     """
     assets, _ = _assets(uow)
-    asset = await assets.create(AssetCreate(title="طلا", code=code))
+    asset = await assets.create(
+        AssetCreate(title="طلا", code=code, primary_color="#c8a44b")
+    )
     return asset
 
 
@@ -107,6 +109,7 @@ async def _symbol(
         SymbolCreate(
             title="هر گرم طلای ۱۸ عیار",
             code=code,
+            primary_color="#c8a44b",
             asset_id=ASSET_ID_ENCRYPTION.encode(asset.id),
             currency=currency,
         )

@@ -24,6 +24,7 @@ class AssetOut(BaseIDOutput):
 
     title: str
     code: AssetCode
+    primary_color: str
     description: str | None
     created_at: datetime
     updated_at: datetime

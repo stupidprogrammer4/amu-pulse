@@ -3,7 +3,7 @@ from typing import Annotated
 from pydantic import Field
 
 from src.common.bases.dtos import BaseDTO
-from src.common.types import ContentType, StrType
+from src.common.types import ColorType, ContentType, StrType
 from src.modules.price.assets.config.constants import AssetSwitchIDInput
 from src.modules.price.assets.domain.enums import AggregationType, AssetCode
 from src.modules.price.sources.domain.enums import SourceSwitch
@@ -18,11 +18,13 @@ PriorityType = Annotated[int, Field(ge=0, le=100)]
 class AssetCreate(BaseDTO):
     title: StrType
     code: AssetCode
+    primary_color: ColorType
     description: ContentType | None = None
 
 
 class AssetUpdate(BaseDTO):
     title: StrType | None = None
+    primary_color: ColorType | None = None
     description: ContentType | None = None
 
 

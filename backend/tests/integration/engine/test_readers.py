@@ -77,7 +77,9 @@ class TestAssetReader:
     ) -> None:
         assets, _ = _assets(uow)
         created = await assets.create(
-            AssetCreate(title="طلا", code=AssetCode.GOLD18)
+            AssetCreate(
+                title="طلا", code=AssetCode.GOLD18, primary_color="#c8a44b"
+            )
         )
 
         context = await AssetReader(uow).read(created.id)
@@ -101,10 +103,14 @@ class TestAssetReader:
         # the dollar is on from birth; gold waits to be switched on
         assets, configs = _assets(uow)
         gold = await assets.create(
-            AssetCreate(title="طلا", code=AssetCode.GOLD18)
+            AssetCreate(
+                title="طلا", code=AssetCode.GOLD18, primary_color="#c8a44b"
+            )
         )
         dollar = await assets.create(
-            AssetCreate(title="دلار", code=AssetCode.USD)
+            AssetCreate(
+                title="دلار", code=AssetCode.USD, primary_color="#c8a44b"
+            )
         )
 
         paused = await AssetReader(uow).read_scheduled()
@@ -119,7 +125,11 @@ class TestAssetReader:
     ) -> None:
         # creating an asset must not start polling endpoints nobody set up
         assets, _ = _assets(uow)
-        await assets.create(AssetCreate(title="طلا", code=AssetCode.GOLD18))
+        await assets.create(
+            AssetCreate(
+                title="طلا", code=AssetCode.GOLD18, primary_color="#c8a44b"
+            )
+        )
 
         found = await AssetReader(uow).read_scheduled()
 
@@ -131,7 +141,9 @@ class TestAssetReader:
         # a manual repricing must still work on a paused asset
         assets, _ = _assets(uow)
         created = await assets.create(
-            AssetCreate(title="طلا", code=AssetCode.GOLD18)
+            AssetCreate(
+                title="طلا", code=AssetCode.GOLD18, primary_color="#c8a44b"
+            )
         )
 
         context = await AssetReader(uow).read(created.id)

@@ -45,6 +45,7 @@ def _create_data(code: AssetCode = AssetCode.GOLD18) -> AssetCreate:
     return AssetCreate(
         title="طلای ۱۸ عیار",
         code=code,
+        primary_color="#c8a44b",
         description="مظنه آب‌شده",
     )
 
@@ -284,7 +285,9 @@ class TestTheDollarDefaults:
     ) -> None:
         assets, configs = _services(uow)
         dollar = await assets.create(
-            AssetCreate(title="دلار", code=AssetCode.USD)
+            AssetCreate(
+                title="دلار", code=AssetCode.USD, primary_color="#c8a44b"
+            )
         )
 
         config = await configs.get_by_asset_id(dollar.id)

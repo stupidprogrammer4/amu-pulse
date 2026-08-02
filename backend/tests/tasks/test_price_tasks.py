@@ -66,7 +66,9 @@ async def _asset(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
     assets = AssetService(AssetRepository(uow), configs)
-    asset = await assets.create(AssetCreate(title="دارایی", code=code))
+    asset = await assets.create(
+        AssetCreate(title="دارایی", code=code, primary_color="#c8a44b")
+    )
     switches = AssetSwitchService(AssetSwitchRepository(uow))
     await switches.create(
         asset.id,
@@ -94,6 +96,7 @@ async def _symbol(
         SymbolCreate(
             title="خط",
             code=code,
+            primary_color="#c8a44b",
             asset_id=ASSET_ID_ENCRYPTION.encode(asset.id),
             currency=CurrencyType.RIAL,
         )

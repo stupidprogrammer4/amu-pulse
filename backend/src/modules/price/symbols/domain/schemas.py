@@ -13,6 +13,7 @@ class SymbolOut(BaseIDOutput):
     code: SymbolCode
     asset_id: AssetIDField
     currency: CurrencyType
+    primary_color: str
     description: str | None
     created_at: datetime
     updated_at: datetime

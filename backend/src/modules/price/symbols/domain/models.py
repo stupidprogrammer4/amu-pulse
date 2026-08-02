@@ -9,3 +9,4 @@ class SymbolModel(BaseIDTimestampModel, table=True):
     asset_id: int = ForeignKeyField("tbl_assets.id", ondelete="CASCADE")
     currency: CurrencyType = CharField(16)
     description: str | None = TextField(nullable=True)
+    primary_color: str = CharField(55)

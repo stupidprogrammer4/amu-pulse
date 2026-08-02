@@ -80,7 +80,9 @@ async def _asset(
         return (AssetModel): The created asset.
     """
     assets, _ = _assets(uow, schedules)
-    asset = await assets.create(AssetCreate(title="طلا", code=code))
+    asset = await assets.create(
+        AssetCreate(title="طلا", code=code, primary_color="#c8a44b")
+    )
     return asset
 
 

@@ -24,6 +24,7 @@ class AssetModel(BaseIDTimestampModel, table=True):
     title: str = CharField(55)
     code: AssetCode = CharField(55, unique=True)
     description: str | None = TextField(nullable=True)
+    primary_color: str = CharField(55)
 
     config: Mapped[Optional["AssetConfigModel"]] = Relationship(
         back_populates="asset",

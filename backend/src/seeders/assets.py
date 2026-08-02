@@ -30,6 +30,7 @@ class AssetSeed:
     code: AssetCode
     title: str
     description: str
+    primary_color: str
     # the markets that price it, best level first
     switches: list[AssetSwitchCreate]
 
@@ -39,6 +40,7 @@ ASSETS: list[AssetSeed] = [
         AssetCode.GOLD18,
         "طلای ۱۸ عیار",
         "مظنه آب‌شده و قیمت هر گرم طلای ۱۸ عیار",
+        "#c8a44b",
         [
             AssetSwitchCreate(switch=SourceSwitch.GLOBAL_MARKET, priority=0),
             AssetSwitchCreate(switch=SourceSwitch.SUPPLIER, priority=0),
@@ -49,6 +51,7 @@ ASSETS: list[AssetSeed] = [
         AssetCode.USD,
         "دلار آمریکا",
         "نرخ برابری دلار آمریکا در برابر ریال",
+        "#4b8ec8",
         [
             AssetSwitchCreate(switch=SourceSwitch.IRAN_MARKET, priority=0),
         ],
@@ -85,6 +88,7 @@ async def seed_assets(uow: PGUnitOfWork) -> list[AssetModel]:
             AssetCreate(
                 title=spec.title,
                 code=spec.code,
+                primary_color=spec.primary_color,
                 description=spec.description,
             )
         )
