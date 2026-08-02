@@ -4,6 +4,7 @@ from src.modules.price.calculator.app.services import (
     BubbleCalculatorService,
     CacheReaderService,
     CalculatorService,
+    SchedulerService,
 )
 from src.modules.price.calculator.infra.cache import (
     AssetPriceCache,
@@ -20,6 +21,7 @@ from src.modules.price.calculator.interfaces import (
     IBubbleCalculatorService,
     ICacheReaderService,
     ICalculatorService,
+    ISchedulerService,
 )
 
 
@@ -43,3 +45,4 @@ class CalculatorProvider(Provider):
     bubble_calculator_service = provide(
         BubbleCalculatorService, provides=IBubbleCalculatorService
     )
+    scheduler_service = provide(SchedulerService, provides=ISchedulerService)

@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import Mapping, Sequence
 
+from taskiq import ScheduledTask, ScheduleSource
+
 from src.common.errors.exceptions import NotFoundException
 from src.core import resources
 from src.modules.price.assets.domain.enums import AssetCode
@@ -388,3 +390,54 @@ class CacheReaderService:
         """
         found = await self.prices.get_all()
         return list(found.values())
+
+
+class SchedulerService:
+    # the task a schedule fires, and the queue it fires it on
+    task_name = "calculator.calculate_asset"
+    queue_name = "calculator_queue"
+    prefix = "calculator:asset:"
+
+    def __init__(
+        self,
+        assets: AssetReader,
+        source: ScheduleSource,
+    ) -> None:
+        """
+        Desc: Build the service with the config it reads and the schedules
+        it writes.
+        Args:
+            assets (AssetReader): Reader over the assets module's tables.
+            source (ScheduleSource): Where the running schedules live.
+        """
+        self.assets = assets
+        self.source = source
+
+    async def sync(self, asset_id: int) -> bool:
+        """
+        Desc: Give a switched-on asset a schedule of its own period, and
+        take it away from one that is switched off or gone.
+        Args:
+            asset_id (int): ID of the asset whose config was written.
+        Returns:
+            return (bool): Whether the asset is scheduled now.
+        """
+        asset = await self.assets.get_asset_config(asset_id)
+        schedule_id = f"{self.prefix}{asset_id}"
+        # a changed period is a different schedule, so whatever was there
+        # goes before the new one is written
+        await self.source.delete_schedule(schedule_id)
+        scheduled = False
+        if asset is not None and asset.config.scheduler_on:
+            await self.source.add_schedule(
+                ScheduledTask(
+                    task_name=self.task_name,
+                    labels={"queue_name": self.queue_name},
+                    args=[],
+                    kwargs={"asset_id": asset_id},
+                    schedule_id=schedule_id,
+                    interval=asset.config.scheduler_seconds,
+                )
+            )
+            scheduled = True
+        return scheduled
