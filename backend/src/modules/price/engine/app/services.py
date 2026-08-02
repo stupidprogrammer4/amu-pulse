@@ -4,8 +4,13 @@ from typing import Awaitable, Sequence
 
 from dishka import AsyncContainer
 
-from src.common.utils import currency_utils, date_utils
+from src.common.utils import date_utils
 from src.modules.price.assets.domain.enums import AssetCode
+from src.modules.price.engine.app.helpers import (
+    GlobalMarketPriceHelper,
+    IranMarketPriceHelper,
+    SupplierMarketPriceHelper,
+)
 from src.modules.price.engine.domain.context import CFGContext
 from src.modules.price.engine.domain.quotes import (
     BubbleQuote,
@@ -16,7 +21,6 @@ from src.modules.price.engine.domain.quotes import (
     SupplierSourceQuote,
 )
 from src.modules.price.engine.domain.results import (
-    FeeResult,
     SourceBubbleResult,
     SourcePriceResult,
 )
@@ -43,7 +47,7 @@ from src.modules.price.engine.interfaces import (
 )
 from src.modules.price.sources.domain.errors import SourceErrorInfo
 from src.modules.price.sources.interfaces import ISourceErrorService
-from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
+from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class CFGReaderService:
@@ -158,49 +162,9 @@ class CacheFlusherService:
         """
         self.prices = prices
         self.source_bubbles = source_bubbles
-
-    def _reading(
-        self,
-        source_id: int,
-        symbol_id: int,
-        currency: CurrencyType,
-        selling: int,
-        buying: int,
-        fee: FeeResult | None = None,
-    ) -> SourcePriceResult:
-        """
-        Desc: Turn the two sides a source quoted into one reading.
-        Args:
-            source_id (int): ID of the source that quoted it.
-            symbol_id (int): ID of the line it was quoted for.
-            currency (CurrencyType): What the numbers are counted in.
-            selling (int): The selling side, in the currency's own unit.
-            buying (int): The buying side, in the currency's own unit.
-            fee (FeeResult | None): What the source charges on each side.
-        Returns:
-            return (SourcePriceResult): The reading.
-        """
-        price = round((selling + buying) / 2)
-        if currency is CurrencyType.RIAL:
-            price = currency_utils.round_rial(price)
-        sell_spread = selling - price
-        buy_spread = price - buying
-        divisor = price or 1
-        reading = SourcePriceResult(
-            source_id=source_id,
-            symbol_id=symbol_id,
-            currency=currency,
-            buy_price=buying,
-            sell_price=selling,
-            price=price,
-            buy_spread=buy_spread,
-            sell_spread=sell_spread,
-            buy_spread_rate=buy_spread / divisor,
-            sell_spread_rate=sell_spread / divisor,
-            priced_at=date_utils.utc_now(),
-            fee=fee,
-        )
-        return reading
+        self.irans = IranMarketPriceHelper()
+        self.suppliers = SupplierMarketPriceHelper()
+        self.worlds = GlobalMarketPriceHelper()
 
     async def flush_results(
         self,
@@ -220,63 +184,16 @@ class CacheFlusherService:
         source_ids = {source.code: source.id for source in cfg.sources}
         symbol_ids = {symbol.code: symbol.id for symbol in cfg.symbols}
         asset_ids = {asset.code: asset.id for asset in cfg.assets}
+        codes = {id: code for code, id in symbol_ids.items()}
+
+        built = [
+            *self.irans.build(symbol_ids, source_ids, quotes.irans),
+            *self.suppliers.build(symbol_ids, source_ids, quotes.suppliers),
+            *self.worlds.build(symbol_ids, source_ids, quotes.globals),
+        ]
         readings: dict[SymbolCode, list[SourcePriceResult]] = defaultdict(list)
-
-        for iran in quotes.irans:
-            source_id = source_ids.get(iran.code)
-            symbol_id = symbol_ids.get(iran.symbol)
-            if source_id is None or symbol_id is None:
-                continue
-            fee = None
-            if iran.fee is not None:
-                fee = FeeResult(
-                    buy_fee_rate=iran.fee.buy_rate,
-                    sell_fee_rate=iran.fee.sell_rate,
-                    buy_fee_rial=iran.buy_fee_rial,
-                    sell_fee_rial=iran.sell_fee_rial,
-                )
-            readings[iran.symbol].append(
-                self._reading(
-                    source_id=source_id,
-                    symbol_id=symbol_id,
-                    currency=CurrencyType.RIAL,
-                    selling=iran.sell_price_rial,
-                    buying=iran.buy_price_rial,
-                    fee=fee,
-                )
-            )
-
-        # a mesghal is a line of its own; turning it into grams is the
-        # calculator's job, not the crawl's
-        for supplier in quotes.suppliers:
-            source_id = source_ids.get(supplier.code)
-            symbol_id = symbol_ids.get(supplier.symbol)
-            if source_id is None or symbol_id is None:
-                continue
-            readings[supplier.symbol].append(
-                self._reading(
-                    source_id=source_id,
-                    symbol_id=symbol_id,
-                    currency=CurrencyType.RIAL,
-                    selling=supplier.selling_mazane,
-                    buying=supplier.buying_mazane,
-                )
-            )
-
-        for world in quotes.globals:
-            source_id = source_ids.get(world.code)
-            symbol_id = symbol_ids.get(world.symbol)
-            if source_id is None or symbol_id is None:
-                continue
-            readings[world.symbol].append(
-                self._reading(
-                    source_id=source_id,
-                    symbol_id=symbol_id,
-                    currency=CurrencyType.USD,
-                    selling=world.selling_cent,
-                    buying=world.buying_cent,
-                )
-            )
+        for reading in built:
+            readings[codes[reading.symbol_id]].append(reading)
 
         premiums: dict[AssetCode, list[SourceBubbleResult]] = defaultdict(list)
         for bubble in quotes.bubbles:
