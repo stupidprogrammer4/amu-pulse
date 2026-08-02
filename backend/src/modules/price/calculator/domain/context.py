@@ -9,6 +9,7 @@ from src.modules.price.symbols.domain.enums import SymbolCode
 
 @dataclass
 class SymbolContext:
+    id: int
     code: AssetCode
     symbol: SymbolCode
     asset_id: int

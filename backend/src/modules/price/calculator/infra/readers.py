@@ -21,6 +21,7 @@ from src.modules.price.calculator.domain.context import (
     SymbolContext,
 )
 from src.modules.price.sources.domain.enums import SourceSwitch
+from src.modules.price.sources.domain.models import SourceModel
 from src.modules.price.symbols.domain.enums import SymbolCode
 from src.modules.price.symbols.domain.models import SymbolModel
 
@@ -34,10 +35,15 @@ class SymbolReader(PGReader):
         """
         super().__init__(uow)
 
-    async def get_all(self) -> Sequence[SymbolContext]:
+    async def get_all(
+        self,
+        excludes: Sequence[AssetCode] = (),
+    ) -> Sequence[SymbolContext]:
         """
         Desc: Read every symbol with the asset it is quoted for, oldest
         first.
+        Args:
+            excludes (Sequence[AssetCode]): The assets to leave out.
         Returns:
             return (Sequence[SymbolContext]): The lines a sweep folds into
                 asset prices.
@@ -45,12 +51,14 @@ class SymbolReader(PGReader):
         stmt = (
             select(SymbolModel, AssetModel.code)
             .join(AssetModel, col(AssetModel.id) == col(SymbolModel.asset_id))
+            .where(col(AssetModel.code).not_in(excludes))
             .order_by(col(SymbolModel.id))
         )
         result = await self.session.execute(stmt)
         rows = result.all()
         return [
             SymbolContext(
+                id=symbol.id,
                 code=AssetCode(code),
                 symbol=SymbolCode(symbol.code),
                 asset_id=symbol.asset_id,
@@ -80,6 +88,7 @@ class SymbolReader(PGReader):
         rows = result.all()
         return [
             SymbolContext(
+                id=symbol.id,
                 code=AssetCode(code),
                 symbol=SymbolCode(symbol.code),
                 asset_id=symbol.asset_id,
@@ -97,9 +106,14 @@ class AssetReader(PGReader):
         """
         super().__init__(uow)
 
-    async def get_all_config(self) -> Sequence[AssetContext]:
+    async def get_all_config(
+        self,
+        excludes: Sequence[AssetCode] = (),
+    ) -> Sequence[AssetContext]:
         """
         Desc: Read every asset and its config, oldest first.
+        Args:
+            excludes (Sequence[AssetCode]): The assets to leave out.
         Returns:
             return (Sequence[AssetContext]): The assets a sweep prices, each
                 carrying the rule its readings are folded by.
@@ -110,6 +124,7 @@ class AssetReader(PGReader):
                 AssetConfigModel,
                 col(AssetConfigModel.asset_id) == col(AssetModel.id),
             )
+            .where(col(AssetModel.code).not_in(excludes))
             .order_by(col(AssetModel.id))
         )
         result = await self.session.execute(stmt)
@@ -122,6 +137,20 @@ class AssetReader(PGReader):
             )
             for asset, cfg in rows
         ]
+
+    async def get_id_by_code(self, code: AssetCode) -> Optional[int]:
+        """
+        Desc: Read the id the given asset code belongs to.
+        Args:
+            code (AssetCode): Code of the asset.
+        Returns:
+            return (Optional[int]): Its id, or None when no asset carries
+                that code.
+        """
+        stmt = select(AssetModel.id).where(col(AssetModel.code) == code)
+        result = await self.session.execute(stmt)
+        found = result.scalar_one_or_none()
+        return found
 
     async def get_asset_config(
         self,
@@ -270,9 +299,12 @@ class SwitchOrderReader(PGReader):
 
     async def get_all(
         self,
+        excludes: Sequence[AssetCode] = (),
     ) -> Sequence[SwitchOrderContext]:
         """
         Desc: Read every asset's markets, each asset's own order kept.
+        Args:
+            excludes (Sequence[AssetCode]): The assets to leave out.
         Returns:
             return (Sequence[SwitchOrderContext]): The markets that price
                 each asset, grouped by asset, the one tried first at the
@@ -284,6 +316,7 @@ class SwitchOrderReader(PGReader):
                 AssetModel,
                 col(AssetModel.id) == col(AssetSwitchModel.asset_id),
             )
+            .where(col(AssetModel.code).not_in(excludes))
             .order_by(
                 col(AssetSwitchModel.asset_id),
                 col(AssetSwitchModel.priority),
@@ -301,3 +334,30 @@ class SwitchOrderReader(PGReader):
             )
             for switch, code in rows
         ]
+
+
+class SourceReader(PGReader):
+    def __init__(self, uow: PGUnitOfWork):
+        """
+        Desc: Build the reader over the unit of work.
+        Args:
+            uow (PGUnitOfWork): Unit of work whose session runs the query.
+        """
+        super().__init__(uow)
+
+    async def get_source_switches(
+        self,
+    ) -> Sequence[tuple[int, SourceSwitch]]:
+        """
+        Desc: Read which market each source feeds, oldest first.
+        Returns:
+            return (Sequence[tuple[int, SourceSwitch]]): Each source's id
+                and market, enough to put a reading under the market it
+                was quoted in.
+        """
+        stmt = select(SourceModel.id, SourceModel.source_type).order_by(
+            col(SourceModel.id)
+        )
+        result = await self.session.execute(stmt)
+        rows = result.all()
+        return [(id, SourceSwitch(switch)) for id, switch in rows]

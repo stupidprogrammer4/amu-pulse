@@ -1,15 +1,41 @@
-from typing import Sequence
+from collections import defaultdict
+from typing import Mapping, Sequence
 
 from src.common.errors.exceptions import NotFoundException
 from src.core import resources
 from src.modules.price.assets.domain.enums import AssetCode
-from src.modules.price.calculator.app.helpers import Aggregator
-from src.modules.price.calculator.domain.context import BubbleContext
-from src.modules.price.calculator.domain.results import BubbleResult
-from src.modules.price.calculator.infra.cache import BubbleCache
-from src.modules.price.calculator.infra.readers import BubbleReader
-from src.modules.price.engine.domain.results import SourceBubbleResult
+from src.modules.price.calculator.app.helpers import (
+    Aggregator,
+    GlobalMarketCalculator,
+    IranMarketCalculator,
+    SupplierCalculator,
+)
+from src.modules.price.calculator.domain.context import (
+    AssetContext,
+    BubbleContext,
+    SwitchOrderContext,
+)
+from src.modules.price.calculator.domain.results import (
+    AssetPriceResult,
+    BubbleResult,
+)
+from src.modules.price.calculator.infra.cache import (
+    AssetPriceCache,
+    BubbleCache,
+)
+from src.modules.price.calculator.infra.readers import (
+    AssetReader,
+    BubbleReader,
+    SourceReader,
+    SwitchOrderReader,
+    SymbolReader,
+)
+from src.modules.price.engine.domain.results import (
+    SourceBubbleResult,
+    SourcePriceResult,
+)
 from src.modules.price.engine.interfaces import ICacheReaderService
+from src.modules.price.sources.domain.enums import SourceSwitch
 
 
 class BubbleCalculatorService:
@@ -103,3 +129,196 @@ class BubbleCalculatorService:
         if settled:
             await self.cache.set_many(settled)
         return len(settled)
+
+
+class CalculatorService:
+    # the dollar is priced on its own route, before a sweep reads its rate
+    excludes = (AssetCode.USD,)
+
+    def __init__(
+        self,
+        assets: AssetReader,
+        symbols: SymbolReader,
+        orders: SwitchOrderReader,
+        sources: SourceReader,
+        readings: ICacheReaderService,
+        bubbles: BubbleCache,
+        prices: AssetPriceCache,
+    ) -> None:
+        """
+        Desc: Build the service with what it prices out of and writes to.
+        Args:
+            assets (AssetReader): Reader over the assets module's tables.
+            symbols (SymbolReader): Reader over the symbols module's tables.
+            orders (SwitchOrderReader): Reader of the markets an asset is
+                priced from, in order.
+            sources (SourceReader): Reader of which market each source
+                feeds.
+            readings (ICacheReaderService): Where the crawl left what each
+                source quoted.
+            bubbles (BubbleCache): Where the settled premiums live.
+            prices (AssetPriceCache): Where the asset's price lands, and
+                where the dollar rate is read from.
+        """
+        self.assets = assets
+        self.symbols = symbols
+        self.orders = orders
+        self.sources = sources
+        self.readings = readings
+        self.bubbles = bubbles
+        self.prices = prices
+        self.iran = IranMarketCalculator()
+        self.supplier = SupplierCalculator()
+        self.world = GlobalMarketCalculator()
+
+    def _priced(
+        self,
+        asset: AssetContext,
+        order: Sequence[SwitchOrderContext],
+        markets: Mapping[SourceSwitch, Sequence[SourcePriceResult]],
+        bubble: BubbleResult | None,
+        usd_price: int,
+    ) -> AssetPriceResult | None:
+        """
+        Desc: Walk an asset's markets and take the first price it gets.
+        Args:
+            asset (AssetContext): The asset being priced.
+            order (Sequence[SwitchOrderContext]): Its markets, the one
+                tried first at the front.
+            markets (Mapping[SourceSwitch, Sequence[SourcePriceResult]]):
+                Its readings, split by the market they were quoted in.
+            bubble (BubbleResult | None): Its settled premium, if any.
+            usd_price (int): What one dollar costs, in rial.
+        Returns:
+            return (AssetPriceResult | None): The asset's price, or None
+                when no market of its own could price it.
+        """
+        result = None
+        for row in order:
+            rows = markets.get(row.switch, ())
+            if row.switch is SourceSwitch.IRAN_MARKET:
+                result = self.iran.calculate(asset, rows)
+            elif row.switch is SourceSwitch.SUPPLIER:
+                result = self.supplier.calculate(asset, rows)
+            elif row.switch is SourceSwitch.GLOBAL_MARKET:
+                result = self.world.calculate(usd_price, bubble, asset, rows)
+            if result is not None:
+                break
+        return result
+
+    async def calculate(self, asset_id: int) -> int:
+        """
+        Desc: Price one asset from the first of its markets that answers.
+        Args:
+            asset_id (int): ID of the asset to price.
+        Returns:
+            return (int): The asset's price in rial, and zero when no
+                market of its own could price it.
+        """
+        asset = await self.assets.get_asset_config(asset_id)
+        if asset is None:
+            raise NotFoundException(
+                identifier="id",
+                identifier_value=asset_id,
+                message=f"Cannot find Asset by id with value {asset_id}",
+                message_code=resources.NOT_FOUND_ERROR,
+                entity="Asset",
+            )
+        symbols = await self.symbols.get_symbols_of_asset(asset_id)
+        order = await self.orders.get_switch_order(asset_id)
+        switches = dict(await self.sources.get_source_switches())
+        codes = [symbol.symbol for symbol in symbols]
+        readings = await self.readings.get_many_by_symbols(codes)
+        # both are read before a single market is tried, so the world has
+        # what it needs the moment its turn comes
+        bubble = await self.bubbles.get(asset.code)
+        dollar = await self.prices.get(AssetCode.USD)
+        usd_price = 0 if dollar is None else dollar.price
+
+        markets: dict[SourceSwitch, list[SourcePriceResult]] = defaultdict(
+            list
+        )
+        flatten_readings = [row for rows in readings.values() for row in rows]
+        for row in flatten_readings:
+            switch = switches.get(row.source_id)
+            if switch is not None:
+                markets[switch].append(row)
+
+        result = self._priced(asset, order, markets, bubble, usd_price)
+        price = 0
+        if result is not None:
+            await self.prices.set(asset.code, result)
+            price = result.price
+        return price
+
+    async def calculate_usd(self) -> int:
+        """
+        Desc: Price the dollar on its own, the rate a sweep reads world
+        parity at.
+        Returns:
+            return (int): The dollar's price in rial, and zero when no
+                market of its own could price it.
+        """
+        asset_id = await self.assets.get_id_by_code(AssetCode.USD)
+        if asset_id is None:
+            raise NotFoundException(
+                identifier="code",
+                identifier_value=AssetCode.USD.value,
+                message=(
+                    f"Cannot find Asset by code with value "
+                    f"{AssetCode.USD.value}"
+                ),
+                message_code=resources.NOT_FOUND_ERROR,
+                entity="Asset",
+            )
+        price = await self.calculate(asset_id)
+        return price
+
+    async def calculate_all(self) -> int:
+        """
+        Desc: Price every asset but the dollar, each from the first of its
+        markets that answers.
+        Returns:
+            return (int): How many assets were priced.
+        """
+        assets = await self.assets.get_all_config(self.excludes)
+        symbols = await self.symbols.get_all(self.excludes)
+        orders = await self.orders.get_all(self.excludes)
+        switches = dict(await self.sources.get_source_switches())
+        readings = await self.readings.get_all()
+        # both are read before a single market is tried, so the world has
+        # what it needs the moment its turn comes
+        bubbles = await self.bubbles.get_all()
+        dollar = await self.prices.get(AssetCode.USD)
+        usd_price = 0 if dollar is None else dollar.price
+
+        ordered: dict[int, list[SwitchOrderContext]] = defaultdict(list)
+        for row in orders:
+            ordered[row.asset_id].append(row)
+
+        markets: dict[int, dict[SourceSwitch, list[SourcePriceResult]]] = (
+            defaultdict(lambda: defaultdict(list))
+        )
+        symbol_dict = {symbol.id: symbol for symbol in symbols}
+        flattend_readings = [row for rows in readings.values() for row in rows]
+        for row in flattend_readings:
+            symbol = symbol_dict.get(row.symbol_id)
+            if symbol is not None:
+                switch = switches.get(row.source_id)
+                if switch is not None:
+                    markets[symbol.asset_id][switch].append(row)
+
+        priced: dict[AssetCode, AssetPriceResult] = {}
+        for asset in assets:
+            result = self._priced(
+                asset,
+                ordered.get(asset.asset_id, ()),
+                markets.get(asset.asset_id, {}),
+                bubbles.get(asset.code),
+                usd_price,
+            )
+            if result is not None:
+                priced[asset.code] = result
+        if priced:
+            await self.prices.set_many(priced)
+        return len(priced)
