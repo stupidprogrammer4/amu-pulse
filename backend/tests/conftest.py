@@ -42,13 +42,18 @@ class _NullScheduleSource(ScheduleSource):
 def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
-    """Auto-mark tests by folder: tests/unit and tests/integration."""
+    """Auto-mark tests by folder: unit, integration, api and tasks."""
+    folders = {
+        "/tests/integration/": pytest.mark.integration,
+        "/tests/unit/": pytest.mark.unit,
+        "/tests/api/": pytest.mark.api,
+        "/tests/tasks/": pytest.mark.tasks,
+    }
     for item in items:
         path = str(item.fspath).replace("\\", "/")
-        if "/tests/integration/" in path:
-            item.add_marker(pytest.mark.integration)
-        elif "/tests/unit/" in path:
-            item.add_marker(pytest.mark.unit)
+        for folder, mark in folders.items():
+            if folder in path:
+                item.add_marker(mark)
 
 
 class NullScheduler:
@@ -208,16 +213,33 @@ async def clean_db(pg: PGConnection, es: ESClient) -> None:
             )
 
 
-@pytest.fixture
-async def dishka_container(integration_settings: Settings, test_dsn: str):
-    test_settings = integration_settings.model_copy(
+def test_settings_of(settings: Settings, test_dsn: str) -> Settings:
+    """
+    Desc: Point a copy of the settings at the test database.
+    Args:
+        settings (Settings): The settings read off config.yml.
+        test_dsn (str): DSN of the test database.
+    Returns:
+        return (Settings): The same settings, aimed at the test database.
+    """
+    return settings.model_copy(
         deep=True,
         update={
-            "postgresql": integration_settings.postgresql.model_copy(
+            "postgresql": settings.postgresql.model_copy(
                 update={"dsn": test_dsn}
             )
         },
     )
+
+
+def core_provider_of(test_settings: Settings) -> Provider:
+    """
+    Desc: Build the core provider every test container is rooted in.
+    Args:
+        test_settings (Settings): Settings aimed at the test database.
+    Returns:
+        return (Provider): The provider of settings, postgres, redis and es.
+    """
 
     class TestCoreProvider(Provider):
         @provide(scope=Scope.APP)
@@ -274,9 +296,15 @@ async def dishka_container(integration_settings: Settings, test_dsn: str):
             finally:
                 await client.close()
 
+    return TestCoreProvider()
+
+
+@pytest.fixture
+async def dishka_container(integration_settings: Settings, test_dsn: str):
     # module providers are discovered; a new module needs no edit here
     container = make_async_container(
-        TestCoreProvider(), *get_bootstrapper().boot_providers()
+        core_provider_of(test_settings_of(integration_settings, test_dsn)),
+        *get_bootstrapper().boot_providers(),
     )
     try:
         yield container

@@ -4,6 +4,7 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, Query
 
 from src.common.bases.schemas import BaseMeta, PagerMeta
+from src.modules.price.engine.interfaces import ICacheReaderService
 from src.modules.price.sources.config.dependencies import SourceID
 from src.modules.price.sources.domain.dtos import (
     SourceConfigUpdate,
@@ -15,7 +16,9 @@ from src.modules.price.sources.domain.enums import SourceSwitch
 from src.modules.price.sources.domain.schemas import (
     SourceConfigOut,
     SourceOut,
+    SourcePriceOut,
     SourceWithConfigOut,
+    SymbolPricesOut,
 )
 from src.modules.price.sources.interfaces import (
     ISourceConfigService,
@@ -34,6 +37,7 @@ SourceResponse = APIResponse[SourceOut, None]
 PagedSourceResponse = APIResponse[SourceOut, BaseMeta]
 SourceWithConfigResponse = APIResponse[SourceWithConfigOut, None]
 SourceConfigResponse = APIResponse[SourceConfigOut, None]
+SymbolPricesResponse = APIResponse[SymbolPricesOut, None]
 
 
 @router.post(
@@ -172,3 +176,19 @@ async def update_source_config(
 ) -> SourceConfigResponse:
     config = await service.update(id, data)
     return APIResponse.from_data(SourceConfigOut.from_obj(config))
+
+
+@router.get(
+    "/prices",
+    response_model=SymbolPricesResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_source_prices(
+    service: FromDishka[ICacheReaderService],
+) -> SymbolPricesResponse:
+    readings = await service.get_all()
+    board = [
+        SymbolPricesOut(symbol=symbol, prices=SourcePriceOut.from_objs(rows))
+        for symbol, rows in readings.items()
+    ]
+    return APIResponse.from_data(board)

@@ -41,3 +41,19 @@ class AssetSwitchOut(BaseIDOutput):
     priority: int
     created_at: datetime
     updated_at: datetime
+
+
+class AssetPriceOut(BaseOutput):
+    asset_id: AssetIDField
+    buy_price: int
+    sell_price: int
+    price: int
+    buy_spread: int
+    sell_spread: int
+    buy_spread_rate: float
+    sell_spread_rate: float
+    priced_at: datetime
+
+
+class RepriceOut(BaseOutput):
+    task_id: str

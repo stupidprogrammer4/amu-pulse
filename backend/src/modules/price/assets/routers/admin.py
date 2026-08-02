@@ -1,6 +1,8 @@
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
+from src.common.errors.exceptions import NotFoundException
+from src.core import resources
 from src.modules.price.assets.config.dependencies import (
     AssetID,
     AssetSwitchID,
@@ -16,17 +18,22 @@ from src.modules.price.assets.domain.dtos import (
     AssetSwitchUpdate,
     AssetUpdate,
 )
+from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.assets.domain.schemas import (
     AssetConfigOut,
     AssetOut,
+    AssetPriceOut,
     AssetSwitchOut,
     AssetWithConfigOut,
+    RepriceOut,
 )
 from src.modules.price.assets.interfaces import (
     IAssetConfigService,
     IAssetService,
     IAssetSwitchService,
 )
+from src.modules.price.calculator.interfaces import ICacheReaderService
+from src.modules.price.calculator.tasks.price import reprice_asset as reprice
 from src.web.response import APIResponse
 
 # open until the auth module lands and brings the guard with it
@@ -40,6 +47,8 @@ AssetResponse = APIResponse[AssetOut, None]
 AssetWithConfigResponse = APIResponse[AssetWithConfigOut, None]
 AssetConfigResponse = APIResponse[AssetConfigOut, None]
 AssetSwitchResponse = APIResponse[AssetSwitchOut, None]
+AssetPriceResponse = APIResponse[AssetPriceOut, None]
+RepriceResponse = APIResponse[RepriceOut, None]
 
 
 @router.post(
@@ -252,3 +261,35 @@ async def remove_asset_switch(
 ) -> AssetSwitchResponse:
     switch = await service.remove(asset_id, asset_switch_id)
     return APIResponse.from_data(AssetSwitchOut.from_obj(switch))
+
+
+@router.post(
+    "/{asset_code}/reprice",
+    response_model=RepriceResponse,
+    response_model_exclude_defaults=True,
+)
+async def reprice_asset(asset_code: AssetCode) -> RepriceResponse:
+    # off the request's own time: the answer is the job, not the price
+    job = await reprice.kiq(asset_code)  # type: ignore[call-arg]
+    return APIResponse.from_data(RepriceOut(task_id=job.task_id))
+
+
+@router.get(
+    "/{asset_code}/price",
+    response_model=AssetPriceResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_asset_price(
+    asset_code: AssetCode,
+    service: FromDishka[ICacheReaderService],
+) -> AssetPriceResponse:
+    price = await service.get_price(asset_code)
+    if price is None:
+        raise NotFoundException(
+            identifier="code",
+            identifier_value=asset_code.value,
+            message=f"Cannot find Price by code with value {asset_code.value}",
+            message_code=resources.NOT_FOUND_ERROR,
+            entity="Price",
+        )
+    return APIResponse.from_data(AssetPriceOut.from_obj(price))

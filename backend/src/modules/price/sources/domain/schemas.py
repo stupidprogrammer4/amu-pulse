@@ -9,6 +9,11 @@ from src.modules.price.sources.config.constants import (
 )
 from src.modules.price.sources.domain.enums import SourceCode, SourceSwitch
 from src.modules.price.sources.domain.errors import SourceErrorInfo
+from src.modules.price.symbols.config.constants import SymbolIDField
+from src.modules.price.symbols.domain.enums import (
+    CurrencyType,
+    SymbolCode,
+)
 
 
 class SourceConfigOut(BaseOutput):
@@ -49,3 +54,22 @@ class SourceOut(BaseIDOutput):
 
 class SourceWithConfigOut(SourceOut):
     config: SourceConfigOut | None = None
+
+
+class SourcePriceOut(BaseOutput):
+    source_id: SourceIDField
+    symbol_id: SymbolIDField
+    currency: CurrencyType
+    buy_price: int
+    sell_price: int
+    price: int
+    buy_spread: int
+    sell_spread: int
+    buy_spread_rate: float
+    sell_spread_rate: float
+    priced_at: datetime
+
+
+class SymbolPricesOut(BaseOutput):
+    symbol: SymbolCode
+    prices: list[SourcePriceOut]
