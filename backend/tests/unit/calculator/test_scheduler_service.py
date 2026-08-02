@@ -144,17 +144,39 @@ class TestSync:
         assert scheduled is False
         assert "calculator:asset:9999" in source.deleted
 
-    async def test_each_asset_keeps_its_own_schedule(self) -> None:
-        service, source = _service(
-            [
-                _asset(asset_id=1, seconds=30),
-                _asset(asset_id=2, code=AssetCode.USD, seconds=20),
-            ]
-        )
+    async def test_the_schedule_carries_the_period_the_asset_asked_for(
+        self,
+    ) -> None:
+        service, source = _service([_asset(asset_id=1, seconds=30)])
 
         await service.sync(1)
-        await service.sync(2)
 
         assert {
             id: schedule.interval for id, schedule in source.schedules.items()
-        } == {"calculator:asset:1": 30, "calculator:asset:2": 20}
+        } == {"calculator:asset:1": 30}
+
+    async def test_the_dollar_is_never_put_on_a_schedule(self) -> None:
+        # it runs on its own fixed period, so no config can schedule it
+        service, source = _service(
+            [_asset(asset_id=2, code=AssetCode.USD, seconds=300)]
+        )
+
+        scheduled = await service.sync(2)
+
+        assert scheduled is False
+        assert source.schedules == {}
+
+    async def test_switching_the_dollar_on_takes_nothing_away_either(
+        self,
+    ) -> None:
+        service, source = _service(
+            [
+                _asset(asset_id=1, seconds=30),
+                _asset(asset_id=2, code=AssetCode.USD),
+            ]
+        )
+        await service.sync(1)
+
+        await service.sync(2)
+
+        assert list(source.schedules) == ["calculator:asset:1"]

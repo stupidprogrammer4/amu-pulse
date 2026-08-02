@@ -397,6 +397,8 @@ class SchedulerService:
     task_name = "calculator.calculate_asset"
     queue_name = "calculator_queue"
     prefix = "calculator:asset:"
+    # the dollar runs on a period of its own that no config can move
+    fixed = (AssetCode.USD,)
 
     def __init__(
         self,
@@ -428,7 +430,11 @@ class SchedulerService:
         # goes before the new one is written
         await self.source.delete_schedule(schedule_id)
         scheduled = False
-        if asset is not None and asset.config.scheduler_on:
+        if (
+            asset is not None
+            and asset.config.scheduler_on
+            and asset.code not in self.fixed
+        ):
             await self.source.add_schedule(
                 ScheduledTask(
                     task_name=self.task_name,

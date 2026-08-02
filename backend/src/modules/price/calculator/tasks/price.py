@@ -6,6 +6,20 @@ from src.tasks.broker import broker
 
 
 @broker.task(
+    task_name="calculator.calculate_usd",
+    queue_name="calculator_queue",
+    schedule=[{"interval": 20}],
+)
+@inject(patch_module=True)
+async def calculate_usd(
+    service: FromDishka[ICalculatorService],
+) -> int:
+    price = await service.calculate_usd()
+    logger.info("dollar priced at %s", price)
+    return price
+
+
+@broker.task(
     task_name="calculator.calculate_asset",
     queue_name="calculator_queue",
 )

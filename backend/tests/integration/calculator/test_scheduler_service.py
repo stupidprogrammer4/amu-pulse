@@ -160,7 +160,7 @@ class TestSchedulerServiceAgainstRealInfra:
         assert scheduled is False
         assert list(found) == []
 
-    async def test_two_assets_keep_their_own_schedules(
+    async def test_each_asset_keeps_its_own_period(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
         gold = await _asset(uow)
@@ -180,7 +180,25 @@ class TestSchedulerServiceAgainstRealInfra:
         await service.sync(dollar.id)
         found = await schedules.get_schedules()
 
+        # the dollar keeps its own fixed period, off the config entirely
         assert {row.schedule_id: row.interval for row in found} == {
             f"calculator:asset:{gold.id}": 30,
-            f"calculator:asset:{dollar.id}": 20,
         }
+
+    async def test_the_dollar_is_never_put_on_a_schedule(
+        self, uow: PGUnitOfWork, schedules: RedisScheduleSource
+    ) -> None:
+        # it runs on its own fixed period, so no config can schedule it
+        dollar = await _asset(uow, AssetCode.USD)
+        _, configs = _assets(uow)
+        await configs.update(
+            dollar.id,
+            AssetConfigUpdate(scheduler_on=True, scheduler_seconds=300),
+        )
+        service = SchedulerService(AssetReader(uow), schedules)
+
+        scheduled = await service.sync(dollar.id)
+        found = await schedules.get_schedules()
+
+        assert scheduled is False
+        assert list(found) == []
