@@ -31,6 +31,7 @@ from src.modules.price.assets.infra.repository import (
     AssetSwitchRepository,
 )
 from src.modules.price.sources.domain.enums import SourceSwitch
+from tests.conftest import NullScheduler
 
 
 def _services(uow: PGUnitOfWork) -> tuple[AssetService, AssetSwitchService]:
@@ -41,7 +42,9 @@ def _services(uow: PGUnitOfWork) -> tuple[AssetService, AssetSwitchService]:
     Returns:
         return (tuple[AssetService, AssetSwitchService]): The two services.
     """
-    configs = AssetConfigService(AssetConfigRepository(uow))
+    configs = AssetConfigService(
+        AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+    )
     assets = AssetService(AssetRepository(uow), configs)
     switches = AssetSwitchService(AssetSwitchRepository(uow))
     return assets, switches

@@ -22,6 +22,7 @@ from src.modules.price.sources.infra.repository import (
     SourceConfigRepository,
     SourceRepository,
 )
+from tests.conftest import NullScheduler
 
 
 def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
@@ -32,7 +33,9 @@ def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
     Returns:
         return (tuple[AssetService, AssetConfigService]): The two services.
     """
-    configs = AssetConfigService(AssetConfigRepository(uow))
+    configs = AssetConfigService(
+        AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+    )
     return AssetService(AssetRepository(uow), configs), configs
 
 
@@ -95,16 +98,21 @@ class TestAssetReader:
     async def test_read_scheduled_keeps_only_enabled_assets(
         self, uow: PGUnitOfWork
     ) -> None:
+        # the dollar is on from birth; gold waits to be switched on
         assets, configs = _assets(uow)
-        on = await assets.create(
+        gold = await assets.create(
             AssetCreate(title="طلا", code=AssetCode.GOLD18)
         )
-        await assets.create(AssetCreate(title="دلار", code=AssetCode.USD))
-        await configs.update(on.id, AssetConfigUpdate(scheduler_on=True))
+        dollar = await assets.create(
+            AssetCreate(title="دلار", code=AssetCode.USD)
+        )
 
+        paused = await AssetReader(uow).read_scheduled()
+        await configs.update(gold.id, AssetConfigUpdate(scheduler_on=True))
         found = await AssetReader(uow).read_scheduled()
 
-        assert [c.id for c in found] == [on.id]
+        assert [c.id for c in paused] == [dollar.id]
+        assert [c.id for c in found] == [gold.id, dollar.id]
 
     async def test_a_brand_new_asset_is_not_swept(
         self, uow: PGUnitOfWork

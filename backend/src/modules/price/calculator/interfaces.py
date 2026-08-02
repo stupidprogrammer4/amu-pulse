@@ -36,4 +36,9 @@ class ICacheReaderService(Protocol):
 
 
 class ISchedulerService(Protocol):
-    async def sync(self, asset_id: int) -> bool: ...
+    async def sync(
+        self,
+        asset_id: int,
+        scheduler_on: bool,
+        scheduler_seconds: int,
+    ) -> bool: ...

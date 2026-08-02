@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 
+from taskiq_redis import RedisScheduleSource
+
+from src.core.config import get_settings
 from src.infra.postgres.uow import PGUnitOfWork
 from src.modules.price.assets.app.services import (
     AssetConfigService,
@@ -18,6 +21,7 @@ from src.modules.price.assets.infra.repository import (
     AssetRepository,
     AssetSwitchRepository,
 )
+from src.modules.price.calculator.app.services import SchedulerService
 from src.modules.price.sources.domain.enums import SourceSwitch
 
 
@@ -53,7 +57,16 @@ ASSETS: list[AssetSeed] = [
 
 
 def _service(uow: PGUnitOfWork) -> AssetService:
-    configs = AssetConfigService(AssetConfigRepository(uow))
+    settings = get_settings()
+    source = RedisScheduleSource(
+        url=settings.taskiq.redis_url,
+        max_connection_pool_size=settings.taskiq.max_connection_pool_size,
+    )
+    configs = AssetConfigService(
+        AssetConfigRepository(uow),
+        AssetRepository(uow),
+        SchedulerService(source),
+    )
     service = AssetService(AssetRepository(uow), configs)
     return service
 

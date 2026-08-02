@@ -4,6 +4,7 @@ import pytest
 from redis.exceptions import RedisError
 from taskiq_redis import RedisScheduleSource
 
+from src.common.errors.exceptions import ValidationException
 from src.core.config import Settings
 from src.infra.postgres.uow import PGUnitOfWork
 from src.modules.price.assets.app.services import (
@@ -11,14 +12,13 @@ from src.modules.price.assets.app.services import (
     AssetService,
 )
 from src.modules.price.assets.domain.dtos import AssetConfigUpdate, AssetCreate
-from src.modules.price.assets.domain.enums import AssetCode
+from src.modules.price.assets.domain.enums import AggregationType, AssetCode
 from src.modules.price.assets.domain.models import AssetModel
 from src.modules.price.assets.infra.repository import (
     AssetConfigRepository,
     AssetRepository,
 )
 from src.modules.price.calculator.app.services import SchedulerService
-from src.modules.price.calculator.infra.readers import AssetReader
 
 
 @pytest.fixture
@@ -44,52 +44,60 @@ async def schedules(
         await source.shutdown()
 
 
-def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
+def _assets(
+    uow: PGUnitOfWork,
+    schedules: RedisScheduleSource,
+) -> tuple[AssetService, AssetConfigService]:
     """
-    Desc: Build the asset services over real repositories.
+    Desc: Build the asset services over real repositories, rescheduling
+    through the real schedule source.
     Args:
         uow (PGUnitOfWork): Unit of work to write through.
+        schedules (RedisScheduleSource): Where the schedules land.
     Returns:
         return (tuple[AssetService, AssetConfigService]): The two services.
     """
-    configs = AssetConfigService(AssetConfigRepository(uow))
+    configs = AssetConfigService(
+        AssetConfigRepository(uow),
+        AssetRepository(uow),
+        SchedulerService(schedules),
+    )
     return AssetService(AssetRepository(uow), configs), configs
 
 
 async def _asset(
     uow: PGUnitOfWork,
+    schedules: RedisScheduleSource,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
     """
     Desc: Create one asset with its default, paused config.
     Args:
         uow (PGUnitOfWork): Unit of work to write through.
+        schedules (RedisScheduleSource): Where the schedules land.
         code (AssetCode): Code of the asset to create.
     Returns:
         return (AssetModel): The created asset.
     """
-    assets, _ = _assets(uow)
+    assets, _ = _assets(uow, schedules)
     asset = await assets.create(AssetCreate(title="طلا", code=code))
     return asset
 
 
 @pytest.mark.usefixtures("migrated_test_db", "clean_db")
-class TestSchedulerServiceAgainstRealInfra:
+class TestConfigWritesTheSchedule:
     async def test_switching_it_on_schedules_the_asset(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
-        asset = await _asset(uow)
-        _, configs = _assets(uow)
+        asset = await _asset(uow, schedules)
+        _, configs = _assets(uow, schedules)
+
         await configs.update(
             asset.id,
             AssetConfigUpdate(scheduler_on=True, scheduler_seconds=45),
         )
-        service = SchedulerService(AssetReader(uow), schedules)
-
-        scheduled = await service.sync(asset.id)
         found = await schedules.get_schedules()
 
-        assert scheduled is True
         assert len(found) == 1
         assert found[0].schedule_id == f"calculator:asset:{asset.id}"
         assert found[0].task_name == "calculator.calculate_asset"
@@ -100,105 +108,91 @@ class TestSchedulerServiceAgainstRealInfra:
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
         # creating an asset must not start pricing it on its own
-        asset = await _asset(uow)
-        service = SchedulerService(AssetReader(uow), schedules)
+        await _asset(uow, schedules)
 
-        scheduled = await service.sync(asset.id)
         found = await schedules.get_schedules()
 
-        assert scheduled is False
         assert list(found) == []
 
     async def test_switching_it_off_takes_the_schedule_away(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
-        asset = await _asset(uow)
-        _, configs = _assets(uow)
-        service = SchedulerService(AssetReader(uow), schedules)
+        asset = await _asset(uow, schedules)
+        _, configs = _assets(uow, schedules)
         await configs.update(asset.id, AssetConfigUpdate(scheduler_on=True))
-        await service.sync(asset.id)
 
         await configs.update(asset.id, AssetConfigUpdate(scheduler_on=False))
-        scheduled = await service.sync(asset.id)
         found = await schedules.get_schedules()
 
-        assert scheduled is False
         assert list(found) == []
 
     async def test_a_new_period_replaces_the_old_schedule(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
-        asset = await _asset(uow)
-        _, configs = _assets(uow)
-        service = SchedulerService(AssetReader(uow), schedules)
+        asset = await _asset(uow, schedules)
+        _, configs = _assets(uow, schedules)
         await configs.update(
             asset.id,
             AssetConfigUpdate(scheduler_on=True, scheduler_seconds=60),
         )
-        await service.sync(asset.id)
 
         await configs.update(asset.id, AssetConfigUpdate(scheduler_seconds=20))
-        await service.sync(asset.id)
         found = await schedules.get_schedules()
 
         assert len(found) == 1
         assert found[0].interval == 20
 
-    async def test_an_asset_that_is_gone_is_unscheduled(
+    async def test_a_period_written_while_paused_schedules_nothing(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
-        asset = await _asset(uow)
-        assets, configs = _assets(uow)
-        service = SchedulerService(AssetReader(uow), schedules)
-        await configs.update(asset.id, AssetConfigUpdate(scheduler_on=True))
-        await service.sync(asset.id)
+        # the switch is read off the row the write returned, not off the
+        # patch, so a period alone cannot start a paused asset
+        asset = await _asset(uow, schedules)
+        _, configs = _assets(uow, schedules)
 
-        await assets.remove(asset.id)
-        scheduled = await service.sync(asset.id)
+        await configs.update(asset.id, AssetConfigUpdate(scheduler_seconds=25))
         found = await schedules.get_schedules()
 
-        assert scheduled is False
         assert list(found) == []
 
-    async def test_each_asset_keeps_its_own_period(
+    async def test_a_rule_change_leaves_the_schedule_alone(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
-        gold = await _asset(uow)
-        dollar = await _asset(uow, AssetCode.USD)
-        _, configs = _assets(uow)
-        service = SchedulerService(AssetReader(uow), schedules)
+        asset = await _asset(uow, schedules)
+        _, configs = _assets(uow, schedules)
+        await configs.update(
+            asset.id,
+            AssetConfigUpdate(scheduler_on=True, scheduler_seconds=45),
+        )
+
+        await configs.update(
+            asset.id,
+            AssetConfigUpdate(agg_type=AggregationType.MEAN),
+        )
+        found = await schedules.get_schedules()
+
+        assert len(found) == 1
+        assert found[0].interval == 45
+
+    async def test_the_dollar_config_is_refused(
+        self, uow: PGUnitOfWork, schedules: RedisScheduleSource
+    ) -> None:
+        # the dollar runs on a period of its own, so its config is closed
+        gold = await _asset(uow, schedules)
+        dollar = await _asset(uow, schedules, AssetCode.USD)
+        _, configs = _assets(uow, schedules)
         await configs.update(
             gold.id,
             AssetConfigUpdate(scheduler_on=True, scheduler_seconds=30),
         )
-        await configs.update(
-            dollar.id,
-            AssetConfigUpdate(scheduler_on=True, scheduler_seconds=20),
-        )
 
-        await service.sync(gold.id)
-        await service.sync(dollar.id)
+        with pytest.raises(ValidationException):
+            await configs.update(
+                dollar.id,
+                AssetConfigUpdate(scheduler_on=True, scheduler_seconds=20),
+            )
         found = await schedules.get_schedules()
 
-        # the dollar keeps its own fixed period, off the config entirely
         assert {row.schedule_id: row.interval for row in found} == {
             f"calculator:asset:{gold.id}": 30,
         }
-
-    async def test_the_dollar_is_never_put_on_a_schedule(
-        self, uow: PGUnitOfWork, schedules: RedisScheduleSource
-    ) -> None:
-        # it runs on its own fixed period, so no config can schedule it
-        dollar = await _asset(uow, AssetCode.USD)
-        _, configs = _assets(uow)
-        await configs.update(
-            dollar.id,
-            AssetConfigUpdate(scheduler_on=True, scheduler_seconds=300),
-        )
-        service = SchedulerService(AssetReader(uow), schedules)
-
-        scheduled = await service.sync(dollar.id)
-        found = await schedules.get_schedules()
-
-        assert scheduled is False
-        assert list(found) == []

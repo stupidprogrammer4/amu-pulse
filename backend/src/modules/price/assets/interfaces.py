@@ -11,6 +11,7 @@ from src.modules.price.assets.domain.dtos import (
     AssetSwitchUpdate,
     AssetUpdate,
 )
+from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.assets.domain.models import (
     AssetConfigModel,
     AssetModel,
@@ -19,7 +20,11 @@ from src.modules.price.assets.domain.models import (
 
 
 class IAssetConfigService(Protocol):
-    async def create_default(self, asset_id: int) -> AssetConfigModel: ...
+    async def create_default(
+        self,
+        asset_id: int,
+        code: AssetCode,
+    ) -> AssetConfigModel: ...
 
     async def update(
         self,

@@ -14,7 +14,7 @@ from src.modules.price.assets.domain.dtos import (
     AssetSwitchUpdate,
     AssetUpdate,
 )
-from src.modules.price.assets.domain.enums import AggregationType
+from src.modules.price.assets.domain.enums import AggregationType, AssetCode
 from src.modules.price.assets.domain.models import (
     AssetConfigModel,
     AssetModel,
@@ -26,6 +26,7 @@ from src.modules.price.assets.infra.repository import (
     AssetSwitchRepository,
 )
 from src.modules.price.assets.interfaces import IAssetConfigService
+from src.modules.price.calculator.interfaces import ISchedulerService
 from src.modules.price.sources.domain.enums import SourceSwitch
 
 
@@ -34,28 +35,69 @@ class AssetConfigService(BaseService[AssetConfigModel]):
     default_scheduler_on = False
     default_scheduler_seconds = 60
     default_agg_type = AggregationType.MEDIAN
+    # the dollar is priced on a period of its own, and never paused
+    usd_scheduler_on = True
+    usd_scheduler_seconds = 20
 
-    def __init__(self, repo: AssetConfigRepository) -> None:
+    def __init__(
+        self,
+        repo: AssetConfigRepository,
+        asset_repo: AssetRepository,
+        scheduler: ISchedulerService,
+    ) -> None:
         """
-        Desc: Build the service with its repository.
+        Desc: Build the service with its repository and the scheduler it
+        reschedules through.
         Args:
             repo (AssetConfigRepository): The asset config repository.
+            scheduler (ISchedulerService): Where the asset's schedule is
+                written.
         """
         self.repo = repo
+        self.scheduler = scheduler
+        self.asset_repo = asset_repo
 
-    async def create_default(self, asset_id: int) -> AssetConfigModel:
+    async def _check_for_usd(
+        self,
+        asset_id: int,
+    ):
+        """
+        Desc: Refuse to change the config of the USD asset.
+        Args:
+            asset_id (int): ID of the owning asset.
+        """
+        code = await self.asset_repo.get_code_by_id(asset_id)
+        if code == AssetCode.USD:
+            raise ValidationException(
+                message="The USD asset is not configurable",
+                message_code=resources.ASSET_CONFIG_USD,
+                loc=["path", "asset_id"],
+                input=asset_id,
+            )
+
+    async def create_default(
+        self,
+        asset_id: int,
+        code: AssetCode,
+    ) -> AssetConfigModel:
         """
         Desc: Create the default config of a newly created asset.
         Args:
             asset_id (int): ID of the owning asset.
+            code (AssetCode): Code of the owning asset.
         Returns:
             return (AssetConfigModel): The created config.
         """
+        scheduler_on = self.default_scheduler_on
+        scheduler_seconds = self.default_scheduler_seconds
+        if code == AssetCode.USD:
+            scheduler_on = self.usd_scheduler_on
+            scheduler_seconds = self.usd_scheduler_seconds
         config = await self.repo.create(
             AssetConfigModel(
                 asset_id=asset_id,
-                scheduler_on=self.default_scheduler_on,
-                scheduler_seconds=self.default_scheduler_seconds,
+                scheduler_on=scheduler_on,
+                scheduler_seconds=scheduler_seconds,
                 agg_type=self.default_agg_type,
             )
         )
@@ -77,6 +119,13 @@ class AssetConfigService(BaseService[AssetConfigModel]):
         row = self._check_not_empty_dict(data.to_row())
         config = await self.repo.update_by_asset_id(asset_id, row)
         config = self._check_for_existence("asset_id", asset_id, config)
+        if data.scheduler_on is not None or data.scheduler_seconds is not None:
+            await self._check_for_usd(asset_id)
+            await self.scheduler.sync(
+                asset_id,
+                config.scheduler_on,
+                config.scheduler_seconds,
+            )
         return config
 
     async def get_by_asset_id(self, asset_id: int) -> AssetConfigModel:
@@ -328,7 +377,7 @@ class AssetService(BaseIDService[AssetModel]):
         asset = await self.repo.create(
             AssetModel(**data.to_row(exclude_unset=False))
         )
-        await self.configs.create_default(asset.id)
+        await self.configs.create_default(asset.id, data.code)
         return asset
 
     async def update(self, id: int, data: AssetUpdate) -> AssetModel:

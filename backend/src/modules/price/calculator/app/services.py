@@ -397,44 +397,36 @@ class SchedulerService:
     task_name = "calculator.calculate_asset"
     queue_name = "calculator_queue"
     prefix = "calculator:asset:"
-    # the dollar runs on a period of its own that no config can move
-    fixed = (AssetCode.USD,)
 
-    def __init__(
-        self,
-        assets: AssetReader,
-        source: ScheduleSource,
-    ) -> None:
+    def __init__(self, source: ScheduleSource) -> None:
         """
-        Desc: Build the service with the config it reads and the schedules
-        it writes.
+        Desc: Build the service with the schedules it writes.
         Args:
-            assets (AssetReader): Reader over the assets module's tables.
             source (ScheduleSource): Where the running schedules live.
         """
-        self.assets = assets
         self.source = source
 
-    async def sync(self, asset_id: int) -> bool:
+    async def sync(
+        self,
+        asset_id: int,
+        scheduler_on: bool,
+        scheduler_seconds: int,
+    ) -> bool:
         """
-        Desc: Give a switched-on asset a schedule of its own period, and
-        take it away from one that is switched off or gone.
+        Desc: Write the schedule an asset's config asks for, or take away
+        the one it had.
         Args:
-            asset_id (int): ID of the asset whose config was written.
+            asset_id (int): ID of the asset the schedule prices.
+            scheduler_on (bool): Whether it is to be priced on a period.
+            scheduler_seconds (int): How often, in whole seconds.
         Returns:
             return (bool): Whether the asset is scheduled now.
         """
-        asset = await self.assets.get_asset_config(asset_id)
         schedule_id = f"{self.prefix}{asset_id}"
         # a changed period is a different schedule, so whatever was there
         # goes before the new one is written
         await self.source.delete_schedule(schedule_id)
-        scheduled = False
-        if (
-            asset is not None
-            and asset.config.scheduler_on
-            and asset.code not in self.fixed
-        ):
+        if scheduler_on:
             await self.source.add_schedule(
                 ScheduledTask(
                     task_name=self.task_name,
@@ -442,8 +434,7 @@ class SchedulerService:
                     args=[],
                     kwargs={"asset_id": asset_id},
                     schedule_id=schedule_id,
-                    interval=asset.config.scheduler_seconds,
+                    interval=scheduler_seconds,
                 )
             )
-            scheduled = True
-        return scheduled
+        return scheduler_on

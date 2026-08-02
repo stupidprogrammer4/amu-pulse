@@ -20,6 +20,7 @@ from src.modules.price.sources.infra.repository import (
 )
 from src.seeders.assets import ASSETS, seed_assets
 from src.seeders.sources import SOURCES, seed_sources
+from tests.conftest import NullScheduler
 
 
 @pytest.mark.usefixtures("migrated_test_db", "clean_db")
@@ -36,7 +37,9 @@ class TestAssetSeeder:
         self, uow: PGUnitOfWork
     ) -> None:
         created = await seed_assets(uow)
-        configs = AssetConfigService(AssetConfigRepository(uow))
+        configs = AssetConfigService(
+            AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+        )
 
         for asset in created:
             config = await configs.get_by_asset_id(asset.id)
@@ -52,7 +55,11 @@ class TestAssetSeeder:
         assert second == []
         service = AssetService(
             AssetRepository(uow),
-            AssetConfigService(AssetConfigRepository(uow)),
+            AssetConfigService(
+                AssetConfigRepository(uow),
+                AssetRepository(uow),
+                NullScheduler(),
+            ),
         )
         assert len(await service.get_all()) == len(ASSETS)
 

@@ -27,7 +27,6 @@ from src.modules.price.assets.interfaces import (
     IAssetService,
     IAssetSwitchService,
 )
-from src.modules.price.calculator.interfaces import ISchedulerService
 from src.web.response import APIResponse
 
 # open until the auth module lands and brings the guard with it
@@ -138,12 +137,8 @@ async def update_asset_config(
     id: AssetID,
     data: AssetConfigUpdate,
     service: FromDishka[IAssetConfigService],
-    scheduler: FromDishka[ISchedulerService],
 ) -> AssetConfigResponse:
     config = await service.update(id, data)
-    # switching the scheduler on is what puts the asset on a schedule, and
-    # a new period only takes hold once the old schedule is replaced
-    await scheduler.sync(id)
     return APIResponse.from_data(AssetConfigOut.from_obj(config))
 
 

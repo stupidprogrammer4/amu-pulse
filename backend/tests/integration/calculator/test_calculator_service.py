@@ -59,6 +59,7 @@ from src.modules.price.symbols.domain.dtos import SymbolCreate
 from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
 from src.modules.price.symbols.domain.models import SymbolModel
 from src.modules.price.symbols.infra.repository import SymbolRepository
+from tests.conftest import NullScheduler
 
 _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
@@ -159,7 +160,9 @@ async def _asset(
     Returns:
         return (AssetModel): The created asset.
     """
-    configs = AssetConfigService(AssetConfigRepository(uow))
+    configs = AssetConfigService(
+        AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+    )
     assets = AssetService(AssetRepository(uow), configs)
     asset = await assets.create(AssetCreate(title="دارایی", code=code))
     order = AssetSwitchService(AssetSwitchRepository(uow))

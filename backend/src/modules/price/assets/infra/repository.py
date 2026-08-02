@@ -31,6 +31,21 @@ class AssetRepository(PGIDRepository[AssetModel]):
         result = await self.session.execute(stmt)
         return result.unique().scalars().all()
 
+    async def get_code_by_id(
+        self,
+        id: int,
+    ) -> Optional[str]:
+        """
+        Desc: Get an asset's code by its ID.
+        Args:
+            id (int): ID of the asset.
+        Returns:
+            return (Optional[str]): The code or None.
+        """
+        stmt = select(col(AssetModel.code)).where(col(AssetModel.id) == id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
 
 class AssetConfigRepository(PGTimestampRepository[AssetConfigModel]):
     async def get_by_asset_id(

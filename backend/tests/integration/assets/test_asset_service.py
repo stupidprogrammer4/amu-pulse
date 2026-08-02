@@ -16,6 +16,7 @@ from src.modules.price.assets.infra.repository import (
     AssetConfigRepository,
     AssetRepository,
 )
+from tests.conftest import NullScheduler
 
 
 def _services(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
@@ -26,7 +27,9 @@ def _services(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
     Returns:
         return (tuple[AssetService, AssetConfigService]): The two services.
     """
-    configs = AssetConfigService(AssetConfigRepository(uow))
+    configs = AssetConfigService(
+        AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+    )
     assets = AssetService(AssetRepository(uow), configs)
     return assets, configs
 
@@ -272,3 +275,30 @@ class TestAssetConfigService:
         found = await configs.get_all()
 
         assert {c.asset_id for c in found} == {first.id, second.id}
+
+
+@pytest.mark.usefixtures("migrated_test_db", "clean_db")
+class TestTheDollarDefaults:
+    async def test_the_dollar_starts_on_its_own_period(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        assets, configs = _services(uow)
+        dollar = await assets.create(
+            AssetCreate(title="دلار", code=AssetCode.USD)
+        )
+
+        config = await configs.get_by_asset_id(dollar.id)
+
+        assert config.scheduler_on is True
+        assert config.scheduler_seconds == 20
+
+    async def test_every_other_asset_starts_paused(
+        self, uow: PGUnitOfWork
+    ) -> None:
+        assets, configs = _services(uow)
+        gold = await assets.create(_create_data())
+
+        config = await configs.get_by_asset_id(gold.id)
+
+        assert config.scheduler_on is False
+        assert config.scheduler_seconds == 60

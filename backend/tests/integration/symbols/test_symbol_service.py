@@ -18,6 +18,7 @@ from src.modules.price.symbols.app.services import SymbolService
 from src.modules.price.symbols.domain.dtos import SymbolCreate, SymbolUpdate
 from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
 from src.modules.price.symbols.infra.repository import SymbolRepository
+from tests.conftest import NullScheduler
 
 
 def _service(uow: PGUnitOfWork) -> SymbolService:
@@ -44,7 +45,9 @@ async def _asset(
     Returns:
         return (AssetModel): The created asset.
     """
-    configs = AssetConfigService(AssetConfigRepository(uow))
+    configs = AssetConfigService(
+        AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+    )
     assets = AssetService(AssetRepository(uow), configs)
     asset = await assets.create(AssetCreate(title="طلا", code=code))
     return asset
@@ -204,7 +207,9 @@ class TestSymbolServiceCRUD:
         self, uow: PGUnitOfWork
     ) -> None:
         symbols = _service(uow)
-        configs = AssetConfigService(AssetConfigRepository(uow))
+        configs = AssetConfigService(
+            AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+        )
         assets = AssetService(AssetRepository(uow), configs)
         asset = await _asset(uow)
         await symbols.create(_create(asset))

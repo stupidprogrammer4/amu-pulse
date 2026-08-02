@@ -51,6 +51,23 @@ def pytest_collection_modifyitems(
             item.add_marker(pytest.mark.unit)
 
 
+class NullScheduler:
+    """A scheduler that writes no schedule, for the services that only
+    hand an asset id on to it."""
+
+    def __init__(self) -> None:
+        self.synced: list[int] = []
+
+    async def sync(
+        self,
+        asset_id: int,
+        scheduler_on: bool,
+        scheduler_seconds: int,
+    ) -> bool:
+        self.synced.append(asset_id)
+        return scheduler_on
+
+
 def obj(**kwargs: Any) -> SimpleNamespace:
     return SimpleNamespace(**kwargs)
 

@@ -45,4 +45,6 @@ class CalculatorProvider(Provider):
     bubble_calculator_service = provide(
         BubbleCalculatorService, provides=IBubbleCalculatorService
     )
-    scheduler_service = provide(SchedulerService, provides=ISchedulerService)
+    scheduler_service = provide(
+        SchedulerService, provides=ISchedulerService, scope=Scope.APP
+    )

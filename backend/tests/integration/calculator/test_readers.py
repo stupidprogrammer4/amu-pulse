@@ -42,6 +42,7 @@ from src.modules.price.symbols.app.services import SymbolService
 from src.modules.price.symbols.domain.dtos import SymbolCreate
 from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
 from src.modules.price.symbols.infra.repository import SymbolRepository
+from tests.conftest import NullScheduler
 
 
 def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
@@ -52,7 +53,9 @@ def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
     Returns:
         return (tuple[AssetService, AssetConfigService]): The two services.
     """
-    configs = AssetConfigService(AssetConfigRepository(uow))
+    configs = AssetConfigService(
+        AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+    )
     return AssetService(AssetRepository(uow), configs), configs
 
 
