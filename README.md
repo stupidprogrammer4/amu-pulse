@@ -71,14 +71,41 @@ Each source is a **pluggable adapter** that writes clean, normalized data into o
 - [x] **Source adapters** — Iranian market boards, wholesalers, world XAU feeds, and the published premium. A gateway never raises: it answers with a quote or with an error
 - [x] **Sign-in** — the sources that need credentials are signed in on their own weekly schedule
 - [x] **The crawl** — every 30 seconds: read the config, call every source at once, cache each reading under its symbol, and stamp every source with what it just did
+- [x] **Price calculator** — fold a symbol's readings into one price per asset: convert units (mesghal → gram, ounce → gram) and currency (cent → Rial), drop the outliers, aggregate the rest by the asset's own rule, and walk the asset's markets until one of them answers
+- [x] **Aggregation rule per asset** — median, mean, min, max or a quartile, chosen for each asset and applied to that asset's readings
+- [x] **Bubble** — settle every published premium into one per asset, and price world parity off it
+- [x] **Price ticker** — a snapshot of every price on the five-minute marks, drawn back as a chart over the window a caller asks for, with how far the price moved across it
+- [x] **Candles** — every price and every source reading folds into an open five-minute window in Redis; a closed window is written down as a candle, and the hourly, five-hourly and daily candles are rolled up out of it on Tehran's clock
+- [x] **Candle charts** — one endpoint per asset and per source, drawn as fine as the span asked for: a day five minutes at a time, a week hour by hour, two months five hours at a time, longer day by day
 
-### Next
+### Next up
 
-- [ ] **Price calculator** — fold a symbol's readings into one price per asset: convert units (mesghal → gram, ounce → gram) and currency (cent → Rial), drop the outliers, aggregate the rest by the asset's own rule
-- [ ] **Bubble** — settle the published premiums, and derive the premium ourselves where the local market and world parity disagree
-- [ ] Price-history storage and charting endpoints
+Each bullet below is scoped to stand on its own as one issue. Owners are
+the person the work is assigned to, not the only person allowed to touch it.
+
+#### Backend — Aida
+
+- [ ] **Split `identity` into four modules** — `identity/admins` holds the superadmins, a username and a password and nothing else; `identity/users` holds the people, with a first name, a last name, a mobile number and an email address, each of them filled in only if the user wants to; `identity/otp` holds the one-time codes a user signs in with; `identity/auth` is pure auth logic and owns no table of its own
+- [ ] **`ops/messages`** — one module that sends an email or an SMS, and the only way anything leaves the system as a message. Every message we send goes through it, the OTP codes included
+- [ ] **`content` group — news and analysis** — a `content/news` module and a `content/analysis` module, both crawled from news and signal sites. A row keeps the whole record, the site it came from included; the crawl follows the shape `price/engine` already uses (a gateway per source that never raises, a flusher that writes clean rows)
+
+#### Backend — Pouya
+
+- [ ] **Job and API logging on the ELK stack** — every task run and every request shipped to Elasticsearch, searchable in Kibana
+- [ ] **Signal agent** — the smart agent that reads the charts and the news and produces the signal
+
+#### DevOps
+
+- [ ] **Dockerize the project** — a Dockerfile per service (API, worker, scheduler) and a compose file bringing up Postgres, Redis and Elasticsearch alongside them, so the whole stack starts with one command in development and ships as an image in production
+
+#### Frontend
+
+- [ ] **Admin console** *(first)* — the screens the system is run from: sources and their config, assets and their pricing order, symbols, margins, and the charts to see what the engine is doing
+- [ ] **User app** — the public side: prices, charts, news and the read-out
+
+#### Still to design
+
 - [ ] User-defined aggregations
-- [ ] News ingestion
 - [ ] Analysis component → score in [-1, 1] + confidence + reason
 - [ ] Automatic evaluation loop from realized future prices
 - [ ] User feedback capture
