@@ -1,6 +1,11 @@
 from typing import Mapping, Sequence
 
 from src.modules.chart.candle.app.helpers import WindowClock
+from src.modules.chart.candle.domain.enums import TimeFrame
+from src.modules.chart.candle.domain.models import (
+    CandleModel,
+    SourceCandleModel,
+)
 from src.modules.chart.candle.domain.windows import (
     AssetPriceWindow,
     SourcePriceWindow,
@@ -8,6 +13,10 @@ from src.modules.chart.candle.domain.windows import (
 from src.modules.chart.candle.infra.cache import (
     AssetWindowCache,
     SourceWindowCache,
+)
+from src.modules.chart.candle.infra.repository import (
+    CandleRepository,
+    SourceCandleRepository,
 )
 from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.calculator.domain.results import AssetPriceResult
@@ -153,3 +162,179 @@ class SourceWindowService:
             await self.cache.set_many(opened, windows)
             folded = sum(len(quoted) for quoted in cached_prices.values())
         return folded
+
+
+class CandleService:
+    def __init__(
+        self,
+        repo: CandleRepository,
+        cache: AssetWindowCache,
+    ) -> None:
+        """
+        Desc: Build the service with the candles it writes and the windows
+        it writes them out of.
+        Args:
+            repo (CandleRepository): The candle repository.
+            cache (AssetWindowCache): Where the open window lives.
+        """
+        self.repo = repo
+        self.cache = cache
+        self.clock = WindowClock()
+
+    async def build_from_cache(self) -> int:
+        """
+        Desc: Write down the window that has just closed, one candle per
+        asset priced in it.
+        Returns:
+            return (int): How many candles were written.
+        """
+        closed = self.clock.last_closed()
+        length = self.clock.timeframe.seconds
+        windows = await self.cache.get_all(closed)
+        rows = [
+            CandleModel(
+                asset_id=window.asset_id,
+                timeframe=self.clock.timeframe,
+                open=window.open,
+                high=window.high,
+                low=window.low,
+                close=window.close,
+                st_ts=closed,
+                en_ts=closed + length,
+            )
+            for window in windows.values()
+        ]
+        if rows:
+            await self.repo.bulk_upsert(rows)
+            await self.cache.remove(closed)
+        return len(rows)
+
+    async def build_timeframe_from_rolled(self, tf: TimeFrame) -> int:
+        """
+        Desc: Roll one timeframe up out of the finer candles it is built
+        from, over the window the last written candle falls in.
+        Args:
+            tf (TimeFrame): The timeframe to roll up.
+        Returns:
+            return (int): How many candles were written.
+        """
+        finer = tf.rolled_from
+        built = 0
+        if finer is not None:
+            st_ts = tf.opened_at(self.clock.last_closed())
+            en_ts = st_ts + tf.seconds
+            candles = await self.repo.get_all_by_timeframe(finer, st_ts, en_ts)
+            # the rows come by asset, oldest first: the first opens the
+            # candle and every one after it stretches the same one
+            folded: dict[int, CandleModel] = {}
+            for row in candles:
+                standing = folded.get(row.asset_id)
+                if standing is None:
+                    folded[row.asset_id] = CandleModel(
+                        asset_id=row.asset_id,
+                        timeframe=tf,
+                        open=row.open,
+                        high=row.high,
+                        low=row.low,
+                        close=row.close,
+                        st_ts=st_ts,
+                        en_ts=en_ts,
+                    )
+                else:
+                    standing.high = max(standing.high, row.high)
+                    standing.low = min(standing.low, row.low)
+                    standing.close = row.close
+            if folded:
+                await self.repo.bulk_upsert(list(folded.values()))
+                built = len(folded)
+        return built
+
+
+class SourceCandleService:
+    def __init__(
+        self,
+        repo: SourceCandleRepository,
+        cache: SourceWindowCache,
+    ) -> None:
+        """
+        Desc: Build the service with the candles it writes and the windows
+        it writes them out of.
+        Args:
+            repo (SourceCandleRepository): The source candle repository.
+            cache (SourceWindowCache): Where the open window lives.
+        """
+        self.repo = repo
+        self.cache = cache
+        self.clock = WindowClock()
+
+    async def build_from_cache(self) -> int:
+        """
+        Desc: Write down the window that has just closed, one candle per
+        source and line quoted in it.
+        Returns:
+            return (int): How many candles were written.
+        """
+        closed = self.clock.last_closed()
+        length = self.clock.timeframe.seconds
+        quoted = await self.cache.get_all(closed)
+        rows = [
+            SourceCandleModel(
+                source_id=window.source_id,
+                symbol_id=window.symbol_id,
+                timeframe=self.clock.timeframe,
+                open=window.open,
+                high=window.high,
+                low=window.low,
+                close=window.close,
+                st_ts=closed,
+                en_ts=closed + length,
+            )
+            for windows in quoted.values()
+            for window in windows
+        ]
+        if rows:
+            await self.repo.bulk_upsert(rows)
+            await self.cache.remove(closed)
+        return len(rows)
+
+    async def build_timeframe_from_rolled(self, tf: TimeFrame) -> int:
+        """
+        Desc: Roll one timeframe up out of the finer candles it is built
+        from, over the window the last written candle falls in.
+        Args:
+            tf (TimeFrame): The timeframe to roll up.
+        Returns:
+            return (int): How many candles were written.
+        """
+        finer = tf.rolled_from
+        built = 0
+        if finer is not None:
+            st_ts = tf.opened_at(self.clock.last_closed())
+            en_ts = st_ts + tf.seconds
+            candles = await self.repo.get_all_by_timeframe(finer, st_ts, en_ts)
+            # the rows come by source and line, oldest first: the first
+            # opens the candle and every one after it stretches the same
+            folded: dict[tuple[int, int], SourceCandleModel] = {}
+            for row in candles:
+                key = (row.source_id, row.symbol_id)
+                standing = folded.get(key)
+                if standing is None:
+                    folded[key] = SourceCandleModel(
+                        source_id=row.source_id,
+                        symbol_id=row.symbol_id,
+                        timeframe=tf,
+                        open=row.open,
+                        high=row.high,
+                        low=row.low,
+                        close=row.close,
+                        st_ts=st_ts,
+                        en_ts=en_ts,
+                    )
+                else:
+                    standing.high = max(standing.high, row.high)
+                    standing.low = min(standing.low, row.low)
+                    standing.close = row.close
+            if folded:
+                await self.repo.bulk_upsert(list(folded.values()))
+                built = len(folded)
+        return built

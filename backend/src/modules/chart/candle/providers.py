@@ -1,6 +1,8 @@
 from dishka import Provider, Scope, provide
 
 from src.modules.chart.candle.app.services import (
+    CandleService,
+    SourceCandleService,
     SourceWindowService,
     WindowService,
 )
@@ -13,6 +15,8 @@ from src.modules.chart.candle.infra.repository import (
     SourceCandleRepository,
 )
 from src.modules.chart.candle.interfaces import (
+    ICandleService,
+    ISourceCandleService,
     ISourceWindowService,
     IWindowService,
 )
@@ -31,4 +35,8 @@ class CandleProvider(Provider):
     )
     source_window_service = provide(
         SourceWindowService, provides=ISourceWindowService, scope=Scope.APP
+    )
+    candle_service = provide(CandleService, provides=ICandleService)
+    source_candle_service = provide(
+        SourceCandleService, provides=ISourceCandleService
     )

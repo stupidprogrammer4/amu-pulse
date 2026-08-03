@@ -10,6 +10,10 @@ import src.tasks.broker
 from src.core.bootstrap import get_bootstrapper
 from src.core.config import Settings
 from src.infra.redis.client import RedisClient, resolve
+from src.modules.chart.candle.infra.cache import (
+    AssetWindowCache,
+    SourceWindowCache,
+)
 from src.modules.price.calculator.infra.cache import (
     AssetPriceCache,
     BubbleCache,
@@ -38,6 +42,14 @@ class TaskBubbleSourceCache(BubbleSourceCache):
     namespace = "test:tasks:sources:bubble"
 
 
+class TaskAssetWindowCache(AssetWindowCache):
+    namespace = "test:tasks:assets:window"
+
+
+class TaskSourceWindowCache(SourceWindowCache):
+    namespace = "test:tasks:sources:window"
+
+
 class CacheProvider(Provider):
     """The same caches, under namespaces of the suite's own."""
 
@@ -47,6 +59,8 @@ class CacheProvider(Provider):
     bubbles = provide(TaskBubbleCache, provides=BubbleCache)
     source_prices = provide(TaskSourcePriceCache, provides=SourcePriceCache)
     source_bubbles = provide(TaskBubbleSourceCache, provides=BubbleSourceCache)
+    asset_windows = provide(TaskAssetWindowCache, provides=AssetWindowCache)
+    source_windows = provide(TaskSourceWindowCache, provides=SourceWindowCache)
 
 
 @pytest.fixture
