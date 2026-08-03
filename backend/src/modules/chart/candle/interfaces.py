@@ -2,6 +2,10 @@ from typing import Mapping, Protocol, Sequence
 
 from src.modules.chart.candle.domain.dtos import ParamDTO, SourceParamDTO
 from src.modules.chart.candle.domain.enums import TimeFrame
+from src.modules.chart.candle.domain.results import (
+    CandleResult,
+    SourceCandleResult,
+)
 from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.calculator.domain.results import AssetPriceResult
 from src.modules.price.engine.domain.results import SourcePriceResult
@@ -29,7 +33,9 @@ class ISourceCandleService(Protocol):
 
     async def build_from_cache(self) -> int: ...
 
-    async def get_candle(self, source_id: int, param: SourceParamDTO): ...
+    async def get_candle(
+        self, source_id: int, param: SourceParamDTO
+    ) -> SourceCandleResult: ...
 
 
 class ICandleService(Protocol):
@@ -37,4 +43,6 @@ class ICandleService(Protocol):
 
     async def build_from_cache(self) -> int: ...
 
-    async def get_candle(self, param: ParamDTO): ...
+    async def get_candle(
+        self, asset_id: int, param: ParamDTO
+    ) -> CandleResult: ...

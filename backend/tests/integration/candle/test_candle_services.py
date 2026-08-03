@@ -1,8 +1,10 @@
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from redis.exceptions import RedisError
 
+from src.common.errors.exceptions import ValidationException
 from src.common.utils import date_utils
 from src.core.config import Settings
 from src.infra.postgres.uow import PGUnitOfWork
@@ -11,6 +13,7 @@ from src.modules.chart.candle.app.services import (
     CandleService,
     SourceCandleService,
 )
+from src.modules.chart.candle.domain.dtos import ParamDTO, SourceParamDTO
 from src.modules.chart.candle.domain.enums import TimeFrame
 from src.modules.chart.candle.domain.models import CandleModel
 from src.modules.chart.candle.domain.windows import (
@@ -27,6 +30,7 @@ from src.modules.chart.candle.infra.repository import (
 )
 from src.modules.price.assets.app.services import (
     AssetConfigService,
+    AssetMetaService,
     AssetService,
 )
 from src.modules.price.assets.config.constants import ASSET_ID_ENCRYPTION
@@ -39,6 +43,7 @@ from src.modules.price.assets.infra.repository import (
 )
 from src.modules.price.sources.app.services import (
     SourceConfigService,
+    SourceMetaService,
     SourceService,
 )
 from src.modules.price.sources.domain.dtos import SourceCreate
@@ -49,6 +54,7 @@ from src.modules.price.sources.infra.repository import (
     SourceRepository,
 )
 from src.modules.price.symbols.app.services import SymbolService
+from src.modules.price.symbols.config.constants import SYMBOL_ID_ENCRYPTION
 from src.modules.price.symbols.domain.dtos import SymbolCreate
 from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
 from src.modules.price.symbols.domain.models import SymbolModel
@@ -110,6 +116,67 @@ async def redis(
         for cache in caches:
             await cache.remove(_closed())
         await client.close()
+
+
+def _asset_meta(uow: PGUnitOfWork) -> AssetMetaService:
+    """
+    Desc: Build the asset meta service over the real services.
+    Args:
+        uow (PGUnitOfWork): Unit of work to read through.
+    Returns:
+        return (AssetMetaService): What names a charted asset.
+    """
+    configs = AssetConfigService(
+        AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
+    )
+    return AssetMetaService(AssetService(AssetRepository(uow), configs))
+
+
+def _source_meta(uow: PGUnitOfWork) -> SourceMetaService:
+    """
+    Desc: Build the source meta service over the real services.
+    Args:
+        uow (PGUnitOfWork): Unit of work to read through.
+    Returns:
+        return (SourceMetaService): What names a charted source and line.
+    """
+    configs = SourceConfigService(SourceConfigRepository(uow))
+    return SourceMetaService(
+        SourceService(SourceRepository(uow), configs),
+        SymbolService(SymbolRepository(uow)),
+    )
+
+
+def _candles(
+    uow: PGUnitOfWork,
+    cache: AssetWindowCache,
+) -> CandleService:
+    """
+    Desc: Build the candle service over the real table and cache.
+    Args:
+        uow (PGUnitOfWork): Unit of work to write through.
+        cache (AssetWindowCache): Where the open window lives.
+    Returns:
+        return (CandleService): The service.
+    """
+    return CandleService(CandleRepository(uow), cache, _asset_meta(uow))
+
+
+def _source_candles(
+    uow: PGUnitOfWork,
+    cache: SourceWindowCache,
+) -> SourceCandleService:
+    """
+    Desc: Build the source candle service over the real table and cache.
+    Args:
+        uow (PGUnitOfWork): Unit of work to write through.
+        cache (SourceWindowCache): Where the open window lives.
+    Returns:
+        return (SourceCandleService): The service.
+    """
+    return SourceCandleService(
+        SourceCandleRepository(uow), cache, _source_meta(uow)
+    )
 
 
 async def _asset(
@@ -239,7 +306,7 @@ class TestWritingTheClosedWindowDown:
                 AssetCode.USD: AssetPriceWindow.opened(usd.id, 1_900),
             },
         )
-        service = CandleService(CandleRepository(uow), cache)
+        service = _candles(uow, cache)
 
         built = await service.build_from_cache()
 
@@ -268,7 +335,7 @@ class TestWritingTheClosedWindowDown:
         await cache.set(
             closed, AssetCode.GOLD18, AssetPriceWindow.opened(asset.id, 100)
         )
-        service = CandleService(CandleRepository(uow), cache)
+        service = _candles(uow, cache)
 
         await service.build_from_cache()
 
@@ -283,7 +350,7 @@ class TestWritingTheClosedWindowDown:
         await cache.set(
             closed, AssetCode.GOLD18, AssetPriceWindow.opened(asset.id, 100)
         )
-        service = CandleService(CandleRepository(uow), cache)
+        service = _candles(uow, cache)
 
         await service.build_from_cache()
         built = await service.build_from_cache()
@@ -297,9 +364,7 @@ class TestWritingTheClosedWindowDown:
     async def test_a_window_nobody_priced_writes_nothing(
         self, uow: PGUnitOfWork, redis: RedisClient
     ) -> None:
-        service = CandleService(
-            CandleRepository(uow), _TestAssetWindowCache(redis)
-        )
+        service = _candles(uow, _TestAssetWindowCache(redis))
 
         built = await service.build_from_cache()
 
@@ -322,7 +387,7 @@ class TestWritingTheClosedWindowDown:
                 SourcePriceWindow.opened(alanchand.id, symbol.id, 101),
             ],
         )
-        service = SourceCandleService(SourceCandleRepository(uow), cache)
+        service = _source_candles(uow, cache)
 
         built = await service.build_from_cache()
 
@@ -356,9 +421,7 @@ class TestRollingTheCoarserCandlesUp:
             [(100, 120, 90, 110), (110, 150, 105, 130), (130, 135, 80, 95)],
             hour,
         )
-        service = CandleService(
-            CandleRepository(uow), _TestAssetWindowCache(redis)
-        )
+        service = _candles(uow, _TestAssetWindowCache(redis))
 
         built = await service.build_timeframe_from_rolled(TimeFrame.HOURLY)
 
@@ -389,9 +452,7 @@ class TestRollingTheCoarserCandlesUp:
         await _five_minute_candles(
             uow, usd, [(1_900, 1_950, 1_890, 1_930)], hour
         )
-        service = CandleService(
-            CandleRepository(uow), _TestAssetWindowCache(redis)
-        )
+        service = _candles(uow, _TestAssetWindowCache(redis))
 
         built = await service.build_timeframe_from_rolled(TimeFrame.HOURLY)
 
@@ -413,9 +474,7 @@ class TestRollingTheCoarserCandlesUp:
             uow, asset, [(50, 55, 45, 50)], hour - TimeFrame.HOURLY.seconds
         )
         await _five_minute_candles(uow, asset, [(100, 120, 90, 110)], hour)
-        service = CandleService(
-            CandleRepository(uow), _TestAssetWindowCache(redis)
-        )
+        service = _candles(uow, _TestAssetWindowCache(redis))
 
         await service.build_timeframe_from_rolled(TimeFrame.HOURLY)
 
@@ -432,9 +491,7 @@ class TestRollingTheCoarserCandlesUp:
         hour = TimeFrame.HOURLY.opened_at(closed)
         day = TimeFrame.DAILY.opened_at(closed)
         await _five_minute_candles(uow, asset, [(100, 150, 80, 95)], hour)
-        service = CandleService(
-            CandleRepository(uow), _TestAssetWindowCache(redis)
-        )
+        service = _candles(uow, _TestAssetWindowCache(redis))
 
         await service.build_timeframe_from_rolled(TimeFrame.HOURLY)
         built = await service.build_timeframe_from_rolled(TimeFrame.DAILY)
@@ -451,9 +508,7 @@ class TestRollingTheCoarserCandlesUp:
         asset = await _asset(uow)
         hour = TimeFrame.HOURLY.opened_at(_closed())
         await _five_minute_candles(uow, asset, [(100, 120, 90, 110)], hour)
-        service = CandleService(
-            CandleRepository(uow), _TestAssetWindowCache(redis)
-        )
+        service = _candles(uow, _TestAssetWindowCache(redis))
 
         await service.build_timeframe_from_rolled(TimeFrame.HOURLY)
         await _five_minute_candles(
@@ -473,9 +528,7 @@ class TestRollingTheCoarserCandlesUp:
         asset = await _asset(uow)
         hour = TimeFrame.HOURLY.opened_at(_closed())
         await _five_minute_candles(uow, asset, [(100, 120, 90, 110)], hour)
-        service = CandleService(
-            CandleRepository(uow), _TestAssetWindowCache(redis)
-        )
+        service = _candles(uow, _TestAssetWindowCache(redis))
 
         built = await service.build_timeframe_from_rolled(
             TimeFrame.FIVE_MINUTE
@@ -501,7 +554,7 @@ class TestRollingTheCoarserCandlesUp:
                 SourcePriceWindow.opened(alanchand.id, symbol.id, 101),
             ],
         )
-        service = SourceCandleService(SourceCandleRepository(uow), cache)
+        service = _source_candles(uow, cache)
         await service.build_from_cache()
 
         built = await service.build_timeframe_from_rolled(TimeFrame.HOURLY)
@@ -514,3 +567,101 @@ class TestRollingTheCoarserCandlesUp:
             tgju.id: 140,
             alanchand.id: 101,
         }
+
+
+@pytest.mark.usefixtures("migrated_test_db", "clean_db")
+class TestDrawingTheCandlesAsked:
+    async def test_the_chart_is_drawn_on_the_timeframe_of_its_span(
+        self, uow: PGUnitOfWork, redis: RedisClient
+    ) -> None:
+        asset = await _asset(uow)
+        closed = _closed()
+        await _five_minute_candles(
+            uow, asset, [(100, 120, 90, 110), (110, 150, 105, 130)], closed
+        )
+        service = _candles(uow, _TestAssetWindowCache(redis))
+        ends = datetime.fromtimestamp(closed + 2 * _five_minutes, UTC)
+        param = ParamDTO(
+            from_datetime=datetime.fromtimestamp(closed, UTC),
+            to_datetime=ends,
+        )
+
+        result = await service.get_candle(asset.id, param)
+
+        assert result.data.timeframe is TimeFrame.FIVE_MINUTE
+        assert [row.close for row in result.data.candles] == [110, 130]
+        assert result.data.from_timestamp == closed
+
+    async def test_the_charted_asset_is_named_in_the_meta(
+        self, uow: PGUnitOfWork, redis: RedisClient
+    ) -> None:
+        asset = await _asset(uow)
+        closed = _closed()
+        await _five_minute_candles(uow, asset, [(100, 120, 90, 110)], closed)
+        service = _candles(uow, _TestAssetWindowCache(redis))
+        param = ParamDTO(
+            from_datetime=datetime.fromtimestamp(closed, UTC),
+            to_datetime=datetime.fromtimestamp(closed + _five_minutes, UTC),
+        )
+
+        result = await service.get_candle(asset.id, param)
+
+        assert [row.code for row in result.meta.assets] == [AssetCode.GOLD18]
+
+    async def test_a_longer_span_is_drawn_on_a_coarser_candle(
+        self, uow: PGUnitOfWork, redis: RedisClient
+    ) -> None:
+        asset = await _asset(uow)
+        service = _candles(uow, _TestAssetWindowCache(redis))
+        ends = date_utils.utc_now()
+        param = ParamDTO(
+            from_datetime=ends - timedelta(days=30), to_datetime=ends
+        )
+
+        result = await service.get_candle(asset.id, param)
+
+        assert result.data.timeframe is TimeFrame.FIVE_HOURLY
+        assert result.data.candles == []
+
+    async def test_a_span_of_a_year_or_more_is_turned_away(
+        self, uow: PGUnitOfWork, redis: RedisClient
+    ) -> None:
+        asset = await _asset(uow)
+        service = _candles(uow, _TestAssetWindowCache(redis))
+        ends = date_utils.utc_now()
+        param = ParamDTO(
+            from_datetime=ends - timedelta(days=400), to_datetime=ends
+        )
+
+        with pytest.raises(ValidationException):
+            await service.get_candle(asset.id, param)
+
+    async def test_what_one_source_quoted_is_drawn_and_named(
+        self, uow: PGUnitOfWork, redis: RedisClient
+    ) -> None:
+        asset = await _asset(uow)
+        symbol = await _symbol(uow, asset)
+        source = await _source(uow)
+        cache = _TestSourceWindowCache(redis)
+        closed = _closed()
+        await cache.set(
+            closed,
+            SymbolCode.GOLD18_GRAM,
+            [SourcePriceWindow.opened(source.id, symbol.id, 100).folded(140)],
+        )
+        service = _source_candles(uow, cache)
+        await service.build_from_cache()
+        param = SourceParamDTO(
+            symbol_id=SYMBOL_ID_ENCRYPTION.encode(symbol.id),
+            from_datetime=datetime.fromtimestamp(closed, UTC),
+            to_datetime=datetime.fromtimestamp(closed + _five_minutes, UTC),
+        )
+
+        result = await service.get_candle(source.id, param)
+
+        assert result.data.timeframe is TimeFrame.FIVE_MINUTE
+        assert [row.high for row in result.data.candles] == [140]
+        assert [row.code for row in result.meta.sources] == [SourceCode.TGJU]
+        assert [row.code for row in result.meta.symbols] == [
+            SymbolCode.GOLD18_GRAM
+        ]

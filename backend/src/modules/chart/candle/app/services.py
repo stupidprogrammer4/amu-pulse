@@ -1,10 +1,21 @@
 from typing import Mapping, Sequence
 
-from src.modules.chart.candle.app.helpers import WindowClock
+from src.common.errors.exceptions import ValidationException
+from src.modules.chart.candle.app.helpers import ChartWindow, WindowClock
+from src.modules.chart.candle.config import resources
+from src.modules.chart.candle.domain.dtos import ParamDTO, SourceParamDTO
 from src.modules.chart.candle.domain.enums import TimeFrame
 from src.modules.chart.candle.domain.models import (
     CandleModel,
     SourceCandleModel,
+)
+from src.modules.chart.candle.domain.results import (
+    CandleResult,
+    SourceCandleResult,
+)
+from src.modules.chart.candle.domain.schemas import (
+    CandleChartOut,
+    CandleOut,
 )
 from src.modules.chart.candle.domain.windows import (
     AssetPriceWindow,
@@ -19,8 +30,10 @@ from src.modules.chart.candle.infra.repository import (
     SourceCandleRepository,
 )
 from src.modules.price.assets.domain.enums import AssetCode
+from src.modules.price.assets.interfaces import IAssetMetaService
 from src.modules.price.calculator.domain.results import AssetPriceResult
 from src.modules.price.engine.domain.results import SourcePriceResult
+from src.modules.price.sources.interfaces import ISourceMetaService
 from src.modules.price.symbols.domain.enums import SymbolCode
 
 
@@ -169,17 +182,21 @@ class CandleService:
         self,
         repo: CandleRepository,
         cache: AssetWindowCache,
+        meta: IAssetMetaService,
     ) -> None:
         """
-        Desc: Build the service with the candles it writes and the windows
-        it writes them out of.
+        Desc: Build the service with the candles it writes, the windows it
+        writes them out of and what names the asset they are of.
         Args:
             repo (CandleRepository): The candle repository.
             cache (AssetWindowCache): Where the open window lives.
+            meta (IAssetMetaService): What the charted asset is named by.
         """
         self.repo = repo
         self.cache = cache
         self.clock = WindowClock()
+        self.window = ChartWindow()
+        self.meta = meta
 
     async def build_from_cache(self) -> int:
         """
@@ -249,23 +266,83 @@ class CandleService:
                 built = len(folded)
         return built
 
+    def _check_span(self, days: float) -> None:
+        """
+        Desc: Turn away a chart asked for over too long a span.
+        Args:
+            days (float): How many days the chart covers.
+        """
+        if days <= 0:
+            raise ValidationException(
+                message="A chart ends after it begins",
+                message_code=resources.CHART_SPAN_BACKWARDS,
+                loc=["query", "to_datetime"],
+                input=days,
+            )
+        if days >= self.window.max_days:
+            raise ValidationException(
+                message=(
+                    f"A chart spans fewer than {self.window.max_days} days"
+                ),
+                message_code=resources.CHART_SPAN_TOO_LONG,
+                loc=["query", "to_datetime"],
+                input=days,
+            )
+
+    async def get_candle(
+        self,
+        asset_id: int,
+        param: ParamDTO,
+    ) -> CandleResult:
+        """
+        Desc: Draw one asset's candles over the span it is asked for.
+        Args:
+            asset_id (int): ID of the asset being charted.
+            param (ParamDTO): The span the chart is asked for.
+        Returns:
+            return (CandleResult): The chart and the asset it is of.
+        """
+        days = self.window.days(param)
+        self._check_span(days)
+        timeframe = self.window.timeframe(days)
+        from_ts = int(param.from_datetime.timestamp())
+        to_ts = int(param.to_datetime.timestamp())
+        rows = await self.repo.get_by_timeframe(
+            asset_id, timeframe, from_ts, to_ts
+        )
+        chart = CandleChartOut(
+            timeframe=timeframe,
+            candles=CandleOut.from_objs(rows),
+            from_timestamp=from_ts,
+            to_timestamp=to_ts,
+        )
+        charted = [asset_id] if rows else []
+        meta = await self.meta.build(charted)
+        result = CandleResult(data=chart, meta=meta)
+        return result
+
 
 class SourceCandleService:
     def __init__(
         self,
         repo: SourceCandleRepository,
         cache: SourceWindowCache,
+        meta: ISourceMetaService,
     ) -> None:
         """
-        Desc: Build the service with the candles it writes and the windows
-        it writes them out of.
+        Desc: Build the service with the candles it writes, the windows it
+        writes them out of and what names the source they are of.
         Args:
             repo (SourceCandleRepository): The source candle repository.
             cache (SourceWindowCache): Where the open window lives.
+            meta (ISourceMetaService): What the charted source and line are
+                named by.
         """
         self.repo = repo
         self.cache = cache
         self.clock = WindowClock()
+        self.window = ChartWindow()
+        self.meta = meta
 
     async def build_from_cache(self) -> int:
         """
@@ -338,3 +415,61 @@ class SourceCandleService:
                 await self.repo.bulk_upsert(list(folded.values()))
                 built = len(folded)
         return built
+
+    def _check_span(self, days: float) -> None:
+        """
+        Desc: Turn away a chart asked for over too long a span.
+        Args:
+            days (float): How many days the chart covers.
+        """
+        if days <= 0:
+            raise ValidationException(
+                message="A chart ends after it begins",
+                message_code=resources.CHART_SPAN_BACKWARDS,
+                loc=["query", "to_datetime"],
+                input=days,
+            )
+        if days >= self.window.max_days:
+            raise ValidationException(
+                message=(
+                    f"A chart spans fewer than {self.window.max_days} days"
+                ),
+                message_code=resources.CHART_SPAN_TOO_LONG,
+                loc=["query", "to_datetime"],
+                input=days,
+            )
+
+    async def get_candle(
+        self,
+        source_id: int,
+        param: SourceParamDTO,
+    ) -> SourceCandleResult:
+        """
+        Desc: Draw what one source quoted one line at, candle by candle,
+        over the span it is asked for.
+        Args:
+            source_id (int): ID of the source that quoted it.
+            param (SourceParamDTO): The line and the span the chart is
+                asked for.
+        Returns:
+            return (SourceCandleResult): The chart, and the source and line
+                it is of.
+        """
+        days = self.window.days(param)
+        self._check_span(days)
+        timeframe = self.window.timeframe(days)
+        from_ts = int(param.from_datetime.timestamp())
+        to_ts = int(param.to_datetime.timestamp())
+        rows = await self.repo.get_by_timeframe(
+            source_id, param.symbol_id, timeframe, from_ts, to_ts
+        )
+        chart = CandleChartOut(
+            timeframe=timeframe,
+            candles=CandleOut.from_objs(rows),
+            from_timestamp=from_ts,
+            to_timestamp=to_ts,
+        )
+        charted = [source_id] if rows else []
+        meta = await self.meta.build(charted, [param.symbol_id])
+        result = SourceCandleResult(data=chart, meta=meta)
+        return result

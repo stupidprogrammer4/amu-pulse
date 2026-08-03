@@ -1,12 +1,17 @@
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Sequence, cast
 
+import pytest
+
+from src.common.errors.exceptions import ValidationException
 from src.common.utils import date_utils
 from src.infra.redis.client import RedisClient
 from src.modules.chart.candle.app.services import (
     CandleService,
     SourceCandleService,
 )
+from src.modules.chart.candle.domain.dtos import ParamDTO
 from src.modules.chart.candle.domain.enums import TimeFrame
 from src.modules.chart.candle.domain.models import (
     CandleModel,
@@ -25,6 +30,10 @@ from src.modules.chart.candle.infra.repository import (
     SourceCandleRepository,
 )
 from src.modules.price.assets.domain.enums import AssetCode
+from src.modules.price.assets.domain.schemas import AssetMeta
+from src.modules.price.assets.interfaces import IAssetMetaService
+from src.modules.price.sources.domain.schemas import SourceMeta
+from src.modules.price.sources.interfaces import ISourceMetaService
 from src.modules.price.symbols.domain.enums import SymbolCode
 from tests.unit.candle.test_window_caches import _FakeWindowRedis
 
@@ -57,6 +66,16 @@ class _FakeCandleRepo:
         ]
         return sorted(found, key=lambda row: (row.asset_id, row.st_ts))
 
+    async def get_by_timeframe(
+        self,
+        asset_id: int,
+        timeframe: TimeFrame,
+        from_ts: int,
+        to_ts: int,
+    ) -> Sequence[CandleModel]:
+        found = await self.get_all_by_timeframe(timeframe, from_ts, to_ts)
+        return [row for row in found if row.asset_id == asset_id]
+
 
 class _FakeSourceCandleRepo:
     """The source candle table, keyed the way its unique index is."""
@@ -88,6 +107,24 @@ class _FakeSourceCandleRepo:
         )
 
 
+class _FakeAssetMeta:
+    """What names an asset, over nothing at all."""
+
+    async def build(self, asset_ids: Sequence[int]) -> AssetMeta:
+        return AssetMeta(assets=[])
+
+
+class _FakeSourceMeta:
+    """What names a source and a line, over nothing at all."""
+
+    async def build(
+        self,
+        source_ids: Sequence[int],
+        symbol_ids: Sequence[int],
+    ) -> SourceMeta:
+        return SourceMeta(sources=[], symbols=[])
+
+
 def _assets() -> tuple[CandleService, _FakeCandleRepo, AssetWindowCache]:
     """
     Desc: Build the candle service over a fake table and a fake Redis.
@@ -98,7 +135,11 @@ def _assets() -> tuple[CandleService, _FakeCandleRepo, AssetWindowCache]:
     repo = _FakeCandleRepo()
     client = cast(RedisClient, SimpleNamespace(client=_FakeWindowRedis()))
     cache = AssetWindowCache(client)
-    service = CandleService(cast(CandleRepository, repo), cache)
+    service = CandleService(
+        cast(CandleRepository, repo),
+        cache,
+        cast(IAssetMetaService, _FakeAssetMeta()),
+    )
     return service, repo, cache
 
 
@@ -115,7 +156,11 @@ def _sources() -> tuple[
     repo = _FakeSourceCandleRepo()
     client = cast(RedisClient, SimpleNamespace(client=_FakeWindowRedis()))
     cache = SourceWindowCache(client)
-    service = SourceCandleService(cast(SourceCandleRepository, repo), cache)
+    service = SourceCandleService(
+        cast(SourceCandleRepository, repo),
+        cache,
+        cast(ISourceMetaService, _FakeSourceMeta()),
+    )
     return service, repo, cache
 
 
@@ -292,3 +337,78 @@ class TestRollingTheCoarserCandlesUp:
 
         assert built == 0
         assert repo.rows == {}
+
+
+class TestDrawingTheCandlesAsked:
+    def _param(self, days: float, to: datetime | None = None) -> ParamDTO:
+        """
+        Desc: Build the span a chart is asked for, that many days long.
+        Args:
+            days (float): How many days it covers.
+            to (datetime | None): When it ends, or now.
+        Returns:
+            return (ParamDTO): The span.
+        """
+        ends = to or date_utils.utc_now()
+        return ParamDTO(
+            from_datetime=ends - timedelta(days=days), to_datetime=ends
+        )
+
+    async def test_a_span_of_hours_is_drawn_five_minutes_at_a_time(
+        self,
+    ) -> None:
+        service, repo, _ = _assets()
+        hour = TimeFrame.HOURLY.opened_at(_closed())
+        await repo.bulk_upsert([_candle(1, (100, 120, 90, 110), hour)])
+        param = self._param(0.5, datetime.fromtimestamp(hour + 3_600, UTC))
+
+        result = await service.get_candle(1, param)
+
+        assert result.data.timeframe is TimeFrame.FIVE_MINUTE
+        assert [row.close for row in result.data.candles] == [110]
+        assert result.data.from_timestamp == int(
+            param.from_datetime.timestamp()
+        )
+        assert result.data.to_timestamp == int(param.to_datetime.timestamp())
+
+    async def test_a_longer_span_is_drawn_on_a_coarser_candle(self) -> None:
+        service, repo, _ = _assets()
+        hour = TimeFrame.HOURLY.opened_at(_closed())
+        await repo.bulk_upsert([_candle(1, (100, 120, 90, 110), hour)])
+
+        week = await service.get_candle(1, self._param(3))
+        months = await service.get_candle(1, self._param(30))
+        year = await service.get_candle(1, self._param(200))
+
+        assert week.data.timeframe is TimeFrame.HOURLY
+        assert months.data.timeframe is TimeFrame.FIVE_HOURLY
+        assert year.data.timeframe is TimeFrame.DAILY
+
+    async def test_only_the_asked_asset_is_drawn(self) -> None:
+        service, repo, _ = _assets()
+        hour = TimeFrame.HOURLY.opened_at(_closed())
+        await repo.bulk_upsert(
+            [
+                _candle(1, (100, 120, 90, 110), hour),
+                _candle(2, (1_900, 1_950, 1_890, 1_930), hour),
+            ]
+        )
+        param = self._param(0.5, datetime.fromtimestamp(hour + 3_600, UTC))
+
+        result = await service.get_candle(2, param)
+
+        assert [row.close for row in result.data.candles] == [1_930]
+
+    async def test_a_span_of_a_year_or_more_is_turned_away(self) -> None:
+        service, _, _ = _assets()
+
+        with pytest.raises(ValidationException):
+            await service.get_candle(1, self._param(370))
+
+    async def test_a_span_that_ends_before_it_begins_is_turned_away(
+        self,
+    ) -> None:
+        service, _, _ = _assets()
+
+        with pytest.raises(ValidationException):
+            await service.get_candle(1, self._param(-1))
