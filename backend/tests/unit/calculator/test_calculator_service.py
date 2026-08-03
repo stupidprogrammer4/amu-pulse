@@ -6,6 +6,8 @@ import pytest
 
 from src.common.errors.exceptions import NotFoundException
 from src.infra.redis.client import RedisClient
+from src.modules.chart.candle.app.services import WindowService
+from src.modules.chart.candle.infra.cache import AssetWindowCache
 from src.modules.price.assets.domain.enums import AggregationType, AssetCode
 from src.modules.price.assets.domain.models import AssetConfigModel
 from src.modules.price.calculator.app.services import CalculatorService
@@ -32,7 +34,7 @@ from src.modules.price.engine.domain.results import SourcePriceResult
 from src.modules.price.engine.interfaces import ICacheReaderService
 from src.modules.price.sources.domain.enums import SourceSwitch
 from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
-from tests.unit.calculator.test_asset_price_cache import _FakeRedis
+from tests.unit.candle.test_window_caches import _FakeWindowRedis
 
 _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
@@ -279,7 +281,7 @@ async def _service(
         return (tuple[CalculatorService, AssetPriceCache]): The service and
             the cache it prices into.
     """
-    client = cast(RedisClient, SimpleNamespace(client=_FakeRedis()))
+    client = cast(RedisClient, SimpleNamespace(client=_FakeWindowRedis()))
     prices = AssetPriceCache(client)
     premiums = BubbleCache(client)
     if bubbles:
@@ -302,6 +304,7 @@ async def _service(
         cast(ICacheReaderService, _FakeCacheReader(readings)),
         premiums,
         prices,
+        WindowService(AssetWindowCache(client)),
     )
     return service, prices
 

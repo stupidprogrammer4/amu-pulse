@@ -5,6 +5,7 @@ from typing import Awaitable, Sequence
 from dishka import AsyncContainer
 
 from src.common.utils import date_utils
+from src.modules.chart.candle.interfaces import ISourceWindowService
 from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.engine.app.helpers import (
     GlobalMarketPriceHelper,
@@ -152,6 +153,7 @@ class CacheFlusherService:
         self,
         prices: SourcePriceCache,
         source_bubbles: BubbleSourceCache,
+        windows: ISourceWindowService,
     ) -> None:
         """
         Desc: Build the service with the caches it writes to.
@@ -159,9 +161,12 @@ class CacheFlusherService:
             prices (SourcePriceCache): Where each source's reading lands.
             source_bubbles (BubbleSourceCache): Where each source's raw
                 premium lands.
+            windows (ISourceWindowService): The open candle each reading is
+                folded into.
         """
         self.prices = prices
         self.source_bubbles = source_bubbles
+        self.windows = windows
         self.irans = IranMarketPriceHelper()
         self.suppliers = SupplierMarketPriceHelper()
         self.worlds = GlobalMarketPriceHelper()
@@ -212,6 +217,7 @@ class CacheFlusherService:
 
         if readings:
             await self.prices.set_many(readings)
+            await self.windows.update_window(readings)
         if premiums:
             await self.source_bubbles.set_many(premiums)
         return sum(len(rows) for rows in readings.values())

@@ -5,6 +5,7 @@ from taskiq import ScheduledTask, ScheduleSource
 
 from src.common.errors.exceptions import NotFoundException
 from src.core import resources
+from src.modules.chart.candle.interfaces import IWindowService
 from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.calculator.app.helpers import (
     Aggregator,
@@ -146,6 +147,7 @@ class CalculatorService:
         readings: ICacheReaderService,
         bubbles: BubbleCache,
         prices: AssetPriceCache,
+        windows: IWindowService,
     ) -> None:
         """
         Desc: Build the service with what it prices out of and writes to.
@@ -161,6 +163,8 @@ class CalculatorService:
             bubbles (BubbleCache): Where the settled premiums live.
             prices (AssetPriceCache): Where the asset's price lands, and
                 where the dollar rate is read from.
+            windows (IWindowService): The open candle each price is folded
+                into.
         """
         self.assets = assets
         self.symbols = symbols
@@ -169,6 +173,7 @@ class CalculatorService:
         self.readings = readings
         self.bubbles = bubbles
         self.prices = prices
+        self.windows = windows
         self.iran = IranMarketCalculator()
         self.supplier = SupplierCalculator()
         self.world = GlobalMarketCalculator()
@@ -250,6 +255,7 @@ class CalculatorService:
         price = 0
         if result is not None:
             await self.prices.set(asset.code, result)
+            await self.windows.update_window(asset.code, result)
             price = result.price
         return price
 
@@ -323,6 +329,7 @@ class CalculatorService:
                 priced[asset.code] = result
         if priced:
             await self.prices.set_many(priced)
+            await self.windows.update_windows(priced)
         return len(priced)
 
 

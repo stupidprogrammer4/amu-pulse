@@ -8,6 +8,8 @@ from src.common.errors.exceptions import NotFoundException
 from src.core.config import Settings
 from src.infra.postgres.uow import PGUnitOfWork
 from src.infra.redis.client import RedisClient, resolve
+from src.modules.chart.candle.app.services import WindowService
+from src.modules.chart.candle.infra.cache import AssetWindowCache
 from src.modules.price.assets.app.services import (
     AssetConfigService,
     AssetService,
@@ -81,6 +83,10 @@ class _TestBubbleSourceCache(BubbleSourceCache):
     namespace = "test:calc:crawl:bubble"
 
 
+class _TestAssetWindowCache(AssetWindowCache):
+    namespace = "test:calc:assets:window"
+
+
 @pytest.fixture
 async def redis(
     integration_settings: Settings,
@@ -142,6 +148,7 @@ def _service(
         readings,
         _TestBubbleCache(redis),
         prices,
+        WindowService(_TestAssetWindowCache(redis)),
     )
     return service, prices
 
