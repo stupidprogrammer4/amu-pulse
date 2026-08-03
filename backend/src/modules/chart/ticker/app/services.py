@@ -14,11 +14,13 @@ from src.modules.chart.ticker.domain.results import (
     SourcePriceResult,
 )
 from src.modules.chart.ticker.domain.schemas import (
+    AssetMetaOutput,
     ChartMeta,
-    MetaOutput,
     PointOutput,
     SourceChartMeta,
     SourceChartOutput,
+    SourceMetaOutput,
+    SymbolMetaOutput,
 )
 from src.modules.chart.ticker.infra.repository import (
     PriceTickerRepository,
@@ -144,7 +146,7 @@ class MetaService:
         assets = await self.assets.get_by_ids(list(charted))
         return ChartMeta(
             assets=[
-                MetaOutput(
+                AssetMetaOutput(
                     id=asset.id,
                     code=asset.code,
                     title=asset.title,
@@ -174,7 +176,7 @@ class MetaService:
         symbols = await self.symbols.get_by_ids(list(lines))
         return SourceChartMeta(
             sources=[
-                MetaOutput(
+                SourceMetaOutput(
                     id=source.id,
                     code=source.code,
                     title=source.title,
@@ -183,7 +185,7 @@ class MetaService:
                 for source in sources
             ],
             symbols=[
-                MetaOutput(
+                SymbolMetaOutput(
                     id=symbol.id,
                     code=symbol.code,
                     title=symbol.title,

@@ -170,6 +170,9 @@ class TestTheAssetChartRoute:
 
         assert body["meta"]["assets"][0]["code"] == "gold18"
         assert body["meta"]["assets"][0]["primary_color"] == "#c8a44b"
+        assert body["meta"]["assets"][0]["id"] == ASSET_ID_ENCRYPTION.encode(
+            asset.id
+        )
 
     async def test_a_chart_nobody_snapshotted(
         self, client: AsyncClient, uow: PGUnitOfWork
@@ -231,6 +234,12 @@ class TestTheSourceChartRoutes:
         assert body["data"]["source_points"]["tgju"][0]["price"] == 100
         assert body["meta"]["sources"][0]["code"] == "tgju"
         assert body["meta"]["symbols"][0]["code"] == "gold18_gram"
+        assert body["meta"]["sources"][0]["id"] == SOURCE_ID_ENCRYPTION.encode(
+            source.id
+        )
+        assert body["meta"]["symbols"][0]["id"] == SYMBOL_ID_ENCRYPTION.encode(
+            symbol.id
+        )
 
     async def test_one_source_on_one_line_is_served_with_its_move(
         self, client: AsyncClient, uow: PGUnitOfWork
