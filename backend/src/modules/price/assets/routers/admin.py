@@ -11,7 +11,8 @@ from src.modules.chart.ticker.domain.schemas import (
 from src.modules.chart.ticker.interfaces import IPriceTickerService
 from src.modules.price.assets.config.dependencies import (
     AssetID,
-    AssetSwitchID,
+    AssetIDPath,
+    AssetSwitchIDPath,
 )
 from src.modules.price.assets.domain.dtos import (
     AssetConfigUpdate,
@@ -164,7 +165,7 @@ async def update_asset_config(
     response_model_exclude_defaults=True,
 )
 async def get_asset_switches(
-    asset_id: AssetID,
+    asset_id: AssetIDPath,
     service: FromDishka[IAssetSwitchService],
 ) -> AssetSwitchResponse:
     switches = await service.get_by_asset_id(asset_id)
@@ -177,7 +178,7 @@ async def get_asset_switches(
     response_model_exclude_defaults=True,
 )
 async def create_asset_switch(
-    asset_id: AssetID,
+    asset_id: AssetIDPath,
     data: AssetSwitchCreate,
     service: FromDishka[IAssetSwitchService],
 ) -> AssetSwitchResponse:
@@ -191,7 +192,7 @@ async def create_asset_switch(
     response_model_exclude_defaults=True,
 )
 async def batch_create_asset_switches(
-    asset_id: AssetID,
+    asset_id: AssetIDPath,
     data: AssetSwitchBatchCreate,
     service: FromDishka[IAssetSwitchService],
 ) -> AssetSwitchResponse:
@@ -205,7 +206,7 @@ async def batch_create_asset_switches(
     response_model_exclude_defaults=True,
 )
 async def batch_update_asset_switches(
-    asset_id: AssetID,
+    asset_id: AssetIDPath,
     data: AssetSwitchBatchUpdate,
     service: FromDishka[IAssetSwitchService],
 ) -> AssetSwitchResponse:
@@ -219,7 +220,7 @@ async def batch_update_asset_switches(
     response_model_exclude_defaults=True,
 )
 async def set_asset_switches_priority(
-    asset_id: AssetID,
+    asset_id: AssetIDPath,
     data: AssetSwitchPriorityUpdate,
     service: FromDishka[IAssetSwitchService],
 ) -> AssetSwitchResponse:
@@ -233,7 +234,7 @@ async def set_asset_switches_priority(
     response_model_exclude_defaults=True,
 )
 async def batch_remove_asset_switches(
-    asset_id: AssetID,
+    asset_id: AssetIDPath,
     data: AssetSwitchBatchDelete,
     service: FromDishka[IAssetSwitchService],
 ) -> AssetSwitchResponse:
@@ -247,8 +248,8 @@ async def batch_remove_asset_switches(
     response_model_exclude_defaults=True,
 )
 async def update_asset_switch(
-    asset_id: AssetID,
-    asset_switch_id: AssetSwitchID,
+    asset_id: AssetIDPath,
+    asset_switch_id: AssetSwitchIDPath,
     data: AssetSwitchUpdate,
     service: FromDishka[IAssetSwitchService],
 ) -> AssetSwitchResponse:
@@ -262,8 +263,8 @@ async def update_asset_switch(
     response_model_exclude_defaults=True,
 )
 async def remove_asset_switch(
-    asset_id: AssetID,
-    asset_switch_id: AssetSwitchID,
+    asset_id: AssetIDPath,
+    asset_switch_id: AssetSwitchIDPath,
     service: FromDishka[IAssetSwitchService],
 ) -> AssetSwitchResponse:
     switch = await service.remove(asset_id, asset_switch_id)
@@ -279,6 +280,18 @@ async def reprice_asset(asset_code: AssetCode) -> RepriceResponse:
     # off the request's own time: the answer is the job, not the price
     job = await reprice.kiq(asset_code)  # type: ignore[call-arg]
     return APIResponse.from_data(RepriceOut(task_id=job.task_id))
+
+
+@router.get(
+    "/price",
+    response_model=AssetPriceResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_asset_prices(
+    service: FromDishka[ICacheReaderService],
+) -> AssetPriceResponse:
+    prices = await service.get_all_prices()
+    return APIResponse.from_data(AssetPriceOut.from_objs(prices))
 
 
 @router.get(

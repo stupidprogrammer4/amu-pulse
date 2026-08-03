@@ -16,3 +16,18 @@ AssetSwitchID = Annotated[
     int,
     Depends(decode_path_id(ASSET_SWITCH_ID_ENCRYPTION, "AssetSwitch")),
 ]
+
+# the same ids, where the path names them after what they belong to
+AssetIDPath = Annotated[
+    int,
+    Depends(decode_path_id(ASSET_ID_ENCRYPTION, "Asset", "asset_id")),
+]
+
+AssetSwitchIDPath = Annotated[
+    int,
+    Depends(
+        decode_path_id(
+            ASSET_SWITCH_ID_ENCRYPTION, "AssetSwitch", "asset_switch_id"
+        )
+    ),
+]

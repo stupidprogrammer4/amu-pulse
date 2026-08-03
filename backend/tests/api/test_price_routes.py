@@ -199,3 +199,48 @@ class TestGetSourcePrices:
 
         assert response.status_code == 200
         assert response.json()["data"] == []
+
+
+@pytest.mark.usefixtures("migrated_test_db", "clean_db")
+class TestGetAllAssetPrices:
+    async def test_it_serves_every_price_the_calculator_cached(
+        self, client: AsyncClient, caches: RedisClient, uow: PGUnitOfWork
+    ) -> None:
+        gold = await _asset(uow)
+        dollar = await _asset(uow, AssetCode.USD)
+        await ApiAssetPriceCache(caches).set_many(
+            {
+                AssetCode.GOLD18: _price(gold.id, 100_500_000),
+                AssetCode.USD: _price(dollar.id, 1_905_000),
+            }
+        )
+
+        response = await client.get("/assets/price")
+        body = response.json()
+
+        assert response.status_code == 200
+        assert {row["price"] for row in body["data"]} == {
+            100_500_000,
+            1_905_000,
+        }
+
+    async def test_every_asset_id_is_served_encoded(
+        self, client: AsyncClient, caches: RedisClient, uow: PGUnitOfWork
+    ) -> None:
+        gold = await _asset(uow)
+        await ApiAssetPriceCache(caches).set(AssetCode.GOLD18, _price(gold.id))
+
+        response = await client.get("/assets/price")
+        body = response.json()
+
+        assert body["data"][0]["asset_id"] == ASSET_ID_ENCRYPTION.encode(
+            gold.id
+        )
+
+    async def test_a_board_nobody_priced(
+        self, client: AsyncClient, caches: RedisClient
+    ) -> None:
+        response = await client.get("/assets/price")
+
+        assert response.status_code == 200
+        assert response.json()["data"] == []
