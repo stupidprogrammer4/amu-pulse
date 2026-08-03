@@ -1,8 +1,11 @@
 from datetime import datetime
 
-from src.common.bases.schemas import BaseIDOutput
+from src.common.bases.schemas import BaseIDOutput, BaseOutput
 from src.modules.price.assets.config.constants import AssetIDField
-from src.modules.price.symbols.config.constants import SYMBOL_ID_ENCRYPTION
+from src.modules.price.symbols.config.constants import (
+    SYMBOL_ID_ENCRYPTION,
+    SymbolIDField,
+)
 from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
 
 
@@ -17,3 +20,10 @@ class SymbolOut(BaseIDOutput):
     description: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class SymbolMetaOut(BaseOutput):
+    id: SymbolIDField
+    code: SymbolCode
+    title: str
+    primary_color: str

@@ -1,7 +1,6 @@
 from dishka import Provider, Scope, provide
 
 from src.modules.chart.ticker.app.services import (
-    MetaService,
     PriceSnapshotService,
     PriceTickerService,
     SourcePriceSnapshotService,
@@ -12,7 +11,6 @@ from src.modules.chart.ticker.infra.repository import (
     SourcePriceTickerRepository,
 )
 from src.modules.chart.ticker.interfaces import (
-    IMetaService,
     IPriceSnapshotService,
     IPriceTickerService,
     ISourcePriceSnapshotService,
@@ -25,7 +23,6 @@ class TickerProvider(Provider):
 
     price_ticker_repo = provide(PriceTickerRepository)
     source_price_ticker_repo = provide(SourcePriceTickerRepository)
-    meta_service = provide(MetaService, provides=IMetaService)
     price_ticker_service = provide(
         PriceTickerService, provides=IPriceTickerService
     )

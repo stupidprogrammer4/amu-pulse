@@ -4,10 +4,7 @@ from fastapi import APIRouter
 from src.common.errors.exceptions import NotFoundException
 from src.core import resources
 from src.modules.chart.ticker.domain.enums import ChartType
-from src.modules.chart.ticker.domain.schemas import (
-    ChartMeta,
-    ChartOutput,
-)
+from src.modules.chart.ticker.domain.schemas import ChartOutput
 from src.modules.chart.ticker.interfaces import IPriceTickerService
 from src.modules.price.assets.config.dependencies import (
     AssetID,
@@ -28,6 +25,7 @@ from src.modules.price.assets.domain.dtos import (
 from src.modules.price.assets.domain.enums import AssetCode
 from src.modules.price.assets.domain.schemas import (
     AssetConfigOut,
+    AssetMeta,
     AssetOut,
     AssetPriceOut,
     AssetSwitchOut,
@@ -55,7 +53,7 @@ AssetWithConfigResponse = APIResponse[AssetWithConfigOut, None]
 AssetConfigResponse = APIResponse[AssetConfigOut, None]
 AssetSwitchResponse = APIResponse[AssetSwitchOut, None]
 AssetPriceResponse = APIResponse[AssetPriceOut, None]
-AssetChartResponse = APIResponse[ChartOutput, ChartMeta]
+AssetChartResponse = APIResponse[ChartOutput, AssetMeta]
 RepriceResponse = APIResponse[RepriceOut, None]
 
 

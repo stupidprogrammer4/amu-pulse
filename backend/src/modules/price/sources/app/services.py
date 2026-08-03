@@ -15,11 +15,21 @@ from src.modules.price.sources.domain.models import (
     SourceConfigModel,
     SourceModel,
 )
+from src.modules.price.sources.domain.schemas import (
+    SourceMeta,
+    SourceMetaOut,
+)
 from src.modules.price.sources.infra.repository import (
     SourceConfigRepository,
     SourceRepository,
 )
-from src.modules.price.sources.interfaces import ISourceConfigService
+from src.modules.price.sources.interfaces import (
+    ISourceConfigService,
+    ISourceService,
+)
+from src.modules.price.symbols.domain.models import SymbolModel
+from src.modules.price.symbols.domain.schemas import SymbolMetaOut
+from src.modules.price.symbols.interfaces import ISymbolService
 
 
 class SourceConfigService(BaseService[SourceConfigModel]):
@@ -284,3 +294,89 @@ class SourceErrorService(BaseIDService[SourceModel]):
             [SourceModel(id=id, error=error) for id, error in rows.items()]
         )
         return sources
+
+
+class SourceMetaService:
+    def __init__(
+        self,
+        sources: ISourceService,
+        symbols: ISymbolService,
+    ) -> None:
+        """
+        Desc: Build the service with what it names a source and a line by.
+        Args:
+            sources (ISourceService): Where a source's name and colour
+                live.
+            symbols (ISymbolService): Where a line's name and colour live.
+        """
+        self.sources = sources
+        self.symbols = symbols
+
+    def _meta(
+        self,
+        sources: Sequence[SourceModel],
+        symbols: Sequence[SymbolModel],
+    ) -> SourceMeta:
+        """
+        Desc: Name the sources and lines already read.
+        Args:
+            sources (Sequence[SourceModel]): The sources to name.
+            symbols (Sequence[SymbolModel]): The lines to name.
+        Returns:
+            return (SourceMeta): One entry per source and per line.
+        """
+        return SourceMeta(
+            sources=SourceMetaOut.from_objs(sources),
+            symbols=SymbolMetaOut.from_objs(symbols),
+        )
+
+    async def build(
+        self,
+        source_ids: Sequence[int],
+        symbol_ids: Sequence[int],
+    ) -> SourceMeta:
+        """
+        Desc: Name the sources and lines the given ids belong to.
+        Args:
+            source_ids (Sequence[int]): IDs of the sources to name.
+            symbol_ids (Sequence[int]): IDs of the lines to name.
+        Returns:
+            return (SourceMeta): One entry per source and per line.
+        """
+        sources = await self.sources.get_by_ids(list(source_ids))
+        symbols = await self.symbols.get_by_ids(list(symbol_ids))
+        return self._meta(sources, symbols)
+
+    async def build_by_sources(
+        self,
+        sources: Sequence[SourceModel],
+        symbol_ids: Sequence[int],
+    ) -> SourceMeta:
+        """
+        Desc: Name the lines the given ids belong to, next to sources the
+        caller already read.
+        Args:
+            sources (Sequence[SourceModel]): The sources to name.
+            symbol_ids (Sequence[int]): IDs of the lines to name.
+        Returns:
+            return (SourceMeta): One entry per source and per line.
+        """
+        symbols = await self.symbols.get_by_ids(list(symbol_ids))
+        return self._meta(sources, symbols)
+
+    async def build_by_symbols(
+        self,
+        source_ids: Sequence[int],
+        symbols: Sequence[SymbolModel],
+    ) -> SourceMeta:
+        """
+        Desc: Name the sources the given ids belong to, next to lines the
+        caller already read.
+        Args:
+            source_ids (Sequence[int]): IDs of the sources to name.
+            symbols (Sequence[SymbolModel]): The lines to name.
+        Returns:
+            return (SourceMeta): One entry per source and per line.
+        """
+        sources = await self.sources.get_by_ids(list(source_ids))
+        return self._meta(sources, symbols)

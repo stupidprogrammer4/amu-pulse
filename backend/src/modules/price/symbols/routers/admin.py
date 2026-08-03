@@ -2,14 +2,12 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
 from src.modules.chart.ticker.domain.enums import ChartType
-from src.modules.chart.ticker.domain.schemas import (
-    SourceChartMeta,
-    SourceChartOutput,
-)
+from src.modules.chart.ticker.domain.schemas import SourceChartOutput
 from src.modules.chart.ticker.interfaces import (
     ISourcePriceTickerService,
 )
 from src.modules.price.assets.config.dependencies import AssetID
+from src.modules.price.sources.domain.schemas import SourceMeta
 from src.modules.price.symbols.config.dependencies import SymbolID
 from src.modules.price.symbols.domain.dtos import SymbolCreate, SymbolUpdate
 from src.modules.price.symbols.domain.schemas import SymbolOut
@@ -24,7 +22,7 @@ router = APIRouter(
 )
 
 SymbolResponse = APIResponse[SymbolOut, None]
-SymbolChartResponse = APIResponse[SourceChartOutput, SourceChartMeta]
+SymbolChartResponse = APIResponse[SourceChartOutput, SourceMeta]
 
 
 @router.post(

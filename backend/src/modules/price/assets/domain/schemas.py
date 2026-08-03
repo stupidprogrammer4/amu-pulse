@@ -1,6 +1,10 @@
 from datetime import datetime
 
-from src.common.bases.schemas import BaseIDOutput, BaseOutput
+from src.common.bases.schemas import (
+    BaseIDOutput,
+    BaseMeta,
+    BaseOutput,
+)
 from src.modules.price.assets.config.constants import (
     ASSET_ID_ENCRYPTION,
     ASSET_SWITCH_ID_ENCRYPTION,
@@ -58,3 +62,14 @@ class AssetPriceOut(BaseOutput):
 
 class RepriceOut(BaseOutput):
     task_id: str
+
+
+class AssetMetaOut(BaseOutput):
+    id: AssetIDField
+    code: AssetCode
+    title: str
+    primary_color: str
+
+
+class AssetMeta(BaseMeta):
+    assets: list[AssetMetaOut]

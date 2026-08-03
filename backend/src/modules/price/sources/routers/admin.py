@@ -5,10 +5,7 @@ from fastapi import APIRouter, Query
 
 from src.common.bases.schemas import BaseMeta, PagerMeta
 from src.modules.chart.ticker.domain.enums import ChartType
-from src.modules.chart.ticker.domain.schemas import (
-    ChartOutput,
-    SourceChartMeta,
-)
+from src.modules.chart.ticker.domain.schemas import ChartOutput
 from src.modules.chart.ticker.interfaces import (
     ISourcePriceTickerService,
 )
@@ -26,6 +23,7 @@ from src.modules.price.sources.domain.dtos import (
 from src.modules.price.sources.domain.enums import SourceSwitch
 from src.modules.price.sources.domain.schemas import (
     SourceConfigOut,
+    SourceMeta,
     SourceOut,
     SourcePriceOut,
     SourceWithConfigOut,
@@ -50,7 +48,7 @@ PagedSourceResponse = APIResponse[SourceOut, BaseMeta]
 SourceWithConfigResponse = APIResponse[SourceWithConfigOut, None]
 SourceConfigResponse = APIResponse[SourceConfigOut, None]
 SymbolPricesResponse = APIResponse[SymbolPricesOut, None]
-SourceChartResponse = APIResponse[ChartOutput, SourceChartMeta]
+SourceChartResponse = APIResponse[ChartOutput, SourceMeta]
 
 
 @router.post(

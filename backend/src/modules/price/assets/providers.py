@@ -2,6 +2,7 @@ from dishka import Provider, Scope, provide
 
 from src.modules.price.assets.app.services import (
     AssetConfigService,
+    AssetMetaService,
     AssetService,
     AssetSwitchService,
 )
@@ -12,6 +13,7 @@ from src.modules.price.assets.infra.repository import (
 )
 from src.modules.price.assets.interfaces import (
     IAssetConfigService,
+    IAssetMetaService,
     IAssetService,
     IAssetSwitchService,
 )
@@ -30,3 +32,4 @@ class AssetProvider(Provider):
         AssetSwitchService, provides=IAssetSwitchService
     )
     asset_service = provide(AssetService, provides=IAssetService)
+    asset_meta_service = provide(AssetMetaService, provides=IAssetMetaService)

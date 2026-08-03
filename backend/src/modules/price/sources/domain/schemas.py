@@ -2,7 +2,11 @@ from datetime import datetime
 
 from pydantic import Field, computed_field
 
-from src.common.bases.schemas import BaseIDOutput, BaseOutput
+from src.common.bases.schemas import (
+    BaseIDOutput,
+    BaseMeta,
+    BaseOutput,
+)
 from src.modules.price.sources.config.constants import (
     SOURCE_ID_ENCRYPTION,
     SourceIDField,
@@ -14,6 +18,7 @@ from src.modules.price.symbols.domain.enums import (
     CurrencyType,
     SymbolCode,
 )
+from src.modules.price.symbols.domain.schemas import SymbolMetaOut
 
 
 class SourceConfigOut(BaseOutput):
@@ -73,3 +78,15 @@ class SourcePriceOut(BaseOutput):
 class SymbolPricesOut(BaseOutput):
     symbol: SymbolCode
     prices: list[SourcePriceOut]
+
+
+class SourceMetaOut(BaseOutput):
+    id: SourceIDField
+    code: SourceCode
+    title: str
+    primary_color: str
+
+
+class SourceMeta(BaseMeta):
+    sources: list[SourceMetaOut]
+    symbols: list[SymbolMetaOut]

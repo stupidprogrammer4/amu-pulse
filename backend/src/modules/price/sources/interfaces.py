@@ -13,6 +13,8 @@ from src.modules.price.sources.domain.models import (
     SourceConfigModel,
     SourceModel,
 )
+from src.modules.price.sources.domain.schemas import SourceMeta
+from src.modules.price.symbols.domain.models import SymbolModel
 
 
 class ISourceConfigService(Protocol):
@@ -65,3 +67,23 @@ class ISourceErrorService(Protocol):
         self,
         errors: Mapping[int, SourceErrorInfo | None],
     ) -> Sequence[SourceModel]: ...
+
+
+class ISourceMetaService(Protocol):
+    async def build(
+        self,
+        source_ids: Sequence[int],
+        symbol_ids: Sequence[int],
+    ) -> SourceMeta: ...
+
+    async def build_by_sources(
+        self,
+        sources: Sequence[SourceModel],
+        symbol_ids: Sequence[int],
+    ) -> SourceMeta: ...
+
+    async def build_by_symbols(
+        self,
+        source_ids: Sequence[int],
+        symbols: Sequence[SymbolModel],
+    ) -> SourceMeta: ...

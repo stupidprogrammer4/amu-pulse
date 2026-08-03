@@ -1,26 +1,26 @@
 from dataclasses import dataclass
 
 from src.modules.chart.ticker.domain.schemas import (
-    ChartMeta,
     ChartOutput,
-    SourceChartMeta,
     SourceChartOutput,
 )
+from src.modules.price.assets.domain.schemas import AssetMeta
+from src.modules.price.sources.domain.schemas import SourceMeta
 
 
 @dataclass
 class PriceTickerResult:
     data: ChartOutput
-    meta: ChartMeta
+    meta: AssetMeta
 
 
 @dataclass
 class SourcePriceResult:
     data: SourceChartOutput
-    meta: SourceChartMeta
+    meta: SourceMeta
 
 
 @dataclass
 class SingleSourcePriceResult:
     data: ChartOutput
-    meta: SourceChartMeta
+    meta: SourceMeta

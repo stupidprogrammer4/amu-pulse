@@ -3,7 +3,6 @@ import pytest
 from src.common.utils import date_utils
 from src.infra.postgres.uow import PGUnitOfWork
 from src.modules.chart.ticker.app.services import (
-    MetaService,
     PriceTickerService,
     SourcePriceTickerService,
 )
@@ -18,6 +17,7 @@ from src.modules.chart.ticker.infra.repository import (
 )
 from src.modules.price.assets.app.services import (
     AssetConfigService,
+    AssetMetaService,
     AssetService,
 )
 from src.modules.price.assets.config.constants import ASSET_ID_ENCRYPTION
@@ -30,6 +30,7 @@ from src.modules.price.assets.infra.repository import (
 )
 from src.modules.price.sources.app.services import (
     SourceConfigService,
+    SourceMetaService,
     SourceService,
 )
 from src.modules.price.sources.domain.dtos import SourceCreate
@@ -59,19 +60,32 @@ def _now() -> int:
     return int(date_utils.utc_now().timestamp())
 
 
-def _meta(uow: PGUnitOfWork) -> MetaService:
+def _asset_meta(uow: PGUnitOfWork) -> AssetMetaService:
     """
-    Desc: Build the meta service over real services.
+    Desc: Build the asset meta service over real services.
     Args:
         uow (PGUnitOfWork): Unit of work to read through.
     Returns:
-        return (MetaService): The service that names a chart's lines.
+        return (AssetMetaService): The service that names an asset.
     """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
-    return MetaService(
-        AssetService(AssetRepository(uow), configs),
+    return AssetMetaService(AssetService(AssetRepository(uow), configs))
+
+
+def _source_meta(uow: PGUnitOfWork) -> SourceMetaService:
+    """
+    Desc: Build the source meta service over real services.
+    Args:
+        uow (PGUnitOfWork): Unit of work to read through.
+    Returns:
+        return (SourceMetaService): The service that names a source and a
+            line.
+    """
+    configs = SourceConfigService(SourceConfigRepository(uow))
+    return SourceMetaService(
+        SourceService(SourceRepository(uow), configs),
         SymbolService(SymbolRepository(uow)),
     )
 
@@ -84,7 +98,7 @@ def _prices(uow: PGUnitOfWork) -> PriceTickerService:
     Returns:
         return (PriceTickerService): The service.
     """
-    return PriceTickerService(PriceTickerRepository(uow), _meta(uow))
+    return PriceTickerService(PriceTickerRepository(uow), _asset_meta(uow))
 
 
 def _sources(uow: PGUnitOfWork) -> SourcePriceTickerService:
@@ -99,7 +113,7 @@ def _sources(uow: PGUnitOfWork) -> SourcePriceTickerService:
     return SourcePriceTickerService(
         SourcePriceTickerRepository(uow),
         SourceService(SourceRepository(uow), configs),
-        _meta(uow),
+        _source_meta(uow),
     )
 
 

@@ -20,12 +20,19 @@ from src.modules.price.assets.domain.models import (
     AssetModel,
     AssetSwitchModel,
 )
+from src.modules.price.assets.domain.schemas import (
+    AssetMeta,
+    AssetMetaOut,
+)
 from src.modules.price.assets.infra.repository import (
     AssetConfigRepository,
     AssetRepository,
     AssetSwitchRepository,
 )
-from src.modules.price.assets.interfaces import IAssetConfigService
+from src.modules.price.assets.interfaces import (
+    IAssetConfigService,
+    IAssetService,
+)
 from src.modules.price.calculator.interfaces import ISchedulerService
 from src.modules.price.sources.domain.enums import SourceSwitch
 
@@ -450,3 +457,24 @@ class AssetService(BaseIDService[AssetModel]):
         asset = await self.repo.delete_by_id(id)
         asset = self._check_for_id_existence(id, asset)
         return asset
+
+
+class AssetMetaService:
+    def __init__(self, assets: IAssetService) -> None:
+        """
+        Desc: Build the service with what it names an asset by.
+        Args:
+            assets (IAssetService): Where an asset's name and colour live.
+        """
+        self.assets = assets
+
+    async def build(self, asset_ids: Sequence[int]) -> AssetMeta:
+        """
+        Desc: Name the assets the given ids belong to.
+        Args:
+            asset_ids (Sequence[int]): IDs of the assets to name.
+        Returns:
+            return (AssetMeta): One entry per asset that exists.
+        """
+        assets = await self.assets.get_by_ids(list(asset_ids))
+        return AssetMeta(assets=AssetMetaOut.from_objs(assets))

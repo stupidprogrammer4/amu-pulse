@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import Sequence
 
 from src.common.utils import date_utils
 from src.modules.chart.ticker.app.helpers import ChartBuilder
@@ -14,20 +13,14 @@ from src.modules.chart.ticker.domain.results import (
     SourcePriceResult,
 )
 from src.modules.chart.ticker.domain.schemas import (
-    AssetMetaOutput,
-    ChartMeta,
     PointOutput,
-    SourceChartMeta,
     SourceChartOutput,
-    SourceMetaOutput,
-    SymbolMetaOutput,
 )
 from src.modules.chart.ticker.infra.repository import (
     PriceTickerRepository,
     SourcePriceTickerRepository,
 )
-from src.modules.chart.ticker.interfaces import IMetaService
-from src.modules.price.assets.interfaces import IAssetService
+from src.modules.price.assets.interfaces import IAssetMetaService
 from src.modules.price.calculator.interfaces import (
     ICacheReaderService as IPriceCacheReaderService,
 )
@@ -35,9 +28,10 @@ from src.modules.price.engine.interfaces import (
     ICacheReaderService as IReadingCacheReaderService,
 )
 from src.modules.price.sources.domain.enums import SourceCode
-from src.modules.price.sources.domain.models import SourceModel
-from src.modules.price.sources.interfaces import ISourceService
-from src.modules.price.symbols.interfaces import ISymbolService
+from src.modules.price.sources.interfaces import (
+    ISourceMetaService,
+    ISourceService,
+)
 
 
 class PriceSnapshotService:
@@ -116,98 +110,18 @@ class SourcePriceSnapshotService:
         return bool(rows)
 
 
-class MetaService:
-    def __init__(
-        self,
-        assets: IAssetService,
-        symbols: ISymbolService,
-    ) -> None:
-        """
-        Desc: Build the service with what it names the charted lines by.
-        Args:
-            assets (IAssetService): Where an asset's name and colour live.
-            symbols (ISymbolService): Where a line's name and colour live.
-        """
-        self.assets = assets
-        self.symbols = symbols
-
-    async def build_asset(
-        self,
-        points: Sequence[PriceTickerModel],
-    ) -> ChartMeta:
-        """
-        Desc: Name the assets a set of points was drawn from.
-        Args:
-            points (Sequence[PriceTickerModel]): The points being charted.
-        Returns:
-            return (ChartMeta): One entry per asset the points belong to.
-        """
-        charted = {point.asset_id for point in points}
-        assets = await self.assets.get_by_ids(list(charted))
-        return ChartMeta(
-            assets=[
-                AssetMetaOutput(
-                    id=asset.id,
-                    code=asset.code,
-                    title=asset.title,
-                    primary_color=asset.primary_color,
-                )
-                for asset in assets
-            ]
-        )
-
-    async def build_source(
-        self,
-        points: Sequence[SourcePriceTickerModel],
-        sources: Sequence[SourceModel],
-    ) -> SourceChartMeta:
-        """
-        Desc: Name the sources and lines a set of points was drawn from.
-        Args:
-            points (Sequence[SourcePriceTickerModel]): The points being
-                charted.
-            sources (Sequence[SourceModel]): The sources already read.
-            symbols.
-        Returns:
-            return (SourceChartMeta): One entry per source and per line
-                the points belong to.
-        """
-        lines = {point.symbol_id for point in points}
-        symbols = await self.symbols.get_by_ids(list(lines))
-        return SourceChartMeta(
-            sources=[
-                SourceMetaOutput(
-                    id=source.id,
-                    code=source.code,
-                    title=source.title,
-                    primary_color=source.primary_color,
-                )
-                for source in sources
-            ],
-            symbols=[
-                SymbolMetaOutput(
-                    id=symbol.id,
-                    code=symbol.code,
-                    title=symbol.title,
-                    primary_color=symbol.primary_color,
-                )
-                for symbol in symbols
-            ],
-        )
-
-
 class PriceTickerService:
     def __init__(
         self,
         repo: PriceTickerRepository,
-        meta: IMetaService,
+        meta: IAssetMetaService,
     ) -> None:
         """
         Desc: Build the service with the points it draws and what names
         them.
         Args:
             repo (PriceTickerRepository): The price ticker repository.
-            meta (IMetaService): What the charted asset is named by.
+            meta (IAssetMetaService): What the charted asset is named by.
         """
         self.repo = repo
         self.meta = meta
@@ -229,7 +143,7 @@ class PriceTickerService:
         now = int(date_utils.utc_now().timestamp())
         rows = await self.repo.get_chart(asset_id, type, now)
         data = self.builder.build(type, rows, now)
-        meta = await self.meta.build_asset(rows)
+        meta = await self.meta.build(list({row.asset_id for row in rows}))
         return PriceTickerResult(data=data, meta=meta)
 
 
@@ -238,7 +152,7 @@ class SourcePriceTickerService:
         self,
         repo: SourcePriceTickerRepository,
         sources: ISourceService,
-        meta: IMetaService,
+        meta: ISourceMetaService,
     ) -> None:
         """
         Desc: Build the service with the points it draws and what names
@@ -247,8 +161,8 @@ class SourcePriceTickerService:
             repo (SourcePriceTickerRepository): The source ticker
                 repository.
             sources (ISourceService): Which code each source carries.
-            meta (IMetaService): What the charted source and line are
-                named by.
+            meta (ISourceMetaService): What the charted source and line
+                are named by.
         """
         self.repo = repo
         self.sources = sources
@@ -289,7 +203,9 @@ class SourcePriceTickerService:
             to_timestamp=now,
             source_points=quoted,
         )
-        meta = await self.meta.build_source(rows, sources)
+        meta = await self.meta.build_by_sources(
+            sources, list({row.symbol_id for row in rows})
+        )
         return SourcePriceResult(data=data, meta=meta)
 
     async def get_source_chart_by_symbol(
@@ -310,8 +226,9 @@ class SourcePriceTickerService:
         """
         now = int(date_utils.utc_now().timestamp())
         rows = await self.repo.get_chart(source_id, symbol_id, type, now)
-        quoting = [source_id] if rows else []
-        sources = await self.sources.get_by_ids(quoting)
+        charted = [source_id] if rows else []
         data = self.builder.build(type, rows, now)
-        meta = await self.meta.build_source(rows, sources)
+        meta = await self.meta.build(
+            charted, list({row.symbol_id for row in rows})
+        )
         return SingleSourcePriceResult(data=data, meta=meta)

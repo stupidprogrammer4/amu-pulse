@@ -17,6 +17,7 @@ from src.modules.price.assets.domain.models import (
     AssetModel,
     AssetSwitchModel,
 )
+from src.modules.price.assets.domain.schemas import AssetMeta
 
 
 class IAssetConfigService(Protocol):
@@ -97,3 +98,7 @@ class IAssetService(Protocol):
     async def get_all_with_config(self) -> Sequence[AssetModel]: ...
 
     async def remove(self, id: int) -> AssetModel: ...
+
+
+class IAssetMetaService(Protocol):
+    async def build(self, asset_ids: Sequence[int]) -> AssetMeta: ...

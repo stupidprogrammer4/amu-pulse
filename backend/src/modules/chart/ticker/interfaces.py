@@ -1,20 +1,11 @@
-from typing import Protocol, Sequence
+from typing import Protocol
 
 from src.modules.chart.ticker.domain.enums import ChartType
-from src.modules.chart.ticker.domain.models import (
-    PriceTickerModel,
-    SourcePriceTickerModel,
-)
 from src.modules.chart.ticker.domain.results import (
     PriceTickerResult,
     SingleSourcePriceResult,
     SourcePriceResult,
 )
-from src.modules.chart.ticker.domain.schemas import (
-    ChartMeta,
-    SourceChartMeta,
-)
-from src.modules.price.sources.domain.models import SourceModel
 
 
 class IPriceTickerService(Protocol):
@@ -39,15 +30,3 @@ class IPriceSnapshotService(Protocol):
 
 class ISourcePriceSnapshotService(Protocol):
     async def snapshot_all(self) -> bool: ...
-
-
-class IMetaService(Protocol):
-    async def build_source(
-        self,
-        points: Sequence[SourcePriceTickerModel],
-        sources: Sequence[SourceModel],
-    ) -> SourceChartMeta: ...
-
-    async def build_asset(
-        self, points: Sequence[PriceTickerModel]
-    ) -> ChartMeta: ...
