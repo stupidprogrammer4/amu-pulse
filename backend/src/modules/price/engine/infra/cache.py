@@ -50,6 +50,8 @@ class SourcePriceCache:
         self,
         codes: Sequence[SymbolCode],
     ) -> dict[SymbolCode, list[SourcePriceResult]]:
+        if not codes:
+            return {}
         fields = [code.value for code in codes]
         raws = await resolve(self.redis.client.hmget(self.namespace, fields))
         found = {

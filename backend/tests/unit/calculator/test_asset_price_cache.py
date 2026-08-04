@@ -32,6 +32,8 @@ class _FakeRedis:
         return self.store.get(name, {}).get(key)
 
     async def hmget(self, name: str, keys: Sequence[str]) -> list[str | None]:
+        if not keys:
+            raise ValueError("HMGET requires at least one field")
         hash_ = self.store.get(name, {})
         return [hash_.get(key) for key in keys]
 

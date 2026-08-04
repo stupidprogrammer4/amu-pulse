@@ -132,6 +132,13 @@ class TestSetMany:
 
 
 class TestGetManyAndAll:
+    async def test_get_many_with_no_symbols_skips_redis(self) -> None:
+        cache, _ = _cache()
+
+        found = await cache.get_many([])
+
+        assert found == {}
+
     async def test_get_many_skips_the_misses(self) -> None:
         cache, _ = _cache()
         await cache.set(SymbolCode.GOLD18_GRAM, [_reading(1, 1)])
