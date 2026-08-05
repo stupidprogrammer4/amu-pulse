@@ -6,6 +6,9 @@ from src.modules.chart.ticker.domain.schemas import SourceChartOutput
 from src.modules.chart.ticker.interfaces import (
     ISourcePriceTickerService,
 )
+from src.modules.identity.auth.config.dependencies import (
+    admin_required,
+)
 from src.modules.price.assets.config.dependencies import AssetID
 from src.modules.price.sources.domain.schemas import SourceMeta
 from src.modules.price.symbols.config.dependencies import SymbolID
@@ -14,11 +17,13 @@ from src.modules.price.symbols.domain.schemas import SymbolOut
 from src.modules.price.symbols.interfaces import ISymbolService
 from src.web.response import APIResponse
 
-# open until the auth module lands and brings the guard with it
+# every route here is an admin panel route; the guard sits on the
+# router so no handler can be added without it
 router = APIRouter(
     prefix="/symbols",
     tags=["Symbols"],
     route_class=DishkaRoute,
+    dependencies=[admin_required],
 )
 
 SymbolResponse = APIResponse[SymbolOut, None]

@@ -9,17 +9,22 @@ from src.modules.chart.candle.interfaces import (
     ICandleService,
     ISourceCandleService,
 )
+from src.modules.identity.auth.config.dependencies import (
+    admin_required,
+)
 from src.modules.price.assets.config.dependencies import AssetID
 from src.modules.price.assets.domain.schemas import AssetMeta
 from src.modules.price.sources.config.dependencies import SourceID
 from src.modules.price.sources.domain.schemas import SourceMeta
 from src.web.response import APIResponse
 
-# open until the auth module lands and brings the guard with it
+# every route here is an admin panel route; the guard sits on the
+# router so no handler can be added without it
 router = APIRouter(
     prefix="/candles",
     tags=["Candles"],
     route_class=DishkaRoute,
+    dependencies=[admin_required],
 )
 
 CandleChartResponse = APIResponse[CandleChartOut, AssetMeta]

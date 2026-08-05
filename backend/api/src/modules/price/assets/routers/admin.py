@@ -6,6 +6,9 @@ from src.core import resources
 from src.modules.chart.ticker.domain.enums import ChartType
 from src.modules.chart.ticker.domain.schemas import ChartOutput
 from src.modules.chart.ticker.interfaces import IPriceTickerService
+from src.modules.identity.auth.config.dependencies import (
+    admin_required,
+)
 from src.modules.price.assets.config.dependencies import (
     AssetID,
     AssetIDPath,
@@ -41,11 +44,13 @@ from src.modules.price.calculator.interfaces import ICacheReaderService
 from src.modules.price.calculator.tasks.price import reprice_asset as reprice
 from src.web.response import APIResponse
 
-# open until the auth module lands and brings the guard with it
+# every route here is an admin panel route; the guard sits on the
+# router so no handler can be added without it
 router = APIRouter(
     prefix="/assets",
     tags=["Assets"],
     route_class=DishkaRoute,
+    dependencies=[admin_required],
 )
 
 AssetResponse = APIResponse[AssetOut, None]

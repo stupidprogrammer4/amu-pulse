@@ -171,6 +171,18 @@ services:
       redis:
         condition: service_healthy
 
+  # `docker compose run --rm scripts <name>` — run with no name to list them.
+  # A tty is what the password prompt needs, and `run` gives one.
+  scripts:
+    <<: *api
+    profiles: ["tools"]
+    restart: "no"
+    entrypoint: ["fastamu", "scripts"]
+    command: []
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     <<: *api
     restart: unless-stopped

@@ -41,6 +41,9 @@ dependencies = [
     "python-dotenv==1.2.1",
     "email-validator==2.3.0",
     "python-multipart==0.0.20",
+    "bcrypt==5.0.0",
+    "cryptography==46.0.3",
+    "PyJWT==2.10.1",
     "sentry-sdk==2.46.0",
     "jalali_core==1.0.0",
     "jdatetime==5.2.0",
@@ -74,7 +77,7 @@ dev = [
 fastamu = "src.manager:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src", "scripts"]
 
 # pytest configuration lives in pytest.ini (single source of truth — pytest.ini
 # takes precedence over pyproject, so do not re-add [tool.pytest.ini_options]).

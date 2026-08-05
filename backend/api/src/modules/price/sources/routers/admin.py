@@ -9,6 +9,9 @@ from src.modules.chart.ticker.domain.schemas import ChartOutput
 from src.modules.chart.ticker.interfaces import (
     ISourcePriceTickerService,
 )
+from src.modules.identity.auth.config.dependencies import (
+    admin_required,
+)
 from src.modules.price.engine.interfaces import ICacheReaderService
 from src.modules.price.sources.config.dependencies import (
     SourceID,
@@ -36,11 +39,13 @@ from src.modules.price.sources.interfaces import (
 from src.modules.price.symbols.config.dependencies import SymbolIDPath
 from src.web.response import APIResponse
 
-# open until the auth module lands and brings the guard with it
+# every route here is an admin panel route; the guard sits on the
+# router so no handler can be added without it
 router = APIRouter(
     prefix="/sources",
     tags=["Sources"],
     route_class=DishkaRoute,
+    dependencies=[admin_required],
 )
 
 SourceResponse = APIResponse[SourceOut, None]

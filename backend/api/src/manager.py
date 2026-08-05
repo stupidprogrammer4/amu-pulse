@@ -4,9 +4,14 @@ from pathlib import Path
 
 import typer
 
+from scripts.cli import app as scripts_app
 from src.common.utils.string_utils import pluralize
 
 app = typer.Typer(help="goldis project CLI", no_args_is_help=True)
+
+# the operational scripts hang off the one entry point pip already installs,
+# so a container runs them as `fastamu scripts <name>` with nothing to add
+app.add_typer(scripts_app, name="scripts")
 
 MODULES_DIR = Path(__file__).resolve().parent / "modules"
 
