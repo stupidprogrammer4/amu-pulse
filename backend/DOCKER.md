@@ -18,13 +18,13 @@ From `ai/`:
 - `ai-api`: Uvicorn on port `8100`
 - `ai-worker`: Taskiq workers for the ai app's own queue
 
-Backing services: `postgres`, `redis`, `elasticsearch`, and `ollama`.
+Backing services: `postgres`, `postgres-ai`, `redis`, `elasticsearch`,
+and `ollama`.
 
-One PostgreSQL instance holds both databases — `core_pulse_db` for `api` and
-`ai_pulse_db` for `ai`. The image is `pgvector/pgvector` because the ai app
-stores embeddings; `docker/postgres-init.sql` creates the second database and
-its `vector` extension on first boot. The two apps never read each other's
-database.
+Each app has its own PostgreSQL instance: `postgres` holds `core_pulse_db`
+for `api`, and `postgres-ai` holds `ai_pulse_db` for `ai`. The ai one runs the
+`pgvector` image because that app stores embeddings, and ai's first migration
+enables the `vector` extension. Neither app can reach the other's database.
 
 ## Configuration
 
@@ -71,17 +71,19 @@ The models live in the `ollama-data` volume, so this is a one-time cost.
 
 ## Migrations
 
-Only `api` has migrations today; the ai app has no schema of its own yet.
+Both apps have their own Alembic chain — `migrate` for `api` and
+`ai-migrate` for `ai`. Neither shares revisions with the other.
 
 Migrations are explicit and never run as a side effect of starting the API. The
 recommended deployment flow is:
 
 ```bash
-docker compose up -d postgres redis elasticsearch
+docker compose up -d postgres postgres-ai redis elasticsearch
 docker compose run --rm migrate alembic current
 docker compose run --rm migrate alembic heads
 docker compose run --rm migrate
 docker compose run --rm seed
+docker compose run --rm ai-migrate
 docker compose up --build -d
 ```
 

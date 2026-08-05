@@ -22,7 +22,7 @@ x-ai: &ai
 
 services:
   postgres:
-    image: pgvector/pgvector:0.8.6-pg17
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: core_pulse_db
@@ -32,9 +32,25 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/10-ai.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d core_pulse_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-ai:
+    image: pgvector/pgvector:0.8.6-pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_pulse_db
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${POSTGRES_AI_PORT:-5433}:5432"
+    volumes:
+      - postgres-ai-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_pulse_db"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -177,7 +193,7 @@ services:
     restart: "no"
     command: ["alembic", "upgrade", "head"]
     depends_on:
-      postgres:
+      postgres-ai:
         condition: service_healthy
 
   ai-api:
@@ -208,7 +224,7 @@ services:
       start_period: 15s
       retries: 3
     depends_on:
-      postgres:
+      postgres-ai:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -227,7 +243,7 @@ services:
         "${AI_TASKIQ_WORKERS:-2}",
       ]
     depends_on:
-      postgres:
+      postgres-ai:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -236,6 +252,7 @@ services:
 
 volumes:
   postgres-data:
+  postgres-ai-data:
   redis-data:
   elasticsearch-data:
   media-data:
