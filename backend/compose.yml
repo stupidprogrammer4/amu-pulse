@@ -10,9 +10,19 @@ x-core: &core
     - ./core/config.docker.yml:/app/config.yml:ro
     - media-data:/app/media
 
+x-ai: &ai
+  image: amu-pulse-ai:local
+  build:
+    context: .
+    dockerfile: ai/Dockerfile
+  init: true
+  volumes:
+    - ./ai/config.docker.yml:/app/config.yml:ro
+    - ai-artifacts:/app/artifacts
+
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:0.8.6-pg17
     restart: unless-stopped
     environment:
       POSTGRES_DB: core_pulse_db
@@ -22,6 +32,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/10-ai.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d core_pulse_db"]
       interval: 5s
@@ -146,8 +157,78 @@ services:
       redis:
         condition: service_healthy
 
+  ollama:
+    image: ollama/ollama:0.32.5
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  ai-api:
+    <<: *ai
+    restart: unless-stopped
+    command:
+      [
+        "uvicorn",
+        "src.api.app:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8100",
+      ]
+    ports:
+      - "${AI_API_PORT:-8100}:8100"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen(
+          'http://127.0.0.1:8100/system/health', timeout=3)
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  ai-worker:
+    <<: *ai
+    restart: unless-stopped
+    command:
+      [
+        "taskiq",
+        "worker",
+        "src.workers.broker:broker",
+        "--workers",
+        "${AI_TASKIQ_WORKERS:-2}",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   redis-data:
   elasticsearch-data:
   media-data:
+  ollama-data:
+  ai-artifacts:

@@ -1,0 +1,32 @@
+fastapi:
+  title: "AMU Pulse AI"
+  description: >-
+    Retrieval, feature, and signal services over the AMU Pulse market data,
+    plus the training and evaluation harness behind them.
+  version: "0.1.0"
+
+postgresql:
+  test_dsn: >-
+    postgresql+asyncpg://postgres:secure_pwd@0.0.0.0:5432/ai_pulse_test_db
+  dsn: "postgresql+asyncpg://postgres:secure_pwd@0.0.0.0:5432/ai_pulse_db"
+  pool_timeout: 30
+  pool_recycle: 1800
+  pool_size: 10
+  max_overflow: 5
+
+redis:
+  url: "redis://0.0.0.0:6379/1"
+  max_connections: 10
+  socket_timeout: 5.0
+  socket_connect_timeout: 5.0
+  health_check_interval: 30
+
+taskiq:
+  redis_url: "redis://0.0.0.0:6379/1"
+  max_connection_pool_size: 25
+
+ollama:
+  base_url: "http://0.0.0.0:11434"
+  chat_model: "llama3.1:8b"
+  embedding_model: "nomic-embed-text"
+  timeout: 120.0
