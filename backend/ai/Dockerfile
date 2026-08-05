@@ -34,6 +34,8 @@ RUN addgroup --system --gid 10001 app \
     && chown -R app:app /app
 
 COPY --from=builder /opt/venv /opt/venv
+COPY --chown=app:app ai/alembic.ini ./
+COPY --chown=app:app ai/migrations ./migrations
 
 USER app
 

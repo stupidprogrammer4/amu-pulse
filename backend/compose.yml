@@ -171,6 +171,15 @@ services:
       retries: 12
       start_period: 30s
 
+  ai-migrate:
+    <<: *ai
+    profiles: ["tools"]
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   ai-api:
     <<: *ai
     restart: unless-stopped
