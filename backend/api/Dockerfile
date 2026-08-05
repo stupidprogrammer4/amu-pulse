@@ -13,10 +13,11 @@ WORKDIR /build
 
 RUN python -m venv /opt/venv
 
+COPY events ./events
 COPY api/pyproject.toml ./
 COPY api/src ./src
 
-RUN pip install .
+RUN pip install ./events && pip install .
 
 
 FROM python:${PYTHON_VERSION}-slim AS runtime

@@ -17,14 +17,29 @@ From `ai/`:
 
 - `ai-api`: Uvicorn on port `8100`
 - `ai-worker`: Taskiq workers for the ai app's own queue
+- `ai-consumer`: Taskiq worker on the RabbitMQ event bus
+- `ai-migrate`: an on-demand Alembic tool
 
-Backing services: `postgres`, `postgres-ai`, `redis`, `elasticsearch`,
-and `ollama`.
+Backing services: `postgres`, `postgres-ai`, `redis`, `rabbitmq`,
+`elasticsearch`, and `ollama`.
 
 Each app has its own PostgreSQL instance: `postgres` holds `core_pulse_db`
 for `api`, and `postgres-ai` holds `ai_pulse_db` for `ai`. The ai one runs the
 `pgvector` image because that app stores embeddings, and ai's first migration
 enables the `vector` extension. Neither app can reach the other's database.
+
+## The event bus
+
+Redis carries each app's own background work; RabbitMQ carries only what
+crosses between them. The contract lives in `events/`, which both apps install
+as a package, and both publish to one topic exchange named `amu.events`.
+
+Each app has one inbox queue bound to its own routing key — `api.events` and
+`ai.events` — so a worker on one never consumes the other's messages. A
+publisher declares both queues and picks the destination per message; a
+consumer declares only its own.
+
+The management UI is at <http://localhost:15672> (`guest` / `guest`).
 
 ## Configuration
 
@@ -78,7 +93,7 @@ Migrations are explicit and never run as a side effect of starting the API. The
 recommended deployment flow is:
 
 ```bash
-docker compose up -d postgres postgres-ai redis elasticsearch
+docker compose up -d postgres postgres-ai redis rabbitmq elasticsearch
 docker compose run --rm migrate alembic current
 docker compose run --rm migrate alembic heads
 docker compose run --rm migrate
@@ -122,7 +137,7 @@ The main API is at <http://localhost:8000> and the ai API at
 application logs with:
 
 ```bash
-docker compose logs -f api worker scheduler ai-api ai-worker
+docker compose logs -f api worker scheduler ai-api ai-worker ai-consumer
 ```
 
 Stop the stack while preserving data with `docker compose down`. To also

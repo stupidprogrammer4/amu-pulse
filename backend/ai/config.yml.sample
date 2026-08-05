@@ -30,3 +30,6 @@ ollama:
   chat_model: "llama3.1:8b"
   embedding_model: "nomic-embed-text"
   timeout: 120.0
+
+rabbitmq:
+  url: "amqp://guest:guest@0.0.0.0:5672//"

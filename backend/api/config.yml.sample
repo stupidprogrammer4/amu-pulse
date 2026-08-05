@@ -53,3 +53,6 @@ es:
   api_key: null
   verify_certs: false
   ca_certs: null
+
+rabbitmq:
+  url: "amqp://guest:guest@0.0.0.0:5672//"

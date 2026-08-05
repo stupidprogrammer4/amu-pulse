@@ -13,11 +13,12 @@ WORKDIR /build
 
 RUN python -m venv /opt/venv
 
+COPY events ./events
 COPY ai/pyproject.toml ./
 COPY ai/src ./src
 
 # the training extra is not installed here; training/ runs outside the image
-RUN pip install .
+RUN pip install ./events && pip install .
 
 
 FROM python:${PYTHON_VERSION}-slim AS runtime

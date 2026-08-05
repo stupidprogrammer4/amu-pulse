@@ -69,6 +69,10 @@ class ESConfig(BaseModel):
     ca_certs: str | None = None
 
 
+class RabbitMQConfig(BaseModel):
+    url: str
+
+
 class Settings(BaseModel):
     fastapi: FastAPIConfig
     taskiq: TaskiqConfig
@@ -79,6 +83,7 @@ class Settings(BaseModel):
     storage: StorageConfig
     csrf: CSRFConfig
     es: ESConfig
+    rabbitmq: RabbitMQConfig
 
 
 @lru_cache

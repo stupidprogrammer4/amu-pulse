@@ -69,6 +69,24 @@ services:
       timeout: 3s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:4.3.4-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:-guest}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-guest}"
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.19.3
     restart: unless-stopped
@@ -145,6 +163,8 @@ services:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   worker:
     <<: *api
@@ -163,6 +183,8 @@ services:
       redis:
         condition: service_healthy
       elasticsearch:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   scheduler:
@@ -250,9 +272,29 @@ services:
       ollama:
         condition: service_healthy
 
+  ai-consumer:
+    <<: *ai
+    restart: unless-stopped
+    command:
+      [
+        "taskiq",
+        "worker",
+        "src.consumers.broker:broker",
+        "--workers",
+        "${AI_CONSUMER_WORKERS:-1}",
+      ]
+    depends_on:
+      postgres-ai:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   postgres-ai-data:
+  rabbitmq-data:
   redis-data:
   elasticsearch-data:
   media-data:

@@ -43,12 +43,17 @@ class OllamaConfig(BaseModel):
     timeout: float = Field(ge=1)
 
 
+class RabbitMQConfig(BaseModel):
+    url: str
+
+
 class Settings(BaseModel):
     fastapi: FastAPIConfig
     postgresql: PostgreSQLConfig
     redis: RedisConfig
     taskiq: TaskiqConfig
     ollama: OllamaConfig
+    rabbitmq: RabbitMQConfig
 
 
 @lru_cache
