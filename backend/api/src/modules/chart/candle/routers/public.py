@@ -9,30 +9,29 @@ from src.modules.chart.candle.interfaces import (
     ICandleService,
     ISourceCandleService,
 )
-from src.modules.identity.auth.config.dependencies import (
-    admin_required,
-)
+from src.modules.chart.ticker.domain.enums import ChartType
+from src.modules.chart.ticker.domain.schemas import ChartOutput
+from src.modules.chart.ticker.interfaces import IPriceTickerService
 from src.modules.price.assets.config.dependencies import AssetID
 from src.modules.price.assets.domain.schemas import AssetMeta
 from src.modules.price.sources.config.dependencies import SourceID
 from src.modules.price.sources.domain.schemas import SourceMeta
 from src.web.response import APIResponse
 
-# every route here is an admin panel route; the guard sits on the
-# router so no handler can be added without it
+# no guard, unlike /admin/candles: a chart is public the same way a price is
 router = APIRouter(
-    prefix="/admin/candles",
-    tags=["Admin Candles"],
+    prefix="/charts",
+    tags=["Charts"],
     route_class=DishkaRoute,
-    dependencies=[admin_required],
 )
 
 CandleChartResponse = APIResponse[CandleChartOut, AssetMeta]
 SourceCandleChartResponse = APIResponse[CandleChartOut, SourceMeta]
+TickerResponse = APIResponse[ChartOutput, AssetMeta]
 
 
 @router.get(
-    "/assets/{id:int}",
+    "/assets/{id:int}/candles",
     response_model=CandleChartResponse,
     response_model_exclude_defaults=True,
 )
@@ -46,7 +45,21 @@ async def get_asset_candles(
 
 
 @router.get(
-    "/sources/{id:int}",
+    "/assets/{id:int}/ticker",
+    response_model=TickerResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_asset_ticker(
+    id: AssetID,
+    service: FromDishka[IPriceTickerService],
+    type: ChartType = ChartType.DAILY,
+) -> TickerResponse:
+    result = await service.get_chart(id, type)
+    return APIResponse(success=True, data=result.data, meta=result.meta)
+
+
+@router.get(
+    "/sources/{id:int}/candles",
     response_model=SourceCandleChartResponse,
     response_model_exclude_defaults=True,
 )
