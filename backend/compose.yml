@@ -1,13 +1,13 @@
 name: amu-pulse
 
-x-core: &core
-  image: amu-pulse-core:local
+x-api: &api
+  image: amu-pulse-api:local
   build:
     context: .
-    dockerfile: core/Dockerfile
+    dockerfile: api/Dockerfile
   init: true
   volumes:
-    - ./core/config.docker.yml:/app/config.yml:ro
+    - ./api/config.docker.yml:/app/config.yml:ro
     - media-data:/app/media
 
 x-ai: &ai
@@ -76,7 +76,7 @@ services:
       start_period: 30s
 
   migrate:
-    <<: *core
+    <<: *api
     profiles: ["tools"]
     restart: "no"
     command: ["alembic", "upgrade", "head"]
@@ -85,7 +85,7 @@ services:
         condition: service_healthy
 
   seed:
-    <<: *core
+    <<: *api
     profiles: ["tools"]
     restart: "no"
     command: ["python", "-m", "src.seeders"]
@@ -96,7 +96,7 @@ services:
         condition: service_healthy
 
   api:
-    <<: *core
+    <<: *api
     restart: unless-stopped
     command:
       [
@@ -131,7 +131,7 @@ services:
         condition: service_healthy
 
   worker:
-    <<: *core
+    <<: *api
     restart: unless-stopped
     command:
       [
@@ -150,7 +150,7 @@ services:
         condition: service_healthy
 
   scheduler:
-    <<: *core
+    <<: *api
     restart: unless-stopped
     command: ["taskiq", "scheduler", "src.tasks.scheduler:scheduler"]
     depends_on:

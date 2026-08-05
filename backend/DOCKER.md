@@ -5,7 +5,7 @@ every command below from `backend/`.
 
 The stack runs two applications and the services behind them.
 
-From `core/`:
+From `api/`:
 
 - `api`: Uvicorn on port `8000`
 - `worker`: Taskiq workers
@@ -20,7 +20,7 @@ From `ai/`:
 
 Backing services: `postgres`, `redis`, `elasticsearch`, and `ollama`.
 
-One PostgreSQL instance holds both databases — `core_pulse_db` for `core` and
+One PostgreSQL instance holds both databases — `core_pulse_db` for `api` and
 `ai_pulse_db` for `ai`. The image is `pgvector/pgvector` because the ai app
 stores embeddings; `docker/postgres-init.sql` creates the second database and
 its `vector` extension on first boot. The two apps never read each other's
@@ -51,8 +51,8 @@ point each Docker one at the service names (`postgres`, `redis`,
 `elasticsearch`, `ollama`) instead of `0.0.0.0`:
 
 ```bash
-cp core/config.yml.sample core/config.yml
-cp core/config.yml.sample core/config.docker.yml
+cp api/config.yml.sample api/config.yml
+cp api/config.yml.sample api/config.docker.yml
 cp ai/config.yml.sample ai/config.yml
 cp ai/config.yml.sample ai/config.docker.yml
 ```
@@ -71,7 +71,7 @@ The models live in the `ollama-data` volume, so this is a one-time cost.
 
 ## Migrations
 
-Only `core` has migrations today; the ai app has no schema of its own yet.
+Only `api` has migrations today; the ai app has no schema of its own yet.
 
 Migrations are explicit and never run as a side effect of starting the API. The
 recommended deployment flow is:
@@ -103,7 +103,7 @@ Review downgrade functions and take a database backup before rolling back.
 Create new migration files from the host so they remain in the repository:
 
 ```bash
-cd core && .venv/bin/alembic revision --autogenerate -m "describe the change"
+cd api && .venv/bin/alembic revision --autogenerate -m "describe the change"
 ```
 
 ## Start
@@ -115,7 +115,7 @@ docker compose up --build -d
 docker compose ps
 ```
 
-The core API is at <http://localhost:8000> and the ai API at
+The main API is at <http://localhost:8000> and the ai API at
 <http://localhost:8100>, each with a `/system/health` endpoint. Follow
 application logs with:
 
