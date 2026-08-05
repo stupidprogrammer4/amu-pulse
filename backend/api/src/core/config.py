@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -73,6 +74,12 @@ class RabbitMQConfig(BaseModel):
     url: str
 
 
+class LoggingConfig(BaseModel):
+    level: str
+    format: Literal["console", "json"]
+    service: str
+
+
 class Settings(BaseModel):
     fastapi: FastAPIConfig
     taskiq: TaskiqConfig
@@ -84,6 +91,7 @@ class Settings(BaseModel):
     csrf: CSRFConfig
     es: ESConfig
     rabbitmq: RabbitMQConfig
+    logging: LoggingConfig
 
 
 @lru_cache

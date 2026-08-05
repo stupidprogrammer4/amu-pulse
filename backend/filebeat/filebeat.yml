@@ -1,0 +1,84 @@
+# Filebeat ships the api app's container logs into Elasticsearch.
+#
+# The app writes one JSON object per line to stdout (config.docker.yml sets
+# logging.format to json), Docker wraps each line in its own JSON envelope,
+# and the two parsers below unwrap them in that order. Nothing here parses
+# text, so a line the app did not format as JSON arrives with an
+# error.message field instead of the fields it meant to send.
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      templates:
+        # matched on the image rather than a compose label: the label keys
+        # arrive nested on their dots, so the path a condition would need is
+        # both unobvious and version-dependent. api, worker, and scheduler all
+        # run this one image, which is exactly the set worth shipping, and the
+        # ai app's amu-pulse-ai image does not match.
+        - condition:
+            contains:
+              docker.container.image: amu-pulse-api
+          config:
+            - type: filestream
+              id: amu-api-${data.docker.container.id}
+              prospector.scanner.symlinks: true
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              parsers:
+                - container:
+                    stream: all
+                    format: auto
+                - ndjson:
+                    target: ""
+                    overwrite_keys: true
+                    add_error_key: true
+                    expand_keys: true
+
+processors:
+  # container.name is what tells an api line apart from a worker line; all
+  # three run the same image under the same service.name
+  - add_docker_metadata: ~
+  - drop_fields:
+      fields:
+        - agent
+        - ecs
+        - input
+        - docker
+        - container.labels
+        - host
+      ignore_missing: true
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  # a data stream, not a dated index: Filebeat always writes to this one
+  # name and Elasticsearch rolls the backing .ds-amu-api-logs-* indices
+  # underneath it. Do not add setup.ilm.rollover_alias — that switches the
+  # template to the legacy alias layout while the data stream is still
+  # created, and the two disagree.
+  index: amu-api-logs
+
+setup.ilm:
+  enabled: true
+  policy_name: amu-api-logs
+  policy_file: /usr/share/filebeat/ilm-policy.json
+  overwrite: true
+
+setup.template:
+  name: amu-api-logs
+  # matches the data stream name exactly, not a wildcard over dated indices
+  pattern: amu-api-logs
+  overwrite: true
+  settings:
+    # single-node Elasticsearch has nowhere to put a replica, and an
+    # unassigned one holds the index at yellow forever
+    index.number_of_shards: 1
+    index.number_of_replicas: 0
+
+# dashboards are not part of this setup, so Filebeat never needs to reach
+# Kibana; drop the load attempt rather than let it retry against a booting one
+setup.dashboards.enabled: false
+
+logging.level: info
+logging.to_files: false
+
+monitoring.enabled: false

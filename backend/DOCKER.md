@@ -21,7 +21,7 @@ From `ai/`:
 - `ai-migrate`: an on-demand Alembic tool
 
 Backing services: `postgres`, `postgres-ai`, `redis`, `rabbitmq`,
-`elasticsearch`, and `ollama`.
+`elasticsearch`, `kibana`, `filebeat`, and `ollama`.
 
 Each app has its own PostgreSQL instance: `postgres` holds `core_pulse_db`
 for `api`, and `postgres-ai` holds `ai_pulse_db` for `ai`. The ai one runs the
@@ -71,6 +71,38 @@ cp api/config.yml.sample api/config.docker.yml
 cp ai/config.yml.sample ai/config.yml
 cp ai/config.yml.sample ai/config.docker.yml
 ```
+
+## Logs
+
+The `api` app ships its logs to Elasticsearch. Nothing in the application
+talks to Elasticsearch to do it — `api`, `worker`, and `scheduler` each write
+one JSON object per line to stdout, `filebeat` reads the containers' log files
+off the Docker host and indexes them. If Elasticsearch is down the logs queue
+on disk instead of being lost, and the app never notices.
+
+`logging.format` in each config file decides the shape: `console` for the
+readable Rich output when running on the host, `json` for the line Filebeat
+can parse. `config.docker.yml` therefore has to stay on `json`. Every logger
+in the process goes through it, including `uvicorn.access` and taskiq's.
+
+Logs land in the `amu-api-logs` data stream. Open Kibana at
+<http://localhost:5601>, create a data view over `amu-api-logs`, and the
+useful fields are:
+
+- `container.name` — which of `api`, `worker`, or `scheduler` wrote the line
+- `request_id` — one HTTP request or one task execution end to end
+- `log.level`, `log.logger`, `log.origin.*`
+- `error.type`, `error.message`, `error.stack_trace` on a failure
+
+The `amu-api-logs` ILM policy rolls the data stream daily or at 5GB and
+deletes a backing index 14 days after it rolls. To change retention, edit
+`filebeat/ilm-policy.json` and restart `filebeat`; `setup.ilm.overwrite` is on,
+so the new policy replaces the old one on start.
+
+Two known gaps. Taskiq's worker prints four lines from its parent process
+before it imports the broker, so those arrive as raw text in `message` rather
+than as fields. A worker child that dies hard prints its traceback straight to
+stderr, outside logging, and arrives the same way.
 
 ## Models
 
@@ -139,6 +171,9 @@ application logs with:
 ```bash
 docker compose logs -f api worker scheduler ai-api ai-worker ai-consumer
 ```
+
+The `api` app's logs are also searchable in Kibana at
+<http://localhost:5601>; see [Logs](#logs).
 
 Stop the stack while preserving data with `docker compose down`. To also
 delete all local PostgreSQL, Redis, Elasticsearch, media, Ollama model, and ai

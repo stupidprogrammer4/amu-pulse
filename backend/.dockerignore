@@ -27,5 +27,6 @@
 **/config.yml
 docker-data/
 docker-volume/
+filebeat/
 **/media/
 **/tmp/

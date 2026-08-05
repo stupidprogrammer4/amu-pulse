@@ -56,3 +56,8 @@ es:
 
 rabbitmq:
   url: "amqp://guest:guest@0.0.0.0:5672//"
+
+logging:
+  level: "INFO"
+  format: "console"
+  service: "amu-pulse-api"

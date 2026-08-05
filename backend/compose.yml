@@ -109,6 +109,48 @@ services:
       retries: 12
       start_period: 30s
 
+  kibana:
+    # Docker Hub, not docker.elastic.co: the latter is unreachable from here,
+    # and a registry mirror only ever covers Hub
+    image: kibana:8.15.0
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS 'http://localhost:5601/api/status'
+          | grep -q '"level":"available"'
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  filebeat:
+    image: elastic/filebeat:8.19.3
+    restart: unless-stopped
+    # reading another container's log file and the docker socket both need
+    # root; strict.perms would otherwise reject the read-only mounted config
+    user: root
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./filebeat/ilm-policy.json:/usr/share/filebeat/ilm-policy.json:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # the registry of how far each file was read; without it a restart
+      # re-ships every line still on disk
+      - filebeat-data:/usr/share/filebeat/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
   migrate:
     <<: *api
     profiles: ["tools"]
@@ -297,6 +339,7 @@ volumes:
   rabbitmq-data:
   redis-data:
   elasticsearch-data:
+  filebeat-data:
   media-data:
   ollama-data:
   ai-artifacts:
