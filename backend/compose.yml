@@ -6,14 +6,8 @@ x-core: &core
     context: .
     dockerfile: core/Dockerfile
   init: true
-  environment:
-    FASTAMU_POSTGRESQL__DSN: >-
-      postgresql+asyncpg://postgres@postgres:5432/core_pulse_db
-    FASTAMU_REDIS__URL: "redis://redis:6379/0"
-    FASTAMU_TASKIQ__REDIS_URL: "redis://redis:6379/0"
-    FASTAMU_ES__HOSTS: '["http://elasticsearch:9200"]'
   volumes:
-    - ./core/config.yml:/app/config.yml:ro
+    - ./core/config.docker.yml:/app/config.yml:ro
     - media-data:/app/media
 
 services:

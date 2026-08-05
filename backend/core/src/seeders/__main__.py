@@ -9,12 +9,10 @@ from src.infra.postgres.connection import PGConnection
 from src.infra.postgres.uow import PGUnitOfWork
 from src.seeders.assets import seed_assets
 from src.seeders.bubbles import seed_bubbles
-from src.seeders.roles import seed_roles
 from src.seeders.sources import seed_sources
 
 
 async def seed_all(uow: PGUnitOfWork) -> None:
-    print(f"seeded {len(await seed_roles(uow))} roles")
     print(f"seeded {len(await seed_assets(uow))} assets")
     print(f"seeded {len(await seed_sources(uow))} sources")
     print(f"seeded {len(await seed_bubbles(uow))} bubbles")

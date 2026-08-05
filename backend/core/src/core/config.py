@@ -5,11 +5,6 @@ from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, Field
-from pydantic_settings import (
-    BaseSettings,
-    PydanticBaseSettingsSource,
-    SettingsConfigDict,
-)
 
 
 class FastAPIConfig(BaseModel):
@@ -74,7 +69,7 @@ class ESConfig(BaseModel):
     ca_certs: str | None = None
 
 
-class Settings(BaseSettings):
+class Settings(BaseModel):
     fastapi: FastAPIConfig
     taskiq: TaskiqConfig
     postgresql: PostgreSQLConfig
@@ -85,44 +80,11 @@ class Settings(BaseSettings):
     csrf: CSRFConfig
     es: ESConfig
 
-    model_config = SettingsConfigDict(
-        env_prefix="FASTAMU_",
-        env_nested_delimiter="__",
-    )
-
-    @classmethod
-    def settings_customise_sources(
-        cls,
-        settings_cls: type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
-    ) -> tuple[PydanticBaseSettingsSource, ...]:
-        """
-        Desc: Prefer environment values over YAML values.
-        Args:
-            settings_cls (type[BaseSettings]): Settings class being loaded.
-            init_settings (PydanticBaseSettingsSource): YAML source.
-            env_settings (PydanticBaseSettingsSource): Environment source.
-            dotenv_settings (PydanticBaseSettingsSource): Dotenv source.
-            file_secret_settings (PydanticBaseSettingsSource): Secret source.
-        Returns:
-            return (tuple[PydanticBaseSettingsSource, ...]): Ordered sources.
-        """
-        sources = (
-            env_settings,
-            dotenv_settings,
-            init_settings,
-            file_secret_settings,
-        )
-        return sources
-
 
 @lru_cache
 def get_settings() -> Settings:
     """
-    Desc: Load YAML settings with environment overrides.
+    Desc: Load settings from config.yml, the only configuration source.
     Returns:
         return (Settings): Validated application settings.
     """

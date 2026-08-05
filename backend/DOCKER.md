@@ -14,23 +14,31 @@ The stack runs the API, Taskiq processes, and all backing services:
 
 ## Configuration
 
-`core/config.yml` is the only application configuration file for `core`.
-Compose mounts it at `/app/config.yml`; there is no `.env` or Docker-specific config file.
+A YAML file mounted at `/app/config.yml` is the only configuration source.
+The application reads no environment variables and no `.env` file, so nothing
+in Compose can override a setting.
 
-Compose overrides only the PostgreSQL, Redis, Taskiq, and Elasticsearch network
-addresses because `0.0.0.0` from the host configuration points to the wrong
-process inside a container. All application settings and secrets remain in
-`config.yml`.
+Because of that there are two files: `core/config.yml` for running on the host
+and `core/config.docker.yml` for running in a container. They differ only in
+the PostgreSQL, Redis, Taskiq, and Elasticsearch addresses, since `0.0.0.0`
+points at the wrong process inside a container. Compose mounts the Docker one.
+Any setting you change in one belongs in the other too.
+
+Both hold secrets, so both are git-ignored and neither is ever committed.
+`config.yml.sample` is the only tracked configuration file.
 
 The included PostgreSQL container uses trust authentication for local Docker
 development. Do not use this Compose configuration in production. A deployment
 must use authentication, private secrets, Elasticsearch security and TLS, and
 must not publish backing-service ports.
 
-For a new checkout, create the ignored local configuration:
+For a new checkout, create both ignored configurations from the sample, then
+point the Docker one at the service names (`postgres`, `redis`,
+`elasticsearch`) instead of `0.0.0.0`:
 
 ```bash
 cp core/config.yml.sample core/config.yml
+cp core/config.yml.sample core/config.docker.yml
 ```
 
 ## Migrations

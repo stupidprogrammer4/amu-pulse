@@ -62,6 +62,7 @@ docker-data/
 docker-volume/
 
 config.yml
+config.docker.yml
 
 *.lock
 !frontend/package-lock.json

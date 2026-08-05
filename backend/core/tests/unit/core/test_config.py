@@ -3,7 +3,7 @@ from pathlib import Path
 from src.core.config import get_settings
 
 
-def test_environment_overrides_yaml(
+def test_yaml_is_the_only_configuration_source(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -25,7 +25,7 @@ def test_environment_overrides_yaml(
     settings = get_settings()
 
     assert settings.fastapi.title == "AMU Pulse"
-    assert settings.postgresql.dsn.endswith("@postgres:5432/app")
-    assert settings.redis.url == "redis://redis:6379/0"
-    assert settings.es.hosts == ["http://elasticsearch:9200"]
+    assert settings.postgresql.dsn.endswith("@0.0.0.0:5432/core_pulse_db")
+    assert settings.redis.url == "redis://0.0.0.0:6379/0"
+    assert settings.es.hosts == ["http://0.0.0.0:9200"]
     get_settings.cache_clear()
