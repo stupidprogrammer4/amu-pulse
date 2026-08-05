@@ -78,6 +78,9 @@ class LoggingConfig(BaseModel):
     level: str
     format: Literal["console", "json"]
     service: str
+    # the data stream Filebeat ships into and the logs module reads back;
+    # must match setup.template.name in filebeat/filebeat.yml
+    index: str
 
 
 class Settings(BaseModel):

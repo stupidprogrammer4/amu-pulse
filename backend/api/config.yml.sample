@@ -61,3 +61,4 @@ logging:
   level: "INFO"
   format: "console"
   service: "amu-pulse-api"
+  index: "amu-api-logs"
