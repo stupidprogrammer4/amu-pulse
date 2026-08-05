@@ -42,8 +42,8 @@ from src.web.response import APIResponse
 # every route here is an admin panel route; the guard sits on the
 # router so no handler can be added without it
 router = APIRouter(
-    prefix="/admin/sources",
-    tags=["Admin Sources"],
+    prefix="/panel/sources",
+    tags=["Panel Sources"],
     route_class=DishkaRoute,
     dependencies=[admin_required],
 )

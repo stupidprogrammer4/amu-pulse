@@ -21,8 +21,8 @@ from src.web.response import APIResponse
 
 # managing admins is a super admin's job; every route below is guarded
 router = APIRouter(
-    prefix="/admin/admins",
-    tags=["Admin Admins"],
+    prefix="/panel/admins",
+    tags=["Panel Admins"],
     route_class=DishkaRoute,
     dependencies=[super_admin_required],
 )
