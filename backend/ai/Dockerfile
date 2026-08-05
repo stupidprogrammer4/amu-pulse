@@ -6,7 +6,8 @@ FROM python:${PYTHON_VERSION}-slim AS builder
 
 ENV PATH="/opt/venv/bin:${PATH}" \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
+    PIP_RETRIES=10 \
+    PIP_TIMEOUT=60 \
     PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /build
@@ -17,8 +18,11 @@ COPY events ./events
 COPY ai/pyproject.toml ./
 COPY ai/src ./src
 
-# the training extra is not installed here; training/ runs outside the image
-RUN pip install ./events && pip install .
+# the training extra is not installed here; training/ runs outside the image.
+# A cache mount instead of PIP_NO_CACHE_DIR: the wheels survive between
+# builds, so editing one dependency no longer re-downloads all of them.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install ./events && pip install .
 
 
 FROM python:${PYTHON_VERSION}-slim AS runtime
