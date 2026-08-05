@@ -13,8 +13,8 @@ WORKDIR /build
 
 RUN python -m venv /opt/venv
 
-COPY pyproject.toml ./
-COPY src ./src
+COPY core/pyproject.toml ./
+COPY core/src ./src
 
 RUN pip install .
 
@@ -33,8 +33,8 @@ RUN addgroup --system --gid 10001 app \
     && chown -R app:app /app
 
 COPY --from=builder /opt/venv /opt/venv
-COPY --chown=app:app alembic.ini ./
-COPY --chown=app:app migrations ./migrations
+COPY --chown=app:app core/alembic.ini ./
+COPY --chown=app:app core/migrations ./migrations
 
 USER app
 

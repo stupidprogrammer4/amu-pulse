@@ -1,5 +1,8 @@
 # Docker
 
+`compose.yml` lives at `backend/` and is shared by every backend app, so run
+every command below from `backend/`.
+
 The stack runs the API, Taskiq processes, and all backing services:
 
 - `api`: Uvicorn on port `8000`
@@ -11,8 +14,8 @@ The stack runs the API, Taskiq processes, and all backing services:
 
 ## Configuration
 
-`config.yml` is the only application configuration file. Compose mounts it at
-`/app/config.yml`; there is no `.env` or Docker-specific config file.
+`core/config.yml` is the only application configuration file for `core`.
+Compose mounts it at `/app/config.yml`; there is no `.env` or Docker-specific config file.
 
 Compose overrides only the PostgreSQL, Redis, Taskiq, and Elasticsearch network
 addresses because `0.0.0.0` from the host configuration points to the wrong
@@ -27,7 +30,7 @@ must not publish backing-service ports.
 For a new checkout, create the ignored local configuration:
 
 ```bash
-cp config.yml.sample config.yml
+cp core/config.yml.sample core/config.yml
 ```
 
 ## Migrations
@@ -62,7 +65,7 @@ Review downgrade functions and take a database backup before rolling back.
 Create new migration files from the host so they remain in the repository:
 
 ```bash
-.venv/bin/alembic revision --autogenerate -m "describe the change"
+cd core && .venv/bin/alembic revision --autogenerate -m "describe the change"
 ```
 
 ## Start

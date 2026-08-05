@@ -12,7 +12,7 @@ taskiq:
 postgresql:
   test_dsn: >-
     postgresql+asyncpg://postgres:secure_pwd@0.0.0.0:5432/pulse_test_db
-  dsn: "postgresql+asyncpg://postgres:secure_pwd@0.0.0.0:5432/pulse_db"
+  dsn: "postgresql+asyncpg://postgres:secure_pwd@0.0.0.0:5432/core_pulse_db"
   pool_timeout: 30
   pool_recycle: 1800
   pool_size: 20
