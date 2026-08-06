@@ -4,8 +4,14 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, Query
 
 from src.modules.identity.auth.config.dependencies import admin_required
-from src.modules.ops.logs.domain.dtos import LogSearch
-from src.modules.ops.logs.domain.schemas import LogMeta, LogOut
+from src.modules.ops.logs.domain.dtos import LogChartSearch, LogSearch
+from src.modules.ops.logs.domain.enums import LogBucket
+from src.modules.ops.logs.domain.schemas import (
+    LogChartMeta,
+    LogChartOut,
+    LogMeta,
+    LogOut,
+)
 from src.modules.ops.logs.interfaces import ILogService
 from src.web.response import APIResponse
 
@@ -18,6 +24,7 @@ router = APIRouter(
 
 PagedLogResponse = APIResponse[LogOut, LogMeta]
 LogResponse = APIResponse[LogOut, None]
+LogChartResponse = APIResponse[LogChartOut, LogChartMeta]
 
 
 @router.get(
@@ -30,6 +37,20 @@ async def search_logs(
     service: FromDishka[ILogService],
 ) -> PagedLogResponse:
     result = await service.search(data)
+    return APIResponse(success=True, data=result.data, meta=result.meta)
+
+
+@router.get(
+    "/chart/{bucket}",
+    response_model=LogChartResponse,
+    response_model_exclude_defaults=True,
+)
+async def get_log_chart(
+    bucket: LogBucket,
+    data: Annotated[LogChartSearch, Query()],
+    service: FromDishka[ILogService],
+) -> LogChartResponse:
+    result = await service.get_chart(bucket, data)
     return APIResponse(success=True, data=result.data, meta=result.meta)
 
 

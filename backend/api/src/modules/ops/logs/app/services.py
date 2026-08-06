@@ -1,7 +1,18 @@
 from src.common.bases.schemas import PagerMeta
-from src.modules.ops.logs.domain.dtos import LogSearch
-from src.modules.ops.logs.domain.results import LogPageType, LogSearchResult
-from src.modules.ops.logs.domain.schemas import LogMeta, LogOut
+from src.modules.ops.logs.domain.dtos import LogChartSearch, LogSearch
+from src.modules.ops.logs.domain.enums import LogBucket
+from src.modules.ops.logs.domain.results import (
+    LogChartResult,
+    LogSearchResult,
+)
+from src.modules.ops.logs.domain.schemas import (
+    LogChartMeta,
+    LogChartOut,
+    LogMeta,
+    LogOut,
+    LogPointOut,
+)
+from src.modules.ops.logs.domain.types import LogPageType
 from src.modules.ops.logs.infra.repository import LogRepository
 
 TRACE_LIMIT = 500
@@ -35,8 +46,42 @@ class LogService:
                 data.page, data.per_page, page.total_items
             ),
             levels=page.levels,
+            loggers=page.loggers,
+            containers=page.containers,
         )
         return LogSearchResult(data=self._lines(page), meta=meta)
+
+    async def get_chart(
+        self, bucket: LogBucket, data: LogChartSearch
+    ) -> LogChartResult:
+        """
+        Desc: Get how much one container wrote over the window its bucket
+            size covers, so a reader can see when it was busy and when it
+            was failing.
+        Args:
+            bucket (LogBucket): The bucket width, which picks the window.
+            data (LogChartSearch): The container and an optional level.
+        Returns:
+            return (LogChartResult): The series and its summary, with every
+                level and container to filter by.
+        """
+        chart = await self.repo.get_chart(
+            data.container, bucket, data.level
+        )
+        return LogChartResult(
+            data=LogChartOut(
+                bucket=bucket,
+                points=LogPointOut.from_objs(chart.points),
+                min=chart.min,
+                max=chart.max,
+                mean=chart.mean,
+            ),
+            meta=LogChartMeta(
+                levels=list(chart.levels),
+                containers=list(chart.containers),
+                buckets=list(LogBucket),
+            ),
+        )
 
     async def get_by_request_id(self, request_id: str) -> list[LogOut]:
         """

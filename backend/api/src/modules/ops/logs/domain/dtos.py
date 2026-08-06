@@ -15,3 +15,8 @@ class LogSearch(BaseDTO):
     to_time: datetime | None = None
     page: PageType = 1
     per_page: PerPageType = 20
+
+
+class LogChartSearch(BaseDTO):
+    container: str
+    level: LogLevel | None = None

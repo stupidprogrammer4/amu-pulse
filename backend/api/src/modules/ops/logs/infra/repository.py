@@ -1,17 +1,22 @@
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from elasticsearch import NotFoundError
-from elasticsearch.dsl import AsyncSearch
+from elasticsearch.dsl import AsyncSearch, Q
 
+from src.common.utils import date_utils
 from src.infra.es.repository import ESRepository
 from src.modules.ops.logs.domain.documents import LogDocument
-from src.modules.ops.logs.domain.results import (
+from src.modules.ops.logs.domain.enums import LogBucket
+from src.modules.ops.logs.domain.types import (
+    LogChartType,
     LogPageType,
+    PointType,
 )
 
 MAX_WINDOW = 10_000
+MAX_FACET = 50
 
 
 class LogRepository(ESRepository[LogDocument]):
@@ -66,21 +71,90 @@ class LogRepository(ESRepository[LogDocument]):
 
         return search
 
-    async def get_5m_chart(
+    async def get_chart(
         self,
         container_name: str,
-    ):
-        # TODO: last 24 chart in 5m buckets
-        ...
+        bucket: LogBucket,
+        level: str | None = None,
+    ) -> LogChartType:
+        """
+        Desc: Count one container's lines per bucket over the window that
+            bucket size covers, with every level the window holds beside
+            them so a caller can filter without a second read.
+        Args:
+            container_name (str): The container to chart.
+            bucket (LogBucket): The bucket width, which picks the window.
+            level (str | None): Keep only this level in the series.
+        Returns:
+            return (LogChartType): The series, its min, max and mean, and
+                the levels the window holds.
+        """
+        end = date_utils.utc_now()
+        start = end - bucket.span
 
-    async def get_hourly_chart(
-        self,
-        container_name: str,
-    ):
-        # TODO: last week chart in hourly bucket
-        ...
+        search = self.search().filter(
+            "range", **{"@timestamp": {"gte": start, "lte": end}}
+        )
 
-    async def get_
+        for name, field in (
+            ("levels", "log.level"),
+            ("containers", "container.name"),
+        ):
+            search.aggs.bucket(
+                "f_" + name, "terms", field=field, size=MAX_FACET
+            )
+
+        narrowing = [Q("term", **{"container.name": container_name})]
+        if level:
+            narrowing.append(Q("term", **{"log.level": level}))
+        window = search.aggs.bucket(
+            "window", "filter", filter=Q("bool", filter=narrowing)
+        )
+        window.bucket(
+            "timeline",
+            "date_histogram",
+            field="@timestamp",
+            fixed_interval=bucket,
+            min_doc_count=0,
+            extended_bounds={
+                "min": int(start.timestamp() * 1000),
+                "max": int(end.timestamp() * 1000),
+            },
+        )
+        window.pipeline(
+            "stats", "stats_bucket", buckets_path="timeline>_count"
+        )
+
+        try:
+            response = await search.extra(size=0).execute()
+        except NotFoundError:
+            return LogChartType(
+                points=[], min=0, max=0, mean=0.0, levels=[], containers=[]
+            )
+
+        window = response.aggregations.window
+        stats = window.stats
+
+        def keys(name: str) -> list[str]:
+            agg = response.aggregations["f_" + name]
+            return [str(point.key) for point in agg.buckets]
+
+        return LogChartType(
+            points=[
+                PointType(
+                    count=int(point.doc_count),
+                    timestamp=datetime.fromtimestamp(
+                        int(point.key) / 1000, UTC
+                    ),
+                )
+                for point in window.timeline.buckets
+            ],
+            min=int(stats.min or 0),
+            max=int(stats.max or 0),
+            mean=round(stats.avg or 0.0, 2),
+            levels=keys("levels"),
+            containers=keys("containers"),
+        )
 
     async def get_page(
         self,
@@ -112,16 +186,29 @@ class LogRepository(ESRepository[LogDocument]):
             return (LogPageType): The page, the total and the level counts.
         """
         search = self._filtered(
-            q=q,
-            levels=levels,
-            loggers=loggers,
-            containers=containers,
-            request_id=request_id,
-            start=start,
-            end=end,
+            q=q, request_id=request_id, start=start, end=end
         )
 
-        search.aggs.bucket("levels", "terms", field="log.level", size=10)
+        for name, field in (
+            ("levels", "log.level"),
+            ("loggers", "log.logger"),
+            ("containers", "container.name"),
+        ):
+            search.aggs.bucket(
+                "f_" + name, "terms", field=field, size=MAX_FACET
+            )
+
+        narrowing = [
+            Q("terms", **{field: list(values)})
+            for field, values in (
+                ("log.level", levels),
+                ("log.logger", loggers),
+                ("container.name", containers),
+            )
+            if values
+        ]
+        if narrowing:
+            search = search.post_filter(Q("bool", filter=narrowing))
 
         start_at = min(offset, MAX_WINDOW - limit)
         search = search.sort("-@timestamp").extra(track_total_hits=True)
@@ -131,13 +218,18 @@ class LogRepository(ESRepository[LogDocument]):
         except NotFoundError:
             return LogPageType(items=[], total_items=0)
 
-        level_counts = {
-            bucket.key: bucket.doc_count
-            for bucket in response.aggregations.levels.buckets
-        }
+        def counts(name: str) -> dict[str, int]:
+            agg = response.aggregations["f_" + name]
+            return {
+                str(point.key): int(point.doc_count)
+                for point in agg.buckets
+            }
+
         total = response.to_dict()["hits"]["total"]["value"]
         return LogPageType(
             items=list(response.hits),
             total_items=total,
-            levels=level_counts,
+            levels=counts("levels"),
+            loggers=counts("loggers"),
+            containers=counts("containers"),
         )

@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import Field
 
 from src.common.bases.schemas import BaseMeta, BaseOutput
+from src.modules.ops.logs.domain.enums import LogBucket
 
 
 class OriginFileOut(BaseOutput):
@@ -43,4 +44,25 @@ class LogOut(BaseOutput):
 
 
 class LogMeta(BaseMeta):
-    levels: dict[str, int] = {}
+    levels: dict[str, int]
+    loggers: dict[str, int]
+    containers: dict[str, int]
+
+
+class LogPointOut(BaseOutput):
+    count: int
+    timestamp: datetime
+
+
+class LogChartOut(BaseOutput):
+    bucket: LogBucket
+    points: list[LogPointOut]
+    min: int
+    max: int
+    mean: float
+
+
+class LogChartMeta(BaseMeta):
+    levels: list[str]
+    containers: list[str]
+    buckets: list[LogBucket]
