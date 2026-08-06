@@ -9,13 +9,20 @@ from src.modules.identity.admins.domain.models import AdminModel
 from src.modules.identity.admins.interfaces import IAdminService
 from src.modules.identity.auth.config.constants import ADMIN_TOKEN_ROLE
 from src.modules.identity.auth.domain.results import AdminAuthType
+from src.modules.identity.auth.infra.denylist import TokenDenylist
 
 _DUMMY_HASH = crypto_utils.hash_password("no-such-admin")
 
 
 class AdminAuthService:
-    def __init__(self, admins: IAdminService, settings: Settings) -> None:
+    def __init__(
+        self,
+        admins: IAdminService,
+        denylist: TokenDenylist,
+        settings: Settings,
+    ) -> None:
         self.admins = admins
+        self.denylist = denylist
         self.jwt = settings.jwt
 
     async def login(self, username: str, password: str) -> AdminAuthType:
@@ -44,6 +51,13 @@ class AdminAuthService:
             algorithm=self.jwt.algorithm,
             expected_type=jwt_utils.TokenType.REFRESH,
         )
+        jti = str(claims.get("jti", ""))
+        if await self.denylist.is_revoked(jti):
+            raise UnAuthorizedException(
+                message="this refresh token has already been used",
+                message_code=resources.INVALID_TOKEN,
+            )
+        await self.denylist.revoke(jti, int(claims["exp"]))
         admin = await self.admins.get_by_id(int(claims["sub"]))
         return self._issue(admin)
 

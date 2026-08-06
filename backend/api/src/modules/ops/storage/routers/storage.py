@@ -6,12 +6,20 @@ from fastapi.responses import StreamingResponse
 
 from src.common.bases.schemas import BaseMeta, PagerMeta
 from src.common.types import PageType, PerPageType
+from src.modules.identity.auth.config.dependencies import admin_required
 from src.modules.ops.storage.domain.schemas import MediaOut
 from src.modules.ops.storage.interfaces import IMediaService
 from src.web.response import APIResponse
 
-router = APIRouter(
+public_router = APIRouter(
     prefix="/storage", tags=["Storage"], route_class=DishkaRoute
+)
+
+router = APIRouter(
+    prefix="/panel/storage",
+    tags=["Panel Storage"],
+    route_class=DishkaRoute,
+    dependencies=[admin_required],
 )
 
 MediaResponse = APIResponse[MediaOut, None]
@@ -50,7 +58,7 @@ async def get_media_list(
     )
 
 
-@router.get("/file/{path:path}")
+@public_router.get("/file/{path:path}")
 async def download_media(
     path: str,
     service: FromDishka[IMediaService],

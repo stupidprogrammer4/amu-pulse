@@ -1,6 +1,7 @@
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
+from src.modules.identity.auth.config.dependencies import admin_required
 from src.modules.ops.jobs.domain.schemas import (
     JobsOverviewOut,
     JobStatusOut,
@@ -10,9 +11,10 @@ from src.modules.ops.jobs.interfaces import IJobService
 from src.web.response import APIResponse
 
 router = APIRouter(
-    prefix="/jobs",
-    tags=["Jobs"],
+    prefix="/panel/jobs",
+    tags=["Panel Jobs"],
     route_class=DishkaRoute,
+    dependencies=[admin_required],
 )
 
 
