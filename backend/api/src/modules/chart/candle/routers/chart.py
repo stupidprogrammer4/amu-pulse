@@ -18,8 +18,6 @@ from src.modules.price.sources.config.dependencies import SourceID
 from src.modules.price.sources.domain.schemas import SourceMeta
 from src.web.response import APIResponse
 
-# every route here is an admin panel route; the guard sits on the
-# router so no handler can be added without it
 router = APIRouter(
     prefix="/panel/candles",
     tags=["Panel Candles"],

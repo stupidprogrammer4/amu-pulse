@@ -12,9 +12,6 @@ from src.modules.price.engine.interfaces import ICacheReaderService
 from src.modules.price.symbols.domain.enums import SymbolCode
 from src.web.response import APIResponse
 
-# no guard, unlike everything under /admin: reading a price is what the site
-# is for. Every route here answers off the price cache, so a crowd of
-# visitors never reaches Postgres.
 router = APIRouter(
     prefix="/prices",
     tags=["Prices"],
@@ -44,7 +41,6 @@ async def get_prices(
     )
 
 
-# before /{symbol}, or the router reads "bubbles" as a symbol code
 @router.get(
     "/bubbles",
     response_model=AssetBubblesResponse,

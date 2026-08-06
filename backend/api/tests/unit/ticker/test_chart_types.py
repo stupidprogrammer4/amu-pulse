@@ -28,9 +28,7 @@ class TestTheWindow:
         assert ChartType.YEARLY.span == 365 * day
 
     def test_no_chart_is_finer_than_the_snapshots(self) -> None:
-        # nothing is written more often than every five minutes
         assert all(type.step >= 5 * 60 for type in ChartType)
 
     def test_every_chart_holds_a_readable_number_of_points(self) -> None:
-        # a chart that asked for more would be plotting noise
         assert all(type.span // type.step <= 500 for type in ChartType)

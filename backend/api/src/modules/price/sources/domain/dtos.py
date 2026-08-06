@@ -14,7 +14,6 @@ from src.common.types import (
 )
 from src.modules.price.sources.domain.enums import SourceCode, SourceSwitch
 
-# how long one fetch of a source may take, in whole seconds
 TimeoutType = Annotated[int, Field(ge=1, le=60)]
 
 
@@ -36,9 +35,7 @@ class SourceUpdate(BaseDTO):
 
 
 class SourceSearch(BaseDTO):
-    # free text over title and code; a public id pasted whole also matches
     q: ValueType | None = None
-    # a list, so the front end can offer the markets as checkboxes
     source_types: list[SourceSwitch] | None = None
     has_error: bool | None = None
     page: PageType = 1

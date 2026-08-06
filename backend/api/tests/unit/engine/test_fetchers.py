@@ -32,13 +32,6 @@ from src.seeders.sources import SOURCES
 
 
 def _respond(fetcher: AbstractFetcher[Any], payload: Any, status: int = 200):
-    """
-    Desc: Pin a fetcher's HTTP call to a canned response.
-    Args:
-        fetcher (AbstractFetcher[Any]): The fetcher to pin.
-        payload (Any): The JSON body to answer with.
-        status (int): The status code to answer with.
-    """
 
     async def _request(client: httpx.AsyncClient) -> httpx.Response:
         return httpx.Response(
@@ -51,30 +44,16 @@ def _respond(fetcher: AbstractFetcher[Any], payload: Any, status: int = 200):
 
 
 async def _fetch(fetcher: AbstractFetcher[Any], payload: Any) -> Sequence[Any]:
-    """
-    Desc: Run a fetcher against a canned body and hand back its quotes.
-    Args:
-        fetcher (AbstractFetcher[Any]): The fetcher to run.
-        payload (Any): The JSON body to answer with.
-    Returns:
-        return (Sequence[Any]): The quotes it parsed.
-    """
     _respond(fetcher, payload)
     quotes = await fetcher.fetch()
     return quotes
 
 
 def _tgju_board() -> dict[str, Any]:
-    """
-    Desc: Build a TGJU board carrying its gold pair and dollar row.
-    Returns:
-        return (dict[str, Any]): The response body.
-    """
     return {
         "current": {
             "tgju_gold_irg18": {"p": "197631000"},
             "tgju_gold_irg18_buy": {"p": "195925000"},
-            # the board prints the dollar with thousands separators
             "price_dollar_rl": {"p": "1,931,900"},
         }
     }
@@ -93,7 +72,6 @@ class TestIranFetchers:
         quotes = await _fetch(TgjuFetcher(), _tgju_board())
 
         dollar = next(q for q in quotes if q.symbol == SymbolCode.USD_RIAL)
-        # separators are stripped, not treated as text
         assert dollar.sell_price_rial == 1_931_900
         assert dollar.buy_price_rial == 1_931_900
 
@@ -108,7 +86,6 @@ class TestIranFetchers:
         quotes = await _fetch(WallexFetcher(), payload)
 
         assert quotes[0].symbol == SymbolCode.USD_RIAL
-        # the book quotes Toman; storage is Rial
         assert quotes[0].sell_price_rial == 1_934_030
         assert quotes[0].buy_price_rial == 1_931_130
 
@@ -139,8 +116,6 @@ class TestIranFetchers:
         assert {q.symbol for q in quotes} == {SymbolCode.GOLD18_GRAM}
 
     async def test_the_dollar_has_at_least_one_keyless_source(self) -> None:
-        # every rate aggregator that quotes the dollar sits behind a token,
-        # so losing these two would leave USD with nothing at all
         priced = {
             code
             for code, fetcher in IRAN_FETCHERS.items()
@@ -258,7 +233,6 @@ class TestFetchNeverRaises:
         assert "current" in quotes[0].error.message
 
     async def test_a_multi_asset_source_fails_every_asset(self) -> None:
-        # a dropped asset would silently vanish from the aggregate
         quotes = await _fetch(TgjuFetcher(), {"junk": 1})
 
         assert {q.symbol for q in quotes} == {
@@ -312,19 +286,12 @@ class TestRegistries:
         assert len(codes) == len(set(codes))
 
     def test_only_the_known_sources_lack_a_fetcher(self) -> None:
-        # every source that needs an api key is seeded but not fetched; the
-        # two wholesalers are the only credentialed exception. Pin the list
-        # so a newly added source without a fetcher fails here.
         expected = {
-            # quotes silver, which SymbolCode does not model yet
             SourceCode.NOGHRESEA,
-            # quotes the dollar against the euro, which prices nothing here
             SourceCode.FRANKFURTER,
-            # rial rates behind a token
             SourceCode.ALANCHAND,
             SourceCode.NAVASAN,
             SourceCode.NERKH_API,
-            # XAU spot behind an api key
             SourceCode.COMMODITY_PRICE_API,
             SourceCode.EODHD,
             SourceCode.GOLDAPI_IO,
@@ -334,7 +301,6 @@ class TestRegistries:
             SourceCode.TWELVE_DATA,
             SourceCode.UNIRATE_API,
             SourceCode.XAUS,
-            # FX behind an api key
             SourceCode.CURRENCY_LAYER,
             SourceCode.EXCHANGERATE_API,
             SourceCode.EXCHANGERATES_API,
@@ -348,7 +314,6 @@ class TestRegistries:
         assert {s.code for s in SOURCES} - covered == expected
 
     def test_only_the_wholesalers_need_credentials(self) -> None:
-        # every other fetcher must work with no auth configured at all
         keyless = set(IRAN_FETCHERS) | set(GLOBAL_FETCHERS)
         assert not keyless & set(SUPPLIER_FETCHERS)
         for fetcher in list(IRAN_FETCHERS.values()) + list(

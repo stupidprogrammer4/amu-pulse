@@ -16,8 +16,6 @@ from src.modules.ops.system.domain.schemas import (
 
 
 class SystemService:
-    """Liveness of the backing services plus basic runtime info; it has
-    no model of its own and only probes the shared infra adapters."""
 
     def __init__(
         self,

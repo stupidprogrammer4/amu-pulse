@@ -13,13 +13,6 @@ class AdminAuthOut(BaseOutput):
 
     @classmethod
     def from_auth(cls, auth: AdminAuthType) -> Self:
-        """
-        Desc: Build the login output from a signed-in session.
-        Args:
-            auth (AdminAuthType): The tokens and the admin they belong to.
-        Returns:
-            return (Self): The login output.
-        """
         return cls(
             access_token=auth.access_token,
             refresh_token=auth.refresh_token,

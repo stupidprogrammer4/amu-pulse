@@ -11,12 +11,10 @@ from src.modules.ops.jobs.domain.schemas import (
     ScheduledJobOut,
 )
 
-# result-backend key prefix (set on the broker), used to count stored results
 _RESULT_PREFIX = "taskiq_result"
 
 
 def _interval_seconds(interval: int | timedelta | None) -> int | None:
-    """Normalize a schedule's interval to whole seconds."""
     result: int | None = (
         int(interval.total_seconds())
         if isinstance(interval, timedelta)
@@ -26,8 +24,6 @@ def _interval_seconds(interval: int | timedelta | None) -> int | None:
 
 
 class JobService:
-    """Read-only view over the task system: a job's result by id, the scheduled
-    jobs, the in-flight (running) jobs, and how many results are stored."""
 
     def __init__(
         self,
@@ -40,8 +36,8 @@ class JobService:
         self.result_backend = result_backend
         self.schedule_source = schedule_source
         self.redis = redis
-        self.stream_name = stream_name  # broker's redis stream
-        self.group_name = group_name  # broker's consumer group
+        self.stream_name = stream_name
+        self.group_name = group_name
 
     async def get_status(self, task_id: str) -> JobStatusOut:
         """Get a single job's status (and error, once finished) by its task id.
@@ -102,7 +98,7 @@ class JobService:
                 self.stream_name, self.group_name, min="-", max="+", count=100
             )
         except ResponseError:
-            return []  # NOGROUP — no worker has consumed yet
+            return []
         return [
             RunningJobOut(
                 message_id=str(entry["message_id"]),

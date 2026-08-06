@@ -11,13 +11,6 @@ from src.web.dependencies import decode_path_id
 
 
 def _asset_out(id: int) -> AssetOut:
-    """
-    Desc: Build an AssetOut carrying the given internal id.
-    Args:
-        id (int): The internal id.
-    Returns:
-        return (AssetOut): The output schema.
-    """
     now = datetime(2026, 7, 29, 12, 0, 0)
     return AssetOut(
         id=id,
@@ -69,8 +62,6 @@ class TestAssetOutIDSerialization:
         assert dumped["id"] == ASSET_ID_ENCRYPTION.encode(7)
 
     def test_a_revalidation_never_double_encodes(self) -> None:
-        # FastAPI re-validates through response_model; the encode must not
-        # compound across that second pass
         once = _asset_out(7).model_dump()
         twice = AssetOut.model_validate(_asset_out(7)).model_dump()
         assert once["id"] == twice["id"]

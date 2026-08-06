@@ -31,8 +31,6 @@ def pydantic_error_handler(
 ) -> JSONResponse:
     response_model = APIResponse.from_pydantic_error(exc)
     return JSONResponse(
-        # json mode: a rejected value is echoed back raw, and a Decimal
-        # or a date would not survive json.dumps
         content=response_model.model_dump(mode="json", exclude_defaults=True),
         status_code=422,
         media_type=MediaType.JSON,
@@ -56,8 +54,6 @@ def http_error_handler(
     return JSONResponse(
         content=response_model.model_dump(exclude_defaults=True),
         status_code=exc.status_code,
-        # a 405 without Allow, or a 401 without WWW-Authenticate, is not the
-        # status it claims to be
         headers=exc.headers,
         media_type=MediaType.JSON,
     )

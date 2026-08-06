@@ -52,22 +52,10 @@ _hour = 60 * _minute
 
 
 def _now() -> int:
-    """
-    Desc: Read the moment the charts are measured back from.
-    Returns:
-        return (int): Now, in whole seconds.
-    """
     return int(date_utils.utc_now().timestamp())
 
 
 def _asset_meta(uow: PGUnitOfWork) -> AssetMetaService:
-    """
-    Desc: Build the asset meta service over real services.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read through.
-    Returns:
-        return (AssetMetaService): The service that names an asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -75,14 +63,6 @@ def _asset_meta(uow: PGUnitOfWork) -> AssetMetaService:
 
 
 def _source_meta(uow: PGUnitOfWork) -> SourceMetaService:
-    """
-    Desc: Build the source meta service over real services.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read through.
-    Returns:
-        return (SourceMetaService): The service that names a source and a
-            line.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     return SourceMetaService(
         SourceService(SourceRepository(uow), configs),
@@ -91,24 +71,10 @@ def _source_meta(uow: PGUnitOfWork) -> SourceMetaService:
 
 
 def _prices(uow: PGUnitOfWork) -> PriceTickerService:
-    """
-    Desc: Build the asset chart service over the real table.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read through.
-    Returns:
-        return (PriceTickerService): The service.
-    """
     return PriceTickerService(PriceTickerRepository(uow), _asset_meta(uow))
 
 
 def _sources(uow: PGUnitOfWork) -> SourcePriceTickerService:
-    """
-    Desc: Build the source chart service over the real table.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read through.
-    Returns:
-        return (SourcePriceTickerService): The service.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     return SourcePriceTickerService(
         SourcePriceTickerRepository(uow),
@@ -121,14 +87,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset to hang points off.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -144,15 +102,6 @@ async def _symbol(
     asset: AssetModel,
     code: SymbolCode = SymbolCode.GOLD18_GRAM,
 ) -> SymbolModel:
-    """
-    Desc: Create the line an asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-        code (SymbolCode): Code of the line.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -170,14 +119,6 @@ async def _source(
     uow: PGUnitOfWork,
     code: SourceCode = SourceCode.TGJU,
 ) -> SourceModel:
-    """
-    Desc: Create one source feeding the Iranian market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (SourceCode): Code of the source.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(
@@ -198,13 +139,6 @@ async def _points(
     asset: AssetModel,
     points: list[tuple[int, int]],
 ) -> None:
-    """
-    Desc: Write one asset point per pair given.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the points belong to.
-        points (list[tuple[int, int]]): The time and price of each point.
-    """
     await PriceTickerRepository(uow).bulk_create(
         [
             PriceTickerModel(asset_id=asset.id, price=price, timestamp=stamp)
@@ -219,14 +153,6 @@ async def _source_points(
     source: SourceModel,
     points: list[tuple[int, int]],
 ) -> None:
-    """
-    Desc: Write one source point per pair given.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        symbol (SymbolModel): The line the points were quoted for.
-        source (SourceModel): The source that quoted them.
-        points (list[tuple[int, int]]): The time and price of each point.
-    """
     await SourcePriceTickerRepository(uow).bulk_create(
         [
             SourcePriceTickerModel(
@@ -264,7 +190,6 @@ class TestTheAssetChart:
     async def test_the_change_is_the_first_price_against_the_last(
         self, uow: PGUnitOfWork
     ) -> None:
-        # 100 -> 110 is a tenth up, whatever happened in between
         asset = await _asset(uow)
         now = _now()
         await _points(

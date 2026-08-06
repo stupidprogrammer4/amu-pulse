@@ -48,14 +48,6 @@ class BubbleCalculatorService:
         published: ICacheReaderService,
         cache: BubbleCache,
     ) -> None:
-        """
-        Desc: Build the service with what it settles premiums out of.
-        Args:
-            bubbles (BubbleReader): Reader over the bubbles module's tables.
-            published (ICacheReaderService): Where the crawl left what each
-                source published.
-            cache (BubbleCache): Where the settled premium lands.
-        """
         self.bubbles = bubbles
         self.published = published
         self.cache = cache
@@ -135,7 +127,6 @@ class BubbleCalculatorService:
 
 
 class CalculatorService:
-    # the dollar is priced on its own route, before a sweep reads its rate
     excludes = (AssetCode.USD,)
 
     def __init__(
@@ -149,23 +140,6 @@ class CalculatorService:
         prices: AssetPriceCache,
         windows: IWindowService,
     ) -> None:
-        """
-        Desc: Build the service with what it prices out of and writes to.
-        Args:
-            assets (AssetReader): Reader over the assets module's tables.
-            symbols (SymbolReader): Reader over the symbols module's tables.
-            orders (SwitchOrderReader): Reader of the markets an asset is
-                priced from, in order.
-            sources (SourceReader): Reader of which market each source
-                feeds.
-            readings (ICacheReaderService): Where the crawl left what each
-                source quoted.
-            bubbles (BubbleCache): Where the settled premiums live.
-            prices (AssetPriceCache): Where the asset's price lands, and
-                where the dollar rate is read from.
-            windows (IWindowService): The open candle each price is folded
-                into.
-        """
         self.assets = assets
         self.symbols = symbols
         self.orders = orders
@@ -236,8 +210,6 @@ class CalculatorService:
         switches = dict(await self.sources.get_source_switches())
         codes = [symbol.symbol for symbol in symbols]
         readings = await self.readings.get_many_by_symbols(codes)
-        # both are read before a single market is tried, so the world has
-        # what it needs the moment its turn comes
         bubble = await self.bubbles.get(asset.code)
         dollar = await self.prices.get(AssetCode.USD)
         usd_price = 0 if dollar is None else dollar.price
@@ -294,8 +266,6 @@ class CalculatorService:
         orders = await self.orders.get_all(self.excludes)
         switches = dict(await self.sources.get_source_switches())
         readings = await self.readings.get_all()
-        # both are read before a single market is tried, so the world has
-        # what it needs the moment its turn comes
         bubbles = await self.bubbles.get_all()
         dollar = await self.prices.get(AssetCode.USD)
         usd_price = 0 if dollar is None else dollar.price
@@ -339,12 +309,6 @@ class CacheReaderService:
         prices: AssetPriceCache,
         bubbles: BubbleCache,
     ) -> None:
-        """
-        Desc: Build the service with the caches it reads from.
-        Args:
-            prices (AssetPriceCache): Where each asset's price lands.
-            bubbles (BubbleCache): Where each settled premium lands.
-        """
         self.prices = prices
         self.bubbles = bubbles
 
@@ -400,17 +364,11 @@ class CacheReaderService:
 
 
 class SchedulerService:
-    # the task a schedule fires, and the queue it fires it on
     task_name = "calculator.calculate_asset"
     queue_name = "calculator_queue"
     prefix = "calculator:asset:"
 
     def __init__(self, source: ScheduleSource) -> None:
-        """
-        Desc: Build the service with the schedules it writes.
-        Args:
-            source (ScheduleSource): Where the running schedules live.
-        """
         self.source = source
 
     async def sync(
@@ -430,8 +388,6 @@ class SchedulerService:
             return (bool): Whether the asset is scheduled now.
         """
         schedule_id = f"{self.prefix}{asset_id}"
-        # a changed period is a different schedule, so whatever was there
-        # goes before the new one is written
         await self.source.delete_schedule(schedule_id)
         if scheduler_on:
             await self.source.add_schedule(

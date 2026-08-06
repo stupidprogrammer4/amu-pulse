@@ -10,13 +10,6 @@ class PriceWindow(BaseModel):
     close: int
 
     def folded(self, price: int) -> Self:
-        """
-        Desc: Take one more price into the window.
-        Args:
-            price (int): What the last read said.
-        Returns:
-            return (Self): The window as it stands with that price in it.
-        """
         return self.model_copy(
             update={
                 "high": max(self.high, price),
@@ -31,14 +24,6 @@ class AssetPriceWindow(PriceWindow):
 
     @classmethod
     def opened(cls, asset_id: int, price: int) -> Self:
-        """
-        Desc: Open an asset's window on the price that opened it.
-        Args:
-            asset_id (int): ID of the asset being priced.
-            price (int): The first price of the window.
-        Returns:
-            return (Self): The window, flat on that one price.
-        """
         return cls(
             asset_id=asset_id,
             open=price,
@@ -59,15 +44,6 @@ class SourcePriceWindow(PriceWindow):
         symbol_id: int,
         price: int,
     ) -> Self:
-        """
-        Desc: Open a source's window on the line it quoted.
-        Args:
-            source_id (int): ID of the source that quoted it.
-            symbol_id (int): ID of the line it was quoted for.
-            price (int): The first price of the window.
-        Returns:
-            return (Self): The window, flat on that one price.
-        """
         return cls(
             source_id=source_id,
             symbol_id=symbol_id,

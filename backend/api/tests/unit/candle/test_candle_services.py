@@ -41,7 +41,6 @@ _five_minutes = TimeFrame.FIVE_MINUTE.seconds
 
 
 class _FakeCandleRepo:
-    """The candle table, as a dict keyed the way the unique index is."""
 
     def __init__(self) -> None:
         self.rows: dict[tuple[int, str, int], CandleModel] = {}
@@ -78,7 +77,6 @@ class _FakeCandleRepo:
 
 
 class _FakeSourceCandleRepo:
-    """The source candle table, keyed the way its unique index is."""
 
     def __init__(self) -> None:
         self.rows: dict[tuple[int, int, str, int], SourceCandleModel] = {}
@@ -108,14 +106,12 @@ class _FakeSourceCandleRepo:
 
 
 class _FakeAssetMeta:
-    """What names an asset, over nothing at all."""
 
     async def build(self, asset_ids: Sequence[int]) -> AssetMeta:
         return AssetMeta(assets=[])
 
 
 class _FakeSourceMeta:
-    """What names a source and a line, over nothing at all."""
 
     async def build(
         self,
@@ -126,12 +122,6 @@ class _FakeSourceMeta:
 
 
 def _assets() -> tuple[CandleService, _FakeCandleRepo, AssetWindowCache]:
-    """
-    Desc: Build the candle service over a fake table and a fake Redis.
-    Returns:
-        return (tuple[CandleService, _FakeCandleRepo, AssetWindowCache]):
-            The service, the table it writes to and the window cache.
-    """
     repo = _FakeCandleRepo()
     client = cast(RedisClient, SimpleNamespace(client=_FakeWindowRedis()))
     cache = AssetWindowCache(client)
@@ -146,13 +136,6 @@ def _assets() -> tuple[CandleService, _FakeCandleRepo, AssetWindowCache]:
 def _sources() -> tuple[
     SourceCandleService, _FakeSourceCandleRepo, SourceWindowCache
 ]:
-    """
-    Desc: Build the source candle service over a fake table and Redis.
-    Returns:
-        return (tuple[SourceCandleService, _FakeSourceCandleRepo,
-            SourceWindowCache]): The service, the table it writes to and
-            the window cache.
-    """
     repo = _FakeSourceCandleRepo()
     client = cast(RedisClient, SimpleNamespace(client=_FakeWindowRedis()))
     cache = SourceWindowCache(client)
@@ -165,11 +148,6 @@ def _sources() -> tuple[
 
 
 def _closed() -> int:
-    """
-    Desc: Read when the window that has just closed opened at.
-    Returns:
-        return (int): The moment it opened, in whole seconds.
-    """
     stamp = int(date_utils.utc_now().timestamp())
     return TimeFrame.FIVE_MINUTE.opened_at(stamp) - _five_minutes
 
@@ -179,15 +157,6 @@ def _candle(
     prices: tuple[int, int, int, int],
     st_ts: int,
 ) -> CandleModel:
-    """
-    Desc: Build one five minute candle to roll up.
-    Args:
-        asset_id (int): ID of the asset it is of.
-        prices (tuple[int, int, int, int]): Its open, high, low and close.
-        st_ts (int): When it opened.
-    Returns:
-        return (CandleModel): The candle.
-    """
     return CandleModel(
         asset_id=asset_id,
         timeframe=TimeFrame.FIVE_MINUTE,
@@ -341,14 +310,6 @@ class TestRollingTheCoarserCandlesUp:
 
 class TestDrawingTheCandlesAsked:
     def _param(self, days: float, to: datetime | None = None) -> ParamDTO:
-        """
-        Desc: Build the span a chart is asked for, that many days long.
-        Args:
-            days (float): How many days it covers.
-            to (datetime | None): When it ends, or now.
-        Returns:
-            return (ParamDTO): The span.
-        """
         ends = to or date_utils.utc_now()
         return ParamDTO(
             from_datetime=ends - timedelta(days=days), to_datetime=ends

@@ -19,19 +19,11 @@ from src.modules.price.bubbles.interfaces import IBubbleConfigService
 
 
 class BubbleConfigService(BaseService[BubbleConfigModel]):
-    # a new bubble stays paused until an admin checks its publishers
     default_scheduler_on = False
     default_scheduler_seconds = 60
-    # the median shrugs off one publisher printing nonsense; with a single
-    # source every aggregation returns that source's reading
     default_agg_type = AggregationType.MEDIAN
 
     def __init__(self, repo: BubbleConfigRepository) -> None:
-        """
-        Desc: Build the service with its repository.
-        Args:
-            repo (BubbleConfigRepository): The bubble config repository.
-        """
         self.repo = repo
 
     async def create_default(self, bubble_id: int) -> BubbleConfigModel:
@@ -98,12 +90,6 @@ class BubbleService(BaseIDService[BubbleModel]):
         repo: BubbleRepository,
         configs: IBubbleConfigService,
     ) -> None:
-        """
-        Desc: Build the service with its repository and the config service.
-        Args:
-            repo (BubbleRepository): The bubble repository.
-            configs (IBubbleConfigService): The bubble config service.
-        """
         self.repo = repo
         self.configs = configs
 

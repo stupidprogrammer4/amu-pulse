@@ -4,8 +4,6 @@ from src.settings import get_settings
 
 settings = get_settings()
 
-# ai's own queue, for work it schedules itself; cross-app traffic goes over
-# the RabbitMQ event bus in events/ instead
 broker = RedisStreamBroker(
     url=settings.taskiq.redis_url,
     max_connection_pool_size=settings.taskiq.max_connection_pool_size,

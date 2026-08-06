@@ -9,8 +9,6 @@ from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
 
 
 class PublicPriceOut(BaseOutput):
-    # the quote a visitor is shown. Spreads, fees and the reason a source won
-    # the selection are an operator's concern and stay off this shape.
     symbol_id: SymbolIDField
     source_id: SourceIDField
     currency: CurrencyType

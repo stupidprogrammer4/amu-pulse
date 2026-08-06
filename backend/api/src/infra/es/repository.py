@@ -11,13 +11,6 @@ TDoc = TypeVar("TDoc", bound=AsyncDocument)
 
 
 class ESRepository(Generic[TDoc]):
-    """Generic CRUD + search over an `elasticsearch.dsl.AsyncDocument`.
-
-    Parameterize with the document type and the index is taken from it::
-
-        class ProductRepository(ESRepository[Product]):
-            ...
-    """
 
     __document__: type[TDoc]
 

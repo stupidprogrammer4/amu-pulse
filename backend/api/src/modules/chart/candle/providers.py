@@ -25,7 +25,6 @@ from src.modules.chart.candle.interfaces import (
 class CandleProvider(Provider):
     scope = Scope.REQUEST
 
-    # neither window cache touches postgres, so neither pins a connection
     asset_window_cache = provide(AssetWindowCache, scope=Scope.APP)
     source_window_cache = provide(SourceWindowCache, scope=Scope.APP)
     candle_repo = provide(CandleRepository)

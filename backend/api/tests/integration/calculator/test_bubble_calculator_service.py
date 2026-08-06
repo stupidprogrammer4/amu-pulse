@@ -36,7 +36,6 @@ _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 
 class _TestBubbleCache(BubbleCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:calc:bubble:price"
 
 
@@ -84,15 +83,6 @@ def _service(
     uow: PGUnitOfWork,
     redis: RedisClient,
 ) -> tuple[BubbleCalculatorService, _TestBubbleCache]:
-    """
-    Desc: Build the service over the real database, redis and engine reader.
-    Args:
-        uow (PGUnitOfWork): Unit of work the bubbles are read through.
-        redis (RedisClient): Client both caches run on.
-    Returns:
-        return (tuple[BubbleCalculatorService, _TestBubbleCache]): The
-            service and the cache it settles into.
-    """
     settled = _TestBubbleCache(redis)
     reader = CacheReaderService(
         _TestSourcePriceCache(redis),
@@ -103,13 +93,6 @@ def _service(
 
 
 def _bubbles(uow: PGUnitOfWork) -> tuple[BubbleService, BubbleConfigService]:
-    """
-    Desc: Build the bubble services over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (tuple[BubbleService, BubbleConfigService]): The two services.
-    """
     configs = BubbleConfigService(BubbleConfigRepository(uow))
     return BubbleService(BubbleRepository(uow), configs), configs
 
@@ -118,14 +101,6 @@ async def _bubble(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> BubbleModel:
-    """
-    Desc: Create one bubble with its default config.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Asset whose premium it tracks.
-    Returns:
-        return (BubbleModel): The created bubble.
-    """
     bubbles, _ = _bubbles(uow)
     bubble = await bubbles.create(BubbleCreate(title="حباب", code=code))
     return bubble
@@ -136,15 +111,6 @@ def _published(
     asset_id: int = 1,
     source_id: int = 1,
 ) -> SourceBubbleResult:
-    """
-    Desc: Build what one source published as an asset's premium.
-    Args:
-        amount (int): The premium in rial, signed.
-        asset_id (int): ID of the asset it belongs to.
-        source_id (int): ID of the source that published it.
-    Returns:
-        return (SourceBubbleResult): The published premium.
-    """
     return SourceBubbleResult(
         asset_id=asset_id,
         source_id=source_id,

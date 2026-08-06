@@ -28,7 +28,6 @@ from src.modules.price.calculator.interfaces import (
 class CalculatorProvider(Provider):
     scope = Scope.REQUEST
 
-    # neither cache touches postgres, so neither pins a connection
     asset_price_cache = provide(AssetPriceCache, scope=Scope.APP)
     bubble_cache = provide(BubbleCache, scope=Scope.APP)
     cache_reader_service = provide(

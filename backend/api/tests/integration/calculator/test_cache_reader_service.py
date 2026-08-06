@@ -21,7 +21,6 @@ _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 
 class _TestAssetPriceCache(AssetPriceCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:reader:assets:price"
 
 
@@ -63,28 +62,12 @@ async def redis(
 def _service(
     redis: RedisClient,
 ) -> tuple[CacheReaderService, _TestAssetPriceCache, _TestBubbleCache]:
-    """
-    Desc: Build the service over the real caches.
-    Args:
-        redis (RedisClient): Client both caches run on.
-    Returns:
-        return (tuple[CacheReaderService, _TestAssetPriceCache,
-            _TestBubbleCache]): The service and the two caches it reads.
-    """
     prices = _TestAssetPriceCache(redis)
     bubbles = _TestBubbleCache(redis)
     return CacheReaderService(prices, bubbles), prices, bubbles
 
 
 def _price(asset_id: int, price: int) -> AssetPriceResult:
-    """
-    Desc: Build one cached asset price.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        price (int): The mid price in rial.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price,

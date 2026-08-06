@@ -9,7 +9,6 @@ from src.modules.price.calculator.infra.cache import AssetPriceCache
 
 
 class _FakeRedis:
-    """The handful of hash commands the cache uses, over a dict."""
 
     def __init__(self) -> None:
         self.store: dict[str, dict[str, str]] = {}
@@ -53,25 +52,12 @@ class _FakeRedis:
 
 
 def _cache() -> tuple[AssetPriceCache, _FakeRedis]:
-    """
-    Desc: Build the cache over a fake Redis.
-    Returns:
-        return (tuple[AssetPriceCache, _FakeRedis]): The cache and its store.
-    """
     fake = _FakeRedis()
     client = cast(RedisClient, SimpleNamespace(client=fake))
     return AssetPriceCache(client), fake
 
 
 def _result(price: int, asset_id: int = 1) -> AssetPriceResult:
-    """
-    Desc: Build a priced result to store.
-    Args:
-        price (int): The mid price in Rial.
-        asset_id (int): ID of the asset it belongs to.
-    Returns:
-        return (AssetPriceResult): The result.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price - 1000,

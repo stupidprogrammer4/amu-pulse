@@ -10,11 +10,8 @@ class TestTheDollarSchedule:
         assert calculate_usd.labels["schedule"] == [{"interval": 20}]
 
     def test_nothing_but_the_task_itself_decides_that_period(self) -> None:
-        # a label schedule is read off the code, so no config can move it
         assert calculate_usd.task_name == "calculator.calculate_usd"
         assert calculate_usd.labels["queue_name"] == "calculator_queue"
 
     def test_every_other_asset_is_scheduled_from_its_config(self) -> None:
-        # the per-asset task carries no schedule of its own; the scheduler
-        # service writes one from what the asset's config says
         assert "schedule" not in calculate_asset.labels

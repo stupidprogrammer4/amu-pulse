@@ -15,16 +15,10 @@ from src.modules.price.calculator.domain.results import AssetPriceResult
 
 
 class _TestAssetWindowCache(AssetWindowCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:assets:window"
 
 
 def _opened_now() -> int:
-    """
-    Desc: Read when the window prices are folded into opened at.
-    Returns:
-        return (int): The moment it opened, in whole seconds.
-    """
     stamp = int(date_utils.utc_now().timestamp())
     return TimeFrame.FIVE_MINUTE.opened_at(stamp)
 
@@ -46,7 +40,6 @@ async def cache(
     )
     built = _TestAssetWindowCache(client)
     try:
-        # reaching redis at all is what decides whether these can run
         await resolve(client.client.ping())
     except (RedisError, OSError) as exc:
         await client.close()
@@ -64,15 +57,6 @@ def _priced(
     asset_id: int = 1,
     priced_at: datetime | None = None,
 ) -> AssetPriceResult:
-    """
-    Desc: Build what an asset was priced at, now unless told otherwise.
-    Args:
-        price (int): The mid price in rial.
-        asset_id (int): ID of the asset it belongs to.
-        priced_at (datetime | None): When it was priced, or now.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price - 1_000,
@@ -127,7 +111,6 @@ class TestTheWindowServiceOverRedis:
     async def test_the_window_expires_on_its_own(
         self, cache: _TestAssetWindowCache
     ) -> None:
-        # nothing is left behind when no flusher comes for it
         service = WindowService(cache)
 
         await service.update_window(AssetCode.GOLD18, _priced(100))

@@ -46,13 +46,6 @@ from tests.conftest import NullScheduler
 
 
 def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
-    """
-    Desc: Build the asset services over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (tuple[AssetService, AssetConfigService]): The two services.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -60,13 +53,6 @@ def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
 
 
 def _bubbles(uow: PGUnitOfWork) -> tuple[BubbleService, BubbleConfigService]:
-    """
-    Desc: Build the bubble services over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (tuple[BubbleService, BubbleConfigService]): The two services.
-    """
     configs = BubbleConfigService(BubbleConfigRepository(uow))
     return BubbleService(BubbleRepository(uow), configs), configs
 
@@ -75,14 +61,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset with its default config.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     assets, _ = _assets(uow)
     asset = await assets.create(
         AssetCreate(title="طلا", code=code, primary_color="#c8a44b")
@@ -96,14 +74,6 @@ async def _symbol(
     code: SymbolCode = SymbolCode.GOLD18_GRAM,
     currency: CurrencyType = CurrencyType.RIAL,
 ) -> None:
-    """
-    Desc: Create one symbol hanging off the given asset.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the symbol is quoted for.
-        code (SymbolCode): Code of the symbol.
-        currency (CurrencyType): What the line is priced in.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     await symbols.create(
         SymbolCreate(
@@ -122,14 +92,6 @@ async def _switch(
     switch: SourceSwitch,
     priority: int,
 ) -> None:
-    """
-    Desc: Put one market at the given level of an asset's pricing order.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the market prices.
-        switch (SourceSwitch): The market to add.
-        priority (int): Where it sits in the order; lower comes first.
-    """
     switches = AssetSwitchService(AssetSwitchRepository(uow))
     await switches.create(
         asset.id,
@@ -233,8 +195,6 @@ class TestAssetReader:
     async def test_a_paused_asset_is_still_read(
         self, uow: PGUnitOfWork
     ) -> None:
-        # folding what is already cached costs nothing, so the scheduler
-        # flag gates the crawl, not the calculation
         asset = await _asset(uow)
 
         found = await AssetReader(uow).get_all_config()
@@ -245,7 +205,6 @@ class TestAssetReader:
     async def test_the_context_carries_the_aggregation_rule(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the calculator folds a line's readings by exactly this rule
         asset = await _asset(uow)
         _, configs = _assets(uow)
         await configs.update(
@@ -349,7 +308,6 @@ class TestSwitchOrderReader:
     async def test_two_markets_may_share_a_level(
         self, uow: PGUnitOfWork
     ) -> None:
-        # a shared level still has to read back in a stable order
         asset = await _asset(uow)
         await _switch(uow, asset, SourceSwitch.IRAN_MARKET, 0)
         await _switch(uow, asset, SourceSwitch.SUPPLIER, 0)

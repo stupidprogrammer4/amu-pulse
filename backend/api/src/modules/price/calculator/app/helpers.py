@@ -21,14 +21,6 @@ class Aggregator:
         ordered: Sequence[int],
         share: float,
     ) -> float:
-        """
-        Desc: Read one quantile off an already sorted series.
-        Args:
-            ordered (Sequence[int]): The series, smallest first.
-            share (float): Where to cut it, as a share of its length.
-        Returns:
-            return (float): The value sitting at that cut.
-        """
         position = (len(ordered) - 1) * share
         low = int(position)
         high = min(low + 1, len(ordered) - 1)
@@ -41,15 +33,6 @@ class Aggregator:
         values: Sequence[int],
         agg: AggregationType,
     ) -> int:
-        """
-        Desc: Fold a series of rial amounts by the rule it is folded with.
-        Args:
-            values (Sequence[int]): The amounts, in rial.
-            agg (AggregationType): The rule to fold them by.
-        Returns:
-            return (int): The folded amount, rounded to the ten it sits on.
-        """
-        # the column is plain text, so a config row hands back a str
         rule = AggregationType(agg)
         ordered = sorted(values)
         picked: float = statistics.median(ordered)
@@ -67,15 +50,10 @@ class Aggregator:
 
 
 class AbstractMarketCalculator(ABC):
-    # a reading this far off the median is a source printing nonsense
     outlier_rate = 0.1
-    # with two readings there is no crowd to be the odd one out of
     min_outlier_sample = 3
 
     def __init__(self) -> None:
-        """
-        Desc: Build the calculator with the rule it folds readings by.
-        """
         self.aggregator = Aggregator()
 
     def _restated(
@@ -84,17 +62,6 @@ class AbstractMarketCalculator(ABC):
         buying: int,
         selling: int,
     ) -> SourcePriceResult:
-        """
-        Desc: Copy a reading with its two sides restated in rial per gram.
-        Args:
-            reading (SourcePriceResult): What the source quoted.
-            buying (int): The buying side, in rial per gram.
-            selling (int): The selling side, in rial per gram.
-        Returns:
-            return (SourcePriceResult): The restated reading; only its two
-                sides and mid are meant to be read, the fold recomputes the
-                rest.
-        """
         restated = reading.model_copy(
             update={
                 "currency": CurrencyType.RIAL,
@@ -109,14 +76,6 @@ class AbstractMarketCalculator(ABC):
         self,
         readings: Sequence[SourcePriceResult],
     ) -> Sequence[SourcePriceResult]:
-        """
-        Desc: Drop the readings sitting too far from what the rest agree on.
-        Args:
-            readings (Sequence[SourcePriceResult]): The restated readings.
-        Returns:
-            return (Sequence[SourcePriceResult]): The readings worth
-                folding, all of them while the sample is too small to judge.
-        """
         kept = list(readings)
         if len(kept) >= self.min_outlier_sample:
             middle = statistics.median([row.price for row in kept])
@@ -130,17 +89,6 @@ class AbstractMarketCalculator(ABC):
         asset: AssetContext,
         readings: Sequence[SourcePriceResult],
     ) -> AssetPriceResult | None:
-        """
-        Desc: Fold one market's restated readings into the asset's price.
-        Args:
-            asset (AssetContext): The asset being priced, with the rule its
-                readings are folded by.
-            readings (Sequence[SourcePriceResult]): The readings, already in
-                rial per gram.
-        Returns:
-            return (AssetPriceResult | None): The asset's price, or None
-                when that market quoted nothing for it.
-        """
         result = None
         kept = self._kept(readings)
         if kept:
@@ -174,16 +122,6 @@ class AbstractLocalMarketCalculator(AbstractMarketCalculator):
         asset: AssetContext,
         sources: Sequence[SourcePriceResult],
     ) -> AssetPriceResult | None:
-        """
-        Desc: Fold what this market quoted into the asset's price.
-        Args:
-            asset (AssetContext): The asset being priced.
-            sources (Sequence[SourcePriceResult]): That asset's readings
-                from this market.
-        Returns:
-            return (AssetPriceResult | None): The asset's price, or None
-                when the market quoted nothing for it.
-        """
         ...
 
     def calculate_all(
@@ -191,16 +129,6 @@ class AbstractLocalMarketCalculator(AbstractMarketCalculator):
         assets: Sequence[AssetContext],
         sources: Mapping[int, Sequence[SourcePriceResult]],
     ) -> Sequence[AssetPriceResult]:
-        """
-        Desc: Fold this market's readings for several assets.
-        Args:
-            assets (Sequence[AssetContext]): The assets being priced.
-            sources (Mapping[int, Sequence[SourcePriceResult]]): Each
-                asset's readings, keyed by asset id.
-        Returns:
-            return (Sequence[AssetPriceResult]): The prices of the assets
-                the market quoted, in the order they were given.
-        """
         results = []
         for asset in assets:
             result = self.calculate(asset, sources.get(asset.asset_id, ()))
@@ -215,17 +143,6 @@ class IranMarketCalculator(AbstractLocalMarketCalculator):
         asset: AssetContext,
         sources: Sequence[SourcePriceResult],
     ) -> AssetPriceResult | None:
-        """
-        Desc: Fold what the Iranian market quoted into the asset's price.
-        Args:
-            asset (AssetContext): The asset being priced.
-            sources (Sequence[SourcePriceResult]): That asset's readings
-                from the Iranian market.
-        Returns:
-            return (AssetPriceResult | None): The asset's price, or None
-                when the market quoted nothing for it.
-        """
-        # an iranian feed already quotes the asset's own unit, in rial
         readings = [
             row for row in sources if row.currency is CurrencyType.RIAL
         ]
@@ -239,17 +156,6 @@ class SupplierCalculator(AbstractLocalMarketCalculator):
         asset: AssetContext,
         sources: Sequence[SourcePriceResult],
     ) -> AssetPriceResult | None:
-        """
-        Desc: Fold what the suppliers quoted into the asset's price.
-        Args:
-            asset (AssetContext): The asset being priced.
-            sources (Sequence[SourcePriceResult]): That asset's readings
-                from the suppliers.
-        Returns:
-            return (AssetPriceResult | None): The asset's price, or None
-                when no supplier quoted it.
-        """
-        # a supplier quotes the mazane; everything downstream is per gram
         readings = [
             self._restated(
                 row,
@@ -264,7 +170,6 @@ class SupplierCalculator(AbstractLocalMarketCalculator):
 
 
 class GlobalMarketCalculator(AbstractMarketCalculator):
-    # what one gram of the asset holds of what the world feed prices pure
     purities: Mapping[AssetCode, Decimal] = {
         AssetCode.GOLD18: Decimal("0.750")
     }
@@ -275,15 +180,6 @@ class GlobalMarketCalculator(AbstractMarketCalculator):
         purity: Decimal,
         usd_price: int,
     ) -> int:
-        """
-        Desc: Turn a world price per troy ounce into rial per gram.
-        Args:
-            cents (int): One side of the reading, in cents per troy ounce.
-            purity (Decimal): What the asset holds of the priced metal.
-            usd_price (int): What one dollar costs, in rial.
-        Returns:
-            return (int): That side, in rial per gram of the asset.
-        """
         dollars = Decimal(cents) / 100 / TROY_OUNCE_GRAMS * purity
         rial = currency_utils.from_usd(dollars, usd_price)
         return rial
@@ -295,25 +191,10 @@ class GlobalMarketCalculator(AbstractMarketCalculator):
         asset: AssetContext,
         sources: Sequence[SourcePriceResult],
     ) -> AssetPriceResult | None:
-        """
-        Desc: Price the asset off world parity, lifted by its premium.
-        Args:
-            usd_price (int): What one dollar costs, in rial.
-            bubble (BubbleResult | None): The settled premium of the asset,
-                None while nothing has settled one.
-            asset (AssetContext): The asset being priced.
-            sources (Sequence[SourcePriceResult]): That asset's readings
-                from the world market.
-        Returns:
-            return (AssetPriceResult | None): The asset's price, or None
-                when the world market cannot price it.
-        """
         result = None
         purity = self.purities.get(asset.code)
         if purity is not None and usd_price > 0:
             premium = bubble.amount if bubble is not None else 0
-            # the world quotes the pure metal; the premium is what the local
-            # market pays over that parity
             readings = [
                 self._restated(
                     row,
@@ -339,19 +220,6 @@ class GlobalMarketCalculator(AbstractMarketCalculator):
         assets: Sequence[AssetContext],
         sources: Mapping[int, Sequence[SourcePriceResult]],
     ) -> Sequence[AssetPriceResult]:
-        """
-        Desc: Price several assets off world parity and their premiums.
-        Args:
-            usd_price (int): What one dollar costs, in rial.
-            bubbles (Mapping[int, BubbleResult]): Each asset's settled
-                premium, keyed by asset id.
-            assets (Sequence[AssetContext]): The assets being priced.
-            sources (Mapping[int, Sequence[SourcePriceResult]]): Each
-                asset's readings, keyed by asset id.
-        Returns:
-            return (Sequence[AssetPriceResult]): The prices of the assets
-                the world market can price, in the order they were given.
-        """
         results = []
         for asset in assets:
             result = self.calculate(

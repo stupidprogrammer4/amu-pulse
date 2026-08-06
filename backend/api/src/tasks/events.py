@@ -8,14 +8,13 @@ from dishka.integrations.taskiq import FromDishka, inject
 class EventBus:
     def __init__(self, broker: Any | None = None) -> None:
         self._broker = broker
-        # event name -> its registered taskiq tasks, one per handler
         self._handlers: dict[str, list[Any]] = {}
 
     def _resolve_broker(self) -> Any:
         broker = self._broker
         if broker is None:
             from src.tasks.broker import (
-                broker,  # lazy — keeps `emit` importable without it
+                broker,
             )
         return broker
 

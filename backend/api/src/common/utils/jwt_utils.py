@@ -29,18 +29,6 @@ def create_token(
     algorithm: str = DEFAULT_ALGORITHM,
     extra_claims: Mapping[str, Any] | None = None,
 ) -> str:
-    """
-    Desc: Encode a signed JWT for a subject with a lifetime and claims.
-    Args:
-        subject (str): Value of the ``sub`` claim.
-        secret_key (str): Key the token is signed with.
-        expires_in (timedelta): Lifetime of the token.
-        token_type (TokenType): Access or refresh token.
-        algorithm (str): JWT signing algorithm.
-        extra_claims (Mapping[str, Any] | None): Extra claims to merge in.
-    Returns:
-        return (str): The encoded token.
-    """
     now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": subject,
@@ -62,17 +50,6 @@ def create_access_token(
     algorithm: str = DEFAULT_ALGORITHM,
     extra_claims: Mapping[str, Any] | None = None,
 ) -> str:
-    """
-    Desc: Encode a short-lived access token for a subject.
-    Args:
-        subject (str): Value of the ``sub`` claim.
-        secret_key (str): Key the token is signed with.
-        expires_minutes (int): Lifetime of the token in minutes.
-        algorithm (str): JWT signing algorithm.
-        extra_claims (Mapping[str, Any] | None): Extra claims to merge in.
-    Returns:
-        return (str): The encoded access token.
-    """
     return create_token(
         subject,
         secret_key,
@@ -91,17 +68,6 @@ def create_refresh_token(
     algorithm: str = DEFAULT_ALGORITHM,
     extra_claims: Mapping[str, Any] | None = None,
 ) -> str:
-    """
-    Desc: Encode a long-lived refresh token for a subject.
-    Args:
-        subject (str): Value of the ``sub`` claim.
-        secret_key (str): Key the token is signed with.
-        expires_minutes (int): Lifetime of the token in minutes.
-        algorithm (str): JWT signing algorithm.
-        extra_claims (Mapping[str, Any] | None): Extra claims to merge in.
-    Returns:
-        return (str): The encoded refresh token.
-    """
     return create_token(
         subject,
         secret_key,
@@ -119,16 +85,6 @@ def decode_token(
     algorithm: str = DEFAULT_ALGORITHM,
     expected_type: TokenType | None = None,
 ) -> dict[str, Any]:
-    """
-    Desc: Decode and validate a JWT, raising UnAuthorizedException if bad.
-    Args:
-        token (str): The encoded token.
-        secret_key (str): Key the token was signed with.
-        algorithm (str): JWT signing algorithm.
-        expected_type (TokenType | None): Token type the caller requires.
-    Returns:
-        return (dict[str, Any]): The decoded claims.
-    """
     try:
         payload: dict[str, Any] = jwt.decode(
             token, secret_key, algorithms=[algorithm]

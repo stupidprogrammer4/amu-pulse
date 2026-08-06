@@ -54,14 +54,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset priced off the Iranian market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -82,15 +74,6 @@ async def _symbol(
     asset: AssetModel,
     code: SymbolCode,
 ) -> SymbolModel:
-    """
-    Desc: Create the line an asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-        code (SymbolCode): Code of the line.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -105,13 +88,6 @@ async def _symbol(
 
 
 async def _source(uow: PGUnitOfWork) -> SourceModel:
-    """
-    Desc: Create one source feeding the Iranian market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(
@@ -128,15 +104,6 @@ async def _source(uow: PGUnitOfWork) -> SourceModel:
 
 
 def _reading(source_id: int, symbol_id: int, price: int):
-    """
-    Desc: Build one cached source reading.
-    Args:
-        source_id (int): ID of the source that quoted it.
-        symbol_id (int): ID of the line it was quoted for.
-        price (int): The mid price in rial.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=symbol_id,
@@ -278,5 +245,4 @@ class TestCalculateUsd:
         assert result.return_value == 1_905_000
 
     async def test_it_runs_every_twenty_seconds(self) -> None:
-        # the period is read off the task, so no config can move it
         assert calculate_usd.labels["schedule"] == [{"interval": 20}]

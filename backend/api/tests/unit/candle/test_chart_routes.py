@@ -6,8 +6,8 @@ class TestWhatTheChartRoutesSay:
         paths = {route.path for route in router.routes}  # type: ignore[attr-defined]
 
         assert paths == {
-            "/candles/assets/{id:int}",
-            "/candles/sources/{id:int}",
+            "/panel/candles/assets/{id:int}",
+            "/panel/candles/sources/{id:int}",
         }
 
     def test_a_chart_is_only_ever_read(self) -> None:

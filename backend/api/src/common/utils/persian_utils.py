@@ -9,7 +9,7 @@ from persiantools.jdatetime import JalaliDateTime
 from src.common.utils.date_utils import from_db
 
 THOUSANDS_SEP = "،"
-DECIMAL_SEP = "٫"  # U+066B ARABIC DECIMAL SEPARATOR
+DECIMAL_SEP = "٫"
 RIAL_UNIT = "ریال"
 TOMAN_UNIT = "تومان"
 
@@ -71,7 +71,6 @@ def format_toman(
 
 
 def _to_jalali(dt: datetime, tz: str | tzinfo) -> JalaliDateTime:
-    # from_db: naive treated as UTC (DB convention), then shifted into app tz.
     return JalaliDateTime(from_db(dt, tz))
 
 

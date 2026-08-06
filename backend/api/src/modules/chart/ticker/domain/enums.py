@@ -10,11 +10,6 @@ class ChartType(StrEnum):
 
     @property
     def step(self) -> int:
-        """
-        Desc: How far apart two points of this chart sit, in seconds.
-        Returns:
-            return (int): The distance between points.
-        """
         return {
             ChartType.DAILY: 5 * 60,
             ChartType.WEEKLY: 30 * 60,
@@ -25,11 +20,6 @@ class ChartType(StrEnum):
 
     @property
     def span(self) -> int:
-        """
-        Desc: How far back this chart reaches, in seconds.
-        Returns:
-            return (int): The window the points are read from.
-        """
         day = 24 * 60 * 60
         return {
             ChartType.DAILY: day,

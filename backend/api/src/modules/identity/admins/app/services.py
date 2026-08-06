@@ -16,13 +16,6 @@ from src.modules.identity.admins.infra.repository import AdminRepository
 
 class AdminService(BaseIDService[AdminModel]):
     def __init__(self, repo: AdminRepository, settings: Settings) -> None:
-        """
-        Desc: Build the service with its repository and the hashing secret.
-        Args:
-            repo (AdminRepository): The admin repository.
-            settings (Settings): Read for crypto.password_salt, the pepper
-                every password hash is derived with.
-        """
         self.repo = repo
         self.pepper = settings.crypto.password_salt
 
@@ -130,8 +123,6 @@ class AdminService(BaseIDService[AdminModel]):
         Returns:
             return (PagedType[AdminModel]): The page and the total count.
         """
-        # an admin pastes a public id into the search box; match it as an id
-        # too, not only as text
         id_match = None
         if search.q is not None and search.q.isdigit():
             id_match = ADMIN_ID_ENCRYPTION.try_decode(int(search.q))

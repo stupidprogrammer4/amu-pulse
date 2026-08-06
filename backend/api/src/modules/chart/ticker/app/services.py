@@ -40,13 +40,6 @@ class PriceSnapshotService:
         repo: PriceTickerRepository,
         prices: IPriceCacheReaderService,
     ) -> None:
-        """
-        Desc: Build the service with what it snapshots and where it lands.
-        Args:
-            repo (PriceTickerRepository): The price ticker repository.
-            prices (IPriceCacheReaderService): Where each asset's price
-                lives.
-        """
         self.repo = repo
         self.prices = prices
 
@@ -76,14 +69,6 @@ class SourcePriceSnapshotService:
         repo: SourcePriceTickerRepository,
         readings: IReadingCacheReaderService,
     ) -> None:
-        """
-        Desc: Build the service with what it snapshots and where it lands.
-        Args:
-            repo (SourcePriceTickerRepository): The source ticker
-                repository.
-            readings (IReadingCacheReaderService): Where each source's
-                reading lives.
-        """
         self.repo = repo
         self.readings = readings
 
@@ -116,13 +101,6 @@ class PriceTickerService:
         repo: PriceTickerRepository,
         meta: IAssetMetaService,
     ) -> None:
-        """
-        Desc: Build the service with the points it draws and what names
-        them.
-        Args:
-            repo (PriceTickerRepository): The price ticker repository.
-            meta (IAssetMetaService): What the charted asset is named by.
-        """
         self.repo = repo
         self.meta = meta
         self.builder = ChartBuilder()
@@ -154,16 +132,6 @@ class SourcePriceTickerService:
         sources: ISourceService,
         meta: ISourceMetaService,
     ) -> None:
-        """
-        Desc: Build the service with the points it draws and what names
-        them.
-        Args:
-            repo (SourcePriceTickerRepository): The source ticker
-                repository.
-            sources (ISourceService): Which code each source carries.
-            meta (ISourceMetaService): What the charted source and line
-                are named by.
-        """
         self.repo = repo
         self.sources = sources
         self.meta = meta
@@ -191,7 +159,6 @@ class SourcePriceTickerService:
         quoted: dict[SourceCode, list[PointOutput]] = defaultdict(list)
         for row in rows:
             code = codes.get(row.source_id)
-            # a point of a source that has since been dropped
             if code is not None:
                 quoted[code].append(
                     PointOutput(price=row.price, timestamp=row.timestamp)

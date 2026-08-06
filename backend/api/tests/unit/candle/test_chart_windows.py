@@ -8,13 +8,6 @@ _to = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 
 def _param(days: float) -> ParamDTO:
-    """
-    Desc: Build the span a chart is asked for, that many days long.
-    Args:
-        days (float): How many days it covers.
-    Returns:
-        return (ParamDTO): The span.
-    """
     return ParamDTO(from_datetime=_to - timedelta(days=days), to_datetime=_to)
 
 

@@ -22,15 +22,6 @@ def _asset(
     asset_id: int = 1,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetContext:
-    """
-    Desc: Build an asset context priced by the given rule.
-    Args:
-        agg (AggregationType): The rule its readings are folded by.
-        asset_id (int): ID of the asset.
-        code (AssetCode): Code of the asset.
-    Returns:
-        return (AssetContext): The context a calculator prices.
-    """
     config = AssetConfigModel(
         asset_id=asset_id,
         scheduler_on=True,
@@ -47,17 +38,6 @@ def _reading(
     source_id: int = 1,
     priced_at: datetime = _at,
 ) -> SourcePriceResult:
-    """
-    Desc: Build one source reading, mid priced like the crawl caches it.
-    Args:
-        buying (int): The buying side, in the currency's own unit.
-        selling (int): The selling side, in the currency's own unit.
-        currency (CurrencyType): What the two sides are counted in.
-        source_id (int): ID of the source that quoted it.
-        priced_at (datetime): When it was quoted.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     price = round((buying + selling) / 2)
     return SourcePriceResult(
         source_id=source_id,
@@ -168,7 +148,6 @@ class TestIranMarketCalculator:
         assert result.sell_price == 101_500_000
 
     def test_two_readings_are_never_judged_outliers(self) -> None:
-        # with a crowd of two there is no majority to be the odd one out of
         readings = [
             _reading(100_000_000, 101_000_000),
             _reading(150_000_000, 151_000_000),
@@ -230,7 +209,6 @@ class TestIranMarketCalculator:
 
 class TestSupplierCalculator:
     def test_a_mazane_is_folded_into_a_per_gram_price(self) -> None:
-        # 4_331_802 rial the mazane is exactly 1_000_000 the gram
         readings = [_reading(4_331_802, 4_400_000)]
 
         result = SupplierCalculator().calculate(_asset(), readings)
@@ -270,7 +248,6 @@ class TestSupplierCalculator:
 
 class TestGlobalMarketCalculator:
     def test_an_ounce_of_pure_gold_becomes_a_gram_of_18_carat(self) -> None:
-        # $4000.00 the ounce at 1_000_000 rial the dollar
         readings = [_reading(400_000, 400_000, CurrencyType.USD)]
 
         result = GlobalMarketCalculator().calculate(
@@ -334,7 +311,6 @@ class TestGlobalMarketCalculator:
         assert result is None
 
     def test_an_asset_the_world_does_not_price(self) -> None:
-        # the dollar itself has no purity of a world-quoted metal
         readings = [_reading(400_000, 400_000, CurrencyType.USD)]
         dollar = _asset(asset_id=2, code=AssetCode.USD)
 

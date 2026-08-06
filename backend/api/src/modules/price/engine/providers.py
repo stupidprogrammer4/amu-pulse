@@ -28,7 +28,6 @@ from src.modules.price.engine.interfaces import (
 
 
 class EngineProvider(Provider):
-    # nothing below touches postgres, so none of it pins a connection
     source_price_cache = provide(SourcePriceCache, scope=Scope.APP)
     bubble_source_cache = provide(BubbleSourceCache, scope=Scope.APP)
     crawler_service = provide(
@@ -44,7 +43,6 @@ class EngineProvider(Provider):
         RunnerService, provides=IRunnerService, scope=Scope.APP
     )
 
-    # these hold a session for as long as their scope lives
     asset_reader = provide(AssetReader, scope=Scope.REQUEST)
     source_reader = provide(SourceReader, scope=Scope.REQUEST)
     symbol_reader = provide(SymbolReader, scope=Scope.REQUEST)

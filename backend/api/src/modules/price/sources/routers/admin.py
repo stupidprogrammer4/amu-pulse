@@ -39,8 +39,6 @@ from src.modules.price.sources.interfaces import (
 from src.modules.price.symbols.config.dependencies import SymbolIDPath
 from src.web.response import APIResponse
 
-# every route here is an admin panel route; the guard sits on the
-# router so no handler can be added without it
 router = APIRouter(
     prefix="/panel/sources",
     tags=["Panel Sources"],

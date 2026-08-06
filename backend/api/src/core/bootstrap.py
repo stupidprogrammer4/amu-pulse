@@ -127,9 +127,6 @@ class Bootstrapper:
 
     async def boot_es_indices(self, es: AsyncElasticsearch) -> None:
         for document in self.boot_documents():
-            # a document whose index another process owns is declared for
-            # querying only; creating it here would take the name that
-            # process needs
             if getattr(document, "__external__", False):
                 continue
             index_name = document._index._name

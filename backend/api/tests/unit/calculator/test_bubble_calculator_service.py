@@ -24,15 +24,6 @@ def _context(
     code: AssetCode = AssetCode.GOLD18,
     agg: AggregationType = AggregationType.MEDIAN,
 ) -> BubbleContext:
-    """
-    Desc: Build a bubble context settled by the given rule.
-    Args:
-        bubble_id (int): ID of the bubble.
-        code (AssetCode): Asset whose premium it tracks.
-        agg (AggregationType): The rule its publishers are folded by.
-    Returns:
-        return (BubbleContext): The context the service settles.
-    """
     config = BubbleConfigModel(
         bubble_id=bubble_id,
         scheduler_on=True,
@@ -48,16 +39,6 @@ def _published(
     source_id: int = 1,
     priced_at: datetime = _at,
 ) -> SourceBubbleResult:
-    """
-    Desc: Build what one source published as an asset's premium.
-    Args:
-        amount (int): The premium in rial, signed.
-        asset_id (int): ID of the asset it belongs to.
-        source_id (int): ID of the source that published it.
-        priced_at (datetime): When it was published.
-    Returns:
-        return (SourceBubbleResult): The published premium.
-    """
     return SourceBubbleResult(
         asset_id=asset_id,
         source_id=source_id,
@@ -67,7 +48,6 @@ def _published(
 
 
 class _FakeBubbleReader:
-    """The two reads the service makes, over a list of contexts."""
 
     def __init__(self, contexts: Sequence[BubbleContext]) -> None:
         self.contexts = contexts
@@ -84,7 +64,6 @@ class _FakeBubbleReader:
 
 
 class _FakeCacheReader:
-    """The premium side of the engine's cache reader, over a dict."""
 
     def __init__(
         self,
@@ -107,16 +86,6 @@ def _service(
     contexts: Sequence[BubbleContext],
     premiums: dict[AssetCode, Sequence[SourceBubbleResult]],
 ) -> tuple[BubbleCalculatorService, BubbleCache]:
-    """
-    Desc: Build the service over fake reads and a cache on a fake Redis.
-    Args:
-        contexts (Sequence[BubbleContext]): The bubbles that exist.
-        premiums (dict[AssetCode, Sequence[SourceBubbleResult]]): What the
-            crawl published for each asset.
-    Returns:
-        return (tuple[BubbleCalculatorService, BubbleCache]): The service
-            and the cache it settles into.
-    """
     client = cast(RedisClient, SimpleNamespace(client=_FakeRedis()))
     cache = BubbleCache(client)
     service = BubbleCalculatorService(

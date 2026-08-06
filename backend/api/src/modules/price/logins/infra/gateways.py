@@ -59,7 +59,6 @@ class MirrokniLogin(AbstractLogin):
             resp = await client.post(self.login_url, json=payload)
             data = resp.json()["Data"]
             if data.get("user") is None:
-                # a live session blocks a second login; drop it and retry
                 resp = await client.post(self.end_sessions_url, json=payload)
                 data = resp.json()["Data"]
             token = data["user"]["token"]

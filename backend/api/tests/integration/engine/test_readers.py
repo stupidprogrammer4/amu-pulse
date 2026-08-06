@@ -26,13 +26,6 @@ from tests.conftest import NullScheduler
 
 
 def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
-    """
-    Desc: Build the asset services over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (tuple[AssetService, AssetConfigService]): The two services.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -40,26 +33,11 @@ def _assets(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
 
 
 def _sources(uow: PGUnitOfWork) -> SourceService:
-    """
-    Desc: Build the source service over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (SourceService): The assembled service.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     return SourceService(SourceRepository(uow), configs)
 
 
 def _source_data(code: SourceCode, switch: SourceSwitch) -> SourceCreate:
-    """
-    Desc: Build a SourceCreate DTO for the given code and market.
-    Args:
-        code (SourceCode): Code of the source.
-        switch (SourceSwitch): The market it feeds.
-    Returns:
-        return (SourceCreate): The create DTO.
-    """
     return SourceCreate(
         title="منبع",
         code=code,
@@ -100,7 +78,6 @@ class TestAssetReader:
     async def test_read_scheduled_keeps_only_enabled_assets(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the dollar is on from birth; gold waits to be switched on
         assets, configs = _assets(uow)
         gold = await assets.create(
             AssetCreate(
@@ -123,7 +100,6 @@ class TestAssetReader:
     async def test_a_brand_new_asset_is_not_swept(
         self, uow: PGUnitOfWork
     ) -> None:
-        # creating an asset must not start polling endpoints nobody set up
         assets, _ = _assets(uow)
         await assets.create(
             AssetCreate(
@@ -138,7 +114,6 @@ class TestAssetReader:
     async def test_an_explicit_read_ignores_the_scheduler_flag(
         self, uow: PGUnitOfWork
     ) -> None:
-        # a manual repricing must still work on a paused asset
         assets, _ = _assets(uow)
         created = await assets.create(
             AssetCreate(
@@ -214,7 +189,6 @@ class TestSourceReader:
     async def test_the_context_carries_the_credentials(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the fetchers are built from exactly this config
         sources = _sources(uow)
         created = await sources.create(
             _source_data(SourceCode.TALALAND, SourceSwitch.SUPPLIER)

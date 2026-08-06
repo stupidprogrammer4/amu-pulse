@@ -35,7 +35,6 @@ _epoch = int(_at.timestamp())
 
 
 class _FakeRepo:
-    """The one write a snapshot makes."""
 
     def __init__(self) -> None:
         self.written: list = []
@@ -46,7 +45,6 @@ class _FakeRepo:
 
 
 class _FakePriceCacheReader:
-    """The price side of the calculator's cache reader."""
 
     def __init__(self, prices: Sequence[AssetPriceResult]) -> None:
         self.prices = prices
@@ -69,7 +67,6 @@ class _FakePriceCacheReader:
 
 
 class _FakeReadingCacheReader:
-    """The reading side of the engine's cache reader."""
 
     def __init__(self, board: dict) -> None:
         self.board = board
@@ -93,14 +90,6 @@ class _FakeReadingCacheReader:
 
 
 def _price(asset_id: int, price: int) -> AssetPriceResult:
-    """
-    Desc: Build one cached asset price.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        price (int): The mid price in rial.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price,
@@ -115,15 +104,6 @@ def _price(asset_id: int, price: int) -> AssetPriceResult:
 
 
 def _reading(source_id: int, symbol_id: int, price: int):
-    """
-    Desc: Build one cached source reading.
-    Args:
-        source_id (int): ID of the source that quoted it.
-        symbol_id (int): ID of the line it was quoted for.
-        price (int): The mid price in rial.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=symbol_id,

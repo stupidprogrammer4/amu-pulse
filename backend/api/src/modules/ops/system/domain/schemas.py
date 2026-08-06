@@ -9,7 +9,7 @@ class ComponentHealthOut(BaseOutput):
 
 
 class HealthOut(BaseOutput):
-    status: str  # "ok" | "degraded"
+    status: str
     components: dict[str, ComponentHealthOut]
 
 

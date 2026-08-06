@@ -21,20 +21,9 @@ from src.modules.price.symbols.domain.models import SymbolModel
 
 class AssetReader(PGReader):
     def __init__(self, uow: PGUnitOfWork):
-        """
-        Desc: Build the reader over the unit of work.
-        Args:
-            uow (PGUnitOfWork): Unit of work whose session runs the query.
-        """
         super().__init__(uow)
 
     async def read_refs(self) -> Sequence[AssetRefContext]:
-        """
-        Desc: Read every asset's identity, oldest first.
-        Returns:
-            return (Sequence[AssetRefContext]): Each asset's code and id,
-                enough to turn a quoted code into an asset_id.
-        """
         stmt = select(AssetModel.id, AssetModel.code).order_by(
             col(AssetModel.id)
         )
@@ -43,11 +32,6 @@ class AssetReader(PGReader):
         return [AssetRefContext(code=code, id=id) for id, code in rows]
 
     async def read_scheduled(self) -> Sequence[AssetContext]:
-        """
-        Desc: Read every asset whose scheduler is on, oldest first.
-        Returns:
-            return (Sequence[AssetContext]): The assets a sweep should price.
-        """
         stmt = (
             select(AssetModel, AssetConfigModel)
             .join(
@@ -65,14 +49,6 @@ class AssetReader(PGReader):
         ]
 
     async def read(self, asset_id: int) -> Optional[AssetContext]:
-        """
-        Desc: Read one asset and its config, whatever its scheduler says.
-        Args:
-            asset_id (int): ID of the asset to price.
-        Returns:
-            return (Optional[AssetContext]): The asset, or None when it has
-                no row or no config.
-        """
         stmt = (
             select(AssetModel, AssetConfigModel)
             .join(
@@ -92,20 +68,9 @@ class AssetReader(PGReader):
 
 class SourceReader(PGReader):
     def __init__(self, uow: PGUnitOfWork):
-        """
-        Desc: Build the reader over the unit of work.
-        Args:
-            uow (PGUnitOfWork): Unit of work whose session runs the query.
-        """
         super().__init__(uow)
 
     async def read_all(self) -> Sequence[SourceContext]:
-        """
-        Desc: Read every source and its config, oldest first.
-        Returns:
-            return (Sequence[SourceContext]): Every source the engine may
-                fetch from.
-        """
         stmt = (
             select(SourceModel, SourceConfigModel)
             .join(
@@ -130,13 +95,6 @@ class SourceReader(PGReader):
         self,
         switch: SourceSwitch,
     ) -> Sequence[SourceContext]:
-        """
-        Desc: Read one market's sources and their configs, oldest first.
-        Args:
-            switch (SourceSwitch): The market feeding the asset being priced.
-        Returns:
-            return (Sequence[SourceContext]): That market's sources.
-        """
         stmt = (
             select(SourceModel, SourceConfigModel)
             .join(
@@ -161,20 +119,9 @@ class SourceReader(PGReader):
 
 class SymbolReader(PGReader):
     def __init__(self, uow: PGUnitOfWork):
-        """
-        Desc: Build the reader over the unit of work.
-        Args:
-            uow (PGUnitOfWork): Unit of work whose session runs the query.
-        """
         super().__init__(uow)
 
     async def read_refs(self) -> Sequence[SymbolRefContext]:
-        """
-        Desc: Read every symbol's identity, oldest first.
-        Returns:
-            return (Sequence[SymbolRefContext]): Each symbol's code and id,
-                enough to turn a quoted code into a symbol_id.
-        """
         stmt = select(SymbolModel.id, SymbolModel.code).order_by(
             col(SymbolModel.id)
         )

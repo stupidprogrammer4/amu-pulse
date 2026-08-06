@@ -70,6 +70,5 @@ class TestBatchDelete:
         assert data.ids == [7]
 
     def test_an_id_outside_the_range_is_rejected(self) -> None:
-        # ids of another module must not address a pricing-order row
         with pytest.raises(ValidationError):
             AssetSwitchBatchDelete(ids=[42])

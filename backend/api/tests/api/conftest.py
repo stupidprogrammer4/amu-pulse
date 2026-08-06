@@ -24,7 +24,6 @@ from tests.conftest import core_provider_of, test_settings_of
 
 
 class ApiAssetPriceCache(AssetPriceCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:api:assets:price"
 
 
@@ -41,7 +40,6 @@ class ApiBubbleSourceCache(BubbleSourceCache):
 
 
 class CacheProvider(Provider):
-    """The same caches, under namespaces of the suite's own."""
 
     scope = Scope.APP
 
@@ -90,7 +88,6 @@ async def caches(api_container) -> AsyncIterator[RedisClient]:
 
 @pytest.fixture
 async def client(api_container) -> AsyncIterator[AsyncClient]:
-    # the real routes and error handlers, over the test database
     app = FastAPI()
     for router in get_bootstrapper().boot_routers():
         app.include_router(router)
@@ -105,7 +102,6 @@ async def client(api_container) -> AsyncIterator[AsyncClient]:
 
 @pytest.fixture
 async def queue(caches: RedisClient) -> AsyncIterator[str]:
-    # the reprice route really queues; the stream is left as it was found
     stream = "calculator_queue"
     before = await resolve(caches.client.xrevrange(stream, count=1))
     last = before[0][0] if before else "0-0"

@@ -13,12 +13,6 @@ from tests.unit.candle.test_window_caches import _FakeWindowRedis
 
 
 def _service() -> tuple[SourceWindowService, SourceWindowCache]:
-    """
-    Desc: Build the source window service over a fake Redis.
-    Returns:
-        return (tuple[SourceWindowService, SourceWindowCache]): The service
-            and the cache it folds into.
-    """
     fake = _FakeWindowRedis()
     client = cast(RedisClient, SimpleNamespace(client=fake))
     cache = SourceWindowCache(client)
@@ -31,16 +25,6 @@ def _quoted(
     symbol_id: int = 1,
     priced_at: datetime | None = None,
 ) -> SourcePriceResult:
-    """
-    Desc: Build what a source quoted a line at, now unless told otherwise.
-    Args:
-        price (int): The mid price in rial.
-        source_id (int): ID of the source that quoted it.
-        symbol_id (int): ID of the line it was quoted for.
-        priced_at (datetime | None): When it was quoted, or now.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         symbol_id=symbol_id,
         source_id=source_id,
@@ -57,11 +41,6 @@ def _quoted(
 
 
 def _opened_now() -> int:
-    """
-    Desc: Read when the window readings are folded into opened at.
-    Returns:
-        return (int): The moment it opened, in whole seconds.
-    """
     stamp = int(date_utils.utc_now().timestamp())
     return TimeFrame.FIVE_MINUTE.opened_at(stamp)
 
@@ -128,8 +107,6 @@ class TestFoldingWhatEverySourceQuoted:
     async def test_several_readings_of_a_source_fold_into_one_window(
         self,
     ) -> None:
-        # one source of one line is written down as one candle, however
-        # many readings it was quoted at
         service, cache = _service()
 
         folded = await service.update_window(

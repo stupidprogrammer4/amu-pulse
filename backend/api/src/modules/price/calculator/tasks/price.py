@@ -48,8 +48,8 @@ async def reprice_asset(
     asset_id = await assets.get_id_by_code(code)
     price = 0
     if asset_id is None:
-        logger.warning("no asset carries the code %s", code.value)
+        logger.warning("no asset carries the code %s", code)
     else:
         price = await service.calculate(asset_id)
-        logger.info("asset %s repriced at %s", code.value, price)
+        logger.info("asset %s repriced at %s", code, price)
     return price

@@ -15,7 +15,6 @@ from src.modules.price.symbols.domain.enums import (
 
 
 class _TestSourcePriceCache(SourcePriceCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:sources:price"
 
 
@@ -49,14 +48,6 @@ async def cache(
 
 
 def _reading(source_id: int, price: int) -> SourcePriceResult:
-    """
-    Desc: Build one source's reading for an asset.
-    Args:
-        source_id (int): ID of the source that quoted it.
-        price (int): The mid price in Rial.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=1,

@@ -48,14 +48,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset to hang candles off.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -71,15 +63,6 @@ async def _symbol(
     asset: AssetModel,
     code: SymbolCode = SymbolCode.GOLD18_GRAM,
 ) -> SymbolModel:
-    """
-    Desc: Create the line an asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-        code (SymbolCode): Code of the line.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -97,14 +80,6 @@ async def _source(
     uow: PGUnitOfWork,
     code: SourceCode = SourceCode.TGJU,
 ) -> SourceModel:
-    """
-    Desc: Create one source feeding the Iranian market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (SourceCode): Code of the source.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(
@@ -126,16 +101,6 @@ def _candle(
     close: int,
     timeframe: TimeFrame = TimeFrame.FIVE_MINUTE,
 ) -> CandleModel:
-    """
-    Desc: Build one asset candle, flat but for the price it closed on.
-    Args:
-        asset (AssetModel): The asset the candle is of.
-        st_ts (int): When the candle opened.
-        close (int): The price it closed on.
-        timeframe (TimeFrame): The timeframe it is cut on.
-    Returns:
-        return (CandleModel): The candle, unwritten.
-    """
     return CandleModel(
         asset_id=asset.id,
         timeframe=timeframe,
@@ -155,17 +120,6 @@ def _source_candle(
     close: int,
     timeframe: TimeFrame = TimeFrame.FIVE_MINUTE,
 ) -> SourceCandleModel:
-    """
-    Desc: Build one source candle, flat but for the price it closed on.
-    Args:
-        source (SourceModel): The source that quoted it.
-        symbol (SymbolModel): The line it was quoted for.
-        st_ts (int): When the candle opened.
-        close (int): The price it closed on.
-        timeframe (TimeFrame): The timeframe it is cut on.
-    Returns:
-        return (SourceCandleModel): The candle, unwritten.
-    """
     return SourceCandleModel(
         source_id=source.id,
         symbol_id=symbol.id,
@@ -221,7 +175,6 @@ class TestWritingAssetCandles:
     async def test_a_rerun_rewrites_the_candle_it_already_wrote(
         self, uow: PGUnitOfWork
     ) -> None:
-        # a rollup run twice must leave one candle, not two
         asset = await _asset(uow)
         repo = CandleRepository(uow)
 
@@ -288,7 +241,6 @@ class TestReadingAssetCandlesOverARange:
     async def test_the_candle_the_range_closes_on_is_left(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the range is half open, so a rollup never folds a candle twice
         asset = await _asset(uow)
         repo = CandleRepository(uow)
         closing = _st_ts + _five_minutes

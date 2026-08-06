@@ -8,6 +8,5 @@ from src.modules.ops.logs.interfaces import ILogService
 class LogProvider(Provider):
     scope = Scope.REQUEST
 
-    # ESRepository takes the client; the index comes off the document
     log_repo = provide(LogRepository)
     log_service = provide(LogService, provides=ILogService)

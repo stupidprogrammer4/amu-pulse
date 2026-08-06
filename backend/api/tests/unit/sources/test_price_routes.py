@@ -17,7 +17,6 @@ _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 
 class _FakeCacheReader:
-    """The one read the board route makes."""
 
     def __init__(
         self,
@@ -52,14 +51,6 @@ class _FakeCacheReader:
 
 
 def _reading(source_id: int, price: int) -> SourcePriceResult:
-    """
-    Desc: Build one cached source reading.
-    Args:
-        source_id (int): ID of the source that quoted it.
-        price (int): The mid price in the currency's own unit.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=1,

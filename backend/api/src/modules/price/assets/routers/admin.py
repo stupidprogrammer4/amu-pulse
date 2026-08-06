@@ -44,8 +44,6 @@ from src.modules.price.calculator.interfaces import ICacheReaderService
 from src.modules.price.calculator.tasks.price import reprice_asset as reprice
 from src.web.response import APIResponse
 
-# every route here is an admin panel route; the guard sits on the
-# router so no handler can be added without it
 router = APIRouter(
     prefix="/panel/assets",
     tags=["Panel Assets"],
@@ -280,7 +278,6 @@ async def remove_asset_switch(
     response_model_exclude_defaults=True,
 )
 async def reprice_asset(asset_code: AssetCode) -> RepriceResponse:
-    # off the request's own time: the answer is the job, not the price
     job = await reprice.kiq(asset_code)  # type: ignore[call-arg]
     return APIResponse.from_data(RepriceOut(task_id=job.task_id))
 
@@ -310,8 +307,8 @@ async def get_asset_price(
     if price is None:
         raise NotFoundException(
             identifier="code",
-            identifier_value=asset_code.value,
-            message=f"Cannot find Price by code with value {asset_code.value}",
+            identifier_value=asset_code,
+            message=f"Cannot find Price by code with value {asset_code}",
             message_code=resources.NOT_FOUND_ERROR,
             entity="Price",
         )

@@ -15,15 +15,6 @@ from src.seeders.sources import SOURCES
 async def _fetch(
     fetcher: AbstractFetcher[Any], payload: Any, status: int = 200
 ) -> Sequence[Any]:
-    """
-    Desc: Run a bubble fetcher against a canned body.
-    Args:
-        fetcher (AbstractFetcher[Any]): The fetcher to run.
-        payload (Any): The JSON body to answer with.
-        status (int): The status code to answer with.
-    Returns:
-        return (Sequence[Any]): The quotes it parsed.
-    """
 
     async def _request(client: httpx.AsyncClient) -> httpx.Response:
         return httpx.Response(
@@ -38,14 +29,6 @@ async def _fetch(
 
 
 def _row(key: str, price: str) -> dict[str, Any]:
-    """
-    Desc: Build one CMS bubble row.
-    Args:
-        key (str): The row's key, e.g. XAU18_BUBBLE.
-        price (str): The premium, as the CMS reports it.
-    Returns:
-        return (dict[str, Any]): The row.
-    """
     return {"key": key, "title": "حباب", "price": price, "change": "0"}
 
 
@@ -61,7 +44,6 @@ class TestMeligoldBubbleFetcher:
         assert quotes[0].error is None
 
     async def test_a_negative_premium_is_kept(self) -> None:
-        # the market sits under world parity often enough to matter
         payload = {"data": [_row("XAU18_BUBBLE", "-2137540")]}
 
         quotes = await _fetch(MeligoldBubbleFetcher(), payload)
@@ -69,8 +51,6 @@ class TestMeligoldBubbleFetcher:
         assert quotes[0].amount == -2_137_540
 
     async def test_rows_for_unmodelled_assets_are_skipped(self) -> None:
-        # the CMS also publishes coin bubbles and 24k, which AssetCode
-        # does not model; they must not be mistaken for the 18k premium
         payload = {
             "data": [
                 _row("524695", "38950000"),

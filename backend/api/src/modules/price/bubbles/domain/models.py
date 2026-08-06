@@ -18,7 +18,6 @@ from src.modules.price.assets.domain.enums import AggregationType, AssetCode
 
 
 class BubbleModel(BaseIDTimestampModel, table=True):
-    # which asset's premium this row tracks; one row per asset at most
     code: AssetCode = CharField(55, unique=True)
     title: str = CharField(55)
     description: str | None = TextField(nullable=True)

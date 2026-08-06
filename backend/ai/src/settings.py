@@ -39,7 +39,6 @@ class OllamaConfig(BaseModel):
     base_url: str
     chat_model: str
     embedding_model: str
-    # an embedding call is fast; a cold generate on a big model is not
     timeout: float = Field(ge=1)
 
 
@@ -58,11 +57,6 @@ class Settings(BaseModel):
 
 @lru_cache
 def get_settings() -> Settings:
-    """
-    Desc: Load settings from config.yml, the only configuration source.
-    Returns:
-        return (Settings): Validated application settings.
-    """
     path = Path("config.yml")
     with path.open("r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)

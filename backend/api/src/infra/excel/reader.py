@@ -35,7 +35,7 @@ class ExcelReader:
             ):
                 if max_rows is not None and i >= max_rows:
                     break
-                if all(v is None for v in row):  # stop at the first blank row
+                if all(v is None for v in row):
                     break
                 out.append(list(row))
             return out

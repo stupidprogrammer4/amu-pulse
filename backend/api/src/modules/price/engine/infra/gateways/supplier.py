@@ -16,7 +16,6 @@ from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class AbstractSupplierFetcher(AbstractFetcher[SupplierSourceQuote]):
-    # a supplier dealing in another metal would say so here
     __symbol__: SymbolCode = SymbolCode.GOLD18_MAZANE
 
     def _failed(self, error: ErrorQuote) -> Sequence[SupplierSourceQuote]:
@@ -53,7 +52,6 @@ class TalalandFetcher(AbstractSupplierFetcher):
 class MirrokniFetcher(AbstractSupplierFetcher):
     __code__ = SourceCode.MIRROKNI
     __url__ = "https://pnlapi.mirrokni.ir/api/Home/ShopkeeperItemsList"
-    # the shopkeeper list is grouped; gold sits in group 1, item 28
     group_id = 1
     item_id = 28
 

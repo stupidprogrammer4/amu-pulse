@@ -8,10 +8,8 @@ from src.modules.price.assets.config.constants import AssetSwitchIDInput
 from src.modules.price.assets.domain.enums import AggregationType, AssetCode
 from src.modules.price.sources.domain.enums import SourceSwitch
 
-# the polling period of an asset's scheduler, in whole seconds
 SecondType = Annotated[int, Field(ge=20, le=300)]
 
-# where a market sits in the pricing order; lower comes first
 PriorityType = Annotated[int, Field(ge=0, le=100)]
 
 

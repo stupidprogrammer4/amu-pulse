@@ -13,7 +13,6 @@ class ErrorType(StrEnum):
 
 
 class SourceCode(StrEnum):
-    # --- supplier: the Iranian gold shops we quote against ---
     DIGIKALA = "digikala"
     GOLDIKA = "goldika"
     MELIGOLD = "meligold"
@@ -26,14 +25,12 @@ class SourceCode(StrEnum):
     TECHNOGOLD = "technogold"
     WALLGOLD = "wallgold"
 
-    # --- iran_market: rial-denominated gold and USD quotes ---
     ALANCHAND = "alanchand"
     NAVASAN = "navasan"
     NERKH_API = "nerkh_api"
     TGJU = "tgju"
     WALLEX = "wallex"
 
-    # --- global_market: XAU spot ---
     COMMODITY_PRICE_API = "commodity_price_api"
     EODHD = "eodhd"
     GOLD_API = "gold_api"
@@ -46,7 +43,6 @@ class SourceCode(StrEnum):
     UNIRATE_API = "unirate_api"
     XAUS = "xaus"
 
-    # --- global_market: USD and the rest of the FX board ---
     CURRENCY_LAYER = "currency_layer"
     EXCHANGERATE_API = "exchangerate_api"
     EXCHANGERATES_API = "exchangerates_api"

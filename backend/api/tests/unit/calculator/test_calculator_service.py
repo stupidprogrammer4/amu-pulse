@@ -38,13 +38,10 @@ from tests.unit.candle.test_window_caches import _FakeWindowRedis
 
 _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
-# who quotes what: iran quotes the gram and the dollar, the supplier the
-# mazane, the world the ounce
 _iran_source = 1
 _supplier_source = 2
 _world_source = 3
 
-# the lines each asset is quoted through
 _gram_symbol = 10
 _mazane_symbol = 11
 _ounce_symbol = 12
@@ -56,15 +53,6 @@ def _asset(
     code: AssetCode = AssetCode.GOLD18,
     agg: AggregationType = AggregationType.MEDIAN,
 ) -> AssetContext:
-    """
-    Desc: Build an asset context priced by the given rule.
-    Args:
-        asset_id (int): ID of the asset.
-        code (AssetCode): Code of the asset.
-        agg (AggregationType): The rule its readings are folded by.
-    Returns:
-        return (AssetContext): The context the service prices.
-    """
     config = AssetConfigModel(
         asset_id=asset_id,
         scheduler_on=True,
@@ -81,17 +69,6 @@ def _reading(
     symbol_id: int,
     currency: CurrencyType = CurrencyType.RIAL,
 ) -> SourcePriceResult:
-    """
-    Desc: Build one source reading, mid priced like the crawl caches it.
-    Args:
-        buying (int): The buying side, in the currency's own unit.
-        selling (int): The selling side, in the currency's own unit.
-        source_id (int): ID of the source that quoted it.
-        symbol_id (int): ID of the line it was quoted for.
-        currency (CurrencyType): What the two sides are counted in.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     price = round((buying + selling) / 2)
     return SourcePriceResult(
         source_id=source_id,
@@ -109,7 +86,6 @@ def _reading(
 
 
 class _FakeAssetReader:
-    """The asset reads the service makes, over a list of contexts."""
 
     def __init__(self, assets: Sequence[AssetContext]) -> None:
         self.assets = assets
@@ -135,7 +111,6 @@ class _FakeAssetReader:
 
 
 class _FakeSymbolReader:
-    """The symbol reads the service makes, over a list of contexts."""
 
     def __init__(self, symbols: Sequence[SymbolContext]) -> None:
         self.symbols = symbols
@@ -152,7 +127,6 @@ class _FakeSymbolReader:
 
 
 class _FakeSwitchOrderReader:
-    """The order reads the service makes, over a list of rows."""
 
     def __init__(self, orders: Sequence[SwitchOrderContext]) -> None:
         self.orders = orders
@@ -169,7 +143,6 @@ class _FakeSwitchOrderReader:
 
 
 class _FakeSourceReader:
-    """Which market each source feeds."""
 
     def __init__(self, switches: Sequence[tuple[int, SourceSwitch]]) -> None:
         self.switches = switches
@@ -181,7 +154,6 @@ class _FakeSourceReader:
 
 
 class _FakeCacheReader:
-    """The reading side of the engine's cache reader, over a dict."""
 
     def __init__(
         self,
@@ -205,11 +177,6 @@ class _FakeCacheReader:
 
 
 def _symbols() -> Sequence[SymbolContext]:
-    """
-    Desc: Build the lines gold and the dollar are quoted through.
-    Returns:
-        return (Sequence[SymbolContext]): The four lines.
-    """
     return [
         SymbolContext(
             id=_gram_symbol,
@@ -243,15 +210,6 @@ def _order(
     switches: Sequence[SourceSwitch],
     code: AssetCode = AssetCode.GOLD18,
 ) -> Sequence[SwitchOrderContext]:
-    """
-    Desc: Build an asset's pricing order out of the markets given.
-    Args:
-        asset_id (int): ID of the asset the order belongs to.
-        switches (Sequence[SourceSwitch]): The markets, first tried first.
-        code (AssetCode): Code of the asset.
-    Returns:
-        return (Sequence[SwitchOrderContext]): The order rows.
-    """
     return [
         SwitchOrderContext(
             code=code, asset_id=asset_id, switch=switch, order=index
@@ -267,20 +225,6 @@ async def _service(
     bubbles: Mapping[AssetCode, BubbleResult] | None = None,
     dollar: int = 0,
 ) -> tuple[CalculatorService, AssetPriceCache]:
-    """
-    Desc: Build the service over fake reads and caches on a fake Redis.
-    Args:
-        assets (Sequence[AssetContext]): The assets that exist.
-        orders (Sequence[SwitchOrderContext]): Their pricing orders.
-        readings (Mapping[SymbolCode, Sequence[SourcePriceResult]]): What
-            the crawl cached for each line.
-        bubbles (Mapping[AssetCode, BubbleResult] | None): The settled
-            premiums, if any.
-        dollar (int): The dollar price already cached, zero for none.
-    Returns:
-        return (tuple[CalculatorService, AssetPriceCache]): The service and
-            the cache it prices into.
-    """
     client = cast(RedisClient, SimpleNamespace(client=_FakeWindowRedis()))
     prices = AssetPriceCache(client)
     premiums = BubbleCache(client)
@@ -310,14 +254,6 @@ async def _service(
 
 
 def _priced(asset_id: int, price: int) -> AssetPriceResult:
-    """
-    Desc: Build an already cached asset price.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        price (int): The mid price in rial.
-    Returns:
-        return (AssetPriceResult): The cached price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price,
@@ -360,7 +296,6 @@ class TestCalculateOne:
         assert found.asset_id == 1
 
     async def test_it_falls_through_to_the_next_market(self) -> None:
-        # the iranian sources went quiet, so the suppliers price it
         service, _ = await _service(
             [_asset()],
             _order(1, [SourceSwitch.IRAN_MARKET, SourceSwitch.SUPPLIER]),
@@ -378,7 +313,6 @@ class TestCalculateOne:
         assert price == 1_000_000
 
     async def test_a_market_off_the_order_never_prices(self) -> None:
-        # only the suppliers are switched on, and only iran has readings
         service, cache = await _service(
             [_asset()],
             _order(1, [SourceSwitch.SUPPLIER]),
@@ -468,7 +402,6 @@ class TestCalculateOne:
     async def test_a_supplier_reading_never_reaches_the_iran_fold(
         self,
     ) -> None:
-        # a mazane folded as a gram would price gold at a quarter of itself
         service, _ = await _service(
             [_asset()],
             _order(1, [SourceSwitch.IRAN_MARKET]),
@@ -567,7 +500,6 @@ class TestCalculateAll:
         }
 
     async def test_each_asset_walks_its_own_order(self) -> None:
-        # the suppliers come first, so the gram reading never gets a turn
         service, cache = await _service(
             [_asset(asset_id=1)],
             _order(1, [SourceSwitch.SUPPLIER, SourceSwitch.IRAN_MARKET]),
@@ -593,7 +525,6 @@ class TestCalculateAll:
         assert found.price == 1_000_000
 
     async def test_one_asset_s_readings_never_price_another(self) -> None:
-        # only the dollar was quoted, and the dollar is not in the sweep
         service, cache = await _service(
             [_asset(asset_id=1), _asset(asset_id=2, code=AssetCode.USD)],
             [
@@ -647,8 +578,6 @@ class TestCalculateAll:
     async def test_the_sweep_prices_gold_off_the_dollar_route_left(
         self,
     ) -> None:
-        # whatever the dollar route last cached is the rate world parity
-        # is read at
         service, cache = await _service(
             [_asset()],
             _order(1, [SourceSwitch.GLOBAL_MARKET]),

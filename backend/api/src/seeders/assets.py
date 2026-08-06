@@ -31,7 +31,6 @@ class AssetSeed:
     title: str
     description: str
     primary_color: str
-    # the markets that price it, best level first
     switches: list[AssetSwitchCreate]
 
 

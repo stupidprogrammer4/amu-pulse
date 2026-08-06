@@ -24,7 +24,6 @@ class ErrorQuote:
 
 @dataclass(frozen=True, slots=True)
 class SupplierSourceQuote:
-    # the fetcher names the line, so nothing downstream assumes it
     code: SourceCode
     symbol: SymbolCode
     selling_mazane: int
@@ -41,7 +40,6 @@ class SupplierSourceQuote:
         second: QuotedAmount,
         is_closed: bool = False,
     ) -> Self:
-        # sources quote numbers as strings; compare them as Rial, not text
         first_rial = currency_utils.to_rial(first)
         second_rial = currency_utils.to_rial(second)
         quote = cls(
@@ -82,7 +80,6 @@ class FeeQuote:
 
 @dataclass(frozen=True, slots=True)
 class IranSourceQuote:
-    # an Iranian market feed: rial prices, one row per line it quotes
     code: SourceCode
     symbol: SymbolCode
     price_rial: int
@@ -102,7 +99,6 @@ class IranSourceQuote:
         price_rial: QuotedAmount,
         fee: FeeQuote,
     ) -> Self:
-        # one mid price, with the fee opening the spread around it
         price = currency_utils.round_rial(currency_utils.to_rial(price_rial))
         buy_fee = round(price * fee.buy_rate)
         sell_fee = round(price * fee.sell_rate)
@@ -127,7 +123,6 @@ class IranSourceQuote:
         second: QuotedAmount,
         fee: FeeQuote | None = None,
     ) -> Self:
-        # sources quote numbers as strings; compare them as Rial, not text
         first_rial = currency_utils.to_rial(first)
         second_rial = currency_utils.to_rial(second)
         buying = min(first_rial, second_rial)
@@ -171,7 +166,6 @@ class IranSourceQuote:
 
 @dataclass(frozen=True, slots=True)
 class GlobalSourceQuote:
-    # a world feed prices in dollars, so its unit is the cent
     code: SourceCode
     symbol: SymbolCode
     selling_cent: int
@@ -228,7 +222,6 @@ class GlobalSourceQuote:
 
 @dataclass(frozen=True, slots=True)
 class BubbleQuote:
-    # a published premium of a whole asset, not of one quoted line
     code: SourceCode
     asset: AssetCode
     amount: int

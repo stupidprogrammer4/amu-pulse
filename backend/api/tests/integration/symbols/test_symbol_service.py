@@ -22,13 +22,6 @@ from tests.conftest import NullScheduler
 
 
 def _service(uow: PGUnitOfWork) -> SymbolService:
-    """
-    Desc: Build the symbol service over a real repository.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read and write through.
-    Returns:
-        return (SymbolService): The service.
-    """
     service = SymbolService(SymbolRepository(uow))
     return service
 
@@ -37,14 +30,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset for symbols to hang off.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -60,15 +45,6 @@ def _create(
     code: SymbolCode = SymbolCode.GOLD18_GRAM,
     currency: CurrencyType = CurrencyType.RIAL,
 ) -> SymbolCreate:
-    """
-    Desc: Build a SymbolCreate pointing at the given asset.
-    Args:
-        asset (AssetModel): The asset the symbol quotes.
-        code (SymbolCode): Code of the symbol.
-        currency (CurrencyType): What the line is priced in.
-    Returns:
-        return (SymbolCreate): The create DTO.
-    """
     data = SymbolCreate(
         title="هر گرم طلای ۱۸ عیار",
         code=code,
@@ -98,7 +74,6 @@ class TestSymbolServiceCRUD:
     async def test_one_asset_carries_several_lines(
         self, uow: PGUnitOfWork
     ) -> None:
-        # gold is quoted per gram and per mesghal at the same time
         symbols = _service(uow)
         asset = await _asset(uow)
 

@@ -19,11 +19,8 @@ COPY api/pyproject.toml ./
 COPY api/src ./src
 COPY api/scripts ./scripts
 
-# a cache mount instead of PIP_NO_CACHE_DIR: the wheels survive between
-# builds, so editing one dependency no longer re-downloads all of them
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install ./events && pip install .
-
 
 FROM python:${PYTHON_VERSION}-slim AS runtime
 

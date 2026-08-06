@@ -16,8 +16,6 @@ class SymbolSeed:
     code: SymbolCode
     title: str
     description: str
-    # the asset the line prices, by code rather than id, which a fresh
-    # database has not handed out yet
     asset: AssetCode
     currency: CurrencyType
     primary_color: str
@@ -60,15 +58,6 @@ SYMBOLS: list[SymbolSeed] = [
 
 
 async def seed_symbols(uow: PGUnitOfWork) -> list[SymbolModel]:
-    """
-    Desc: Create the price lines every source reading is filed under. The
-        crawler maps a raw quote onto a symbol id, so with none of these the
-        cache stays empty and every asset prices at zero.
-    Args:
-        uow (PGUnitOfWork): The open unit of work to run in.
-    Returns:
-        return (list[SymbolModel]): The symbols this call created.
-    """
     service = SymbolService(SymbolRepository(uow))
     assets = await AssetRepository(uow).get_all()
     asset_ids = {asset.code: asset.id for asset in assets}
@@ -85,8 +74,6 @@ async def seed_symbols(uow: PGUnitOfWork) -> list[SymbolModel]:
             SymbolCreate(
                 title=spec.title,
                 code=spec.code,
-                # SymbolCreate.asset_id is the public id and decodes what it
-                # is given, so an internal id has to be encoded on the way in
                 asset_id=ASSET_ID_ENCRYPTION.encode(asset_id),
                 currency=spec.currency,
                 primary_color=spec.primary_color,

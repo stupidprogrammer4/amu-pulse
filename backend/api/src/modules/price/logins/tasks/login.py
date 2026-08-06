@@ -14,7 +14,6 @@ from src.tasks.events import on
 @broker.task(
     task_name="logins.refresh_all",
     queue_name="logins_queue",
-    # a session outlives a week, so a weekly sweep is enough
     schedule=[{"cron": "0 3 * * 5"}],
 )
 @inject(patch_module=True)
@@ -46,6 +45,5 @@ class SourceUnauthorizedHandler:
         self.service = service
 
     async def handle(self, id: int) -> bool:
-        # the bus speaks in ids; only sources that have a login can act on it
         saved = await self.service.login_by_id(id)
         return saved

@@ -32,15 +32,6 @@ def _bearer(request: Request) -> str:
 
 
 def current_admin(request: Request) -> AdminPrincipal:
-    """
-    Desc: Read the signed-in admin off the Authorization header. Everything
-        the guard needs is in the token, so a request costs no query — the
-        price is that a change of role only lands on the next refresh.
-    Args:
-        request (Request): The incoming request.
-    Returns:
-        return (AdminPrincipal): Who the access token says is calling.
-    """
     settings = get_settings()
     claims = jwt_utils.decode_token(
         _bearer(request),
@@ -63,13 +54,6 @@ def current_admin(request: Request) -> AdminPrincipal:
 def super_admin(
     admin: Annotated[AdminPrincipal, Depends(current_admin)],
 ) -> AdminPrincipal:
-    """
-    Desc: Narrow the guard to super admins.
-    Args:
-        admin (AdminPrincipal): Who the access token says is calling.
-    Returns:
-        return (AdminPrincipal): The same principal, once it is super.
-    """
     if not admin.is_super_admin:
         raise ForbiddenException(
             message="this route is for super admins",
@@ -79,13 +63,9 @@ def super_admin(
     return admin
 
 
-# any signed-in admin
 CurrentAdmin = Annotated[AdminPrincipal, Depends(current_admin)]
 
-# only a super admin
 SuperAdmin = Annotated[AdminPrincipal, Depends(super_admin)]
 
-# the same two as router-level dependencies, for a router whose every route
-# is guarded: one line on the APIRouter beats a parameter on every handler
 admin_required = Depends(current_admin)
 super_admin_required = Depends(super_admin)

@@ -18,7 +18,6 @@ from src.modules.price.sources.config.dependencies import SourceID
 from src.modules.price.sources.domain.schemas import SourceMeta
 from src.web.response import APIResponse
 
-# no guard, unlike /admin/candles: a chart is public the same way a price is
 router = APIRouter(
     prefix="/charts",
     tags=["Charts"],

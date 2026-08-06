@@ -18,9 +18,6 @@ broker = RedisStreamBroker(
     url=settings.taskiq.redis_url,
     max_connection_pool_size=settings.taskiq.max_connection_pool_size,
 ).with_result_backend(
-    # without an expiry every result ever produced stays in Redis, and
-    # noeviction turns a full Redis into refused writes — a stalled queue.
-    # a result is only read to see how a run just went, so it expires fast
     RedisAsyncResultBackend(
         settings.taskiq.redis_url,
         prefix_str="taskiq_result",

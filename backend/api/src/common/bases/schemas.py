@@ -84,7 +84,6 @@ class BaseOutput(BaseModel):
 
 
 class BaseIDOutput(BaseOutput):
-    # only the wire output is encoded, so re-validation cannot double it
     __encryption__: ClassVar[IDEncryption | None] = None
 
     id: int
@@ -119,7 +118,6 @@ class PagerMeta(BaseModel):
 
 
 class FilterMeta(BaseModel, Generic[TOut]):
-    # id of the entity behind the facet, when it has one
     id: int | None = None
     type: FilterType
     title: str | None = None

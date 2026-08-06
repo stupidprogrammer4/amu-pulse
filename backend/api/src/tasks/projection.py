@@ -31,7 +31,6 @@ def _dispatch_after(
 
     _task.__name__ = task_name
     _task.__qualname__ = task_name
-    # resolve the concrete projection from dishka by its type
     _task.__annotations__ = {
         "id": list[int] if batch else int,
         "projection": FromDishka[projection_cls],
@@ -123,7 +122,6 @@ def _dispatch_payload_after(
 
     _task.__name__ = task_name
     _task.__qualname__ = task_name
-    # dishka resolves the concrete projection off this annotation
     _task.__annotations__ = {
         "payload": list[dict[str, Any]] if batch else dict[str, Any],
         "projection": FromDishka[projection_cls],

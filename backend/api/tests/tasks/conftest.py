@@ -26,7 +26,6 @@ from tests.conftest import core_provider_of, test_settings_of
 
 
 class TaskAssetPriceCache(AssetPriceCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:tasks:assets:price"
 
 
@@ -51,7 +50,6 @@ class TaskSourceWindowCache(SourceWindowCache):
 
 
 class CacheProvider(Provider):
-    """The same caches, under namespaces of the suite's own."""
 
     scope = Scope.APP
 
@@ -80,8 +78,6 @@ async def task_container(integration_settings: Settings, test_dsn: str):
 
 @pytest.fixture
 async def broker(task_container) -> AsyncIterator[InMemoryBroker]:
-    # a real broker that runs what it is given, on the test container; the
-    # tasks are the ones the modules registered, not copies
     running = InMemoryBroker(await_inplace=True)
     running.local_task_registry.update(src.tasks.broker.broker.get_all_tasks())
     setup_dishka(task_container, running)

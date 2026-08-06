@@ -19,7 +19,6 @@ from src.modules.identity.auth.config.dependencies import (
 )
 from src.web.response import APIResponse
 
-# managing admins is a super admin's job; every route below is guarded
 router = APIRouter(
     prefix="/panel/admins",
     tags=["Panel Admins"],
@@ -42,7 +41,6 @@ async def create_admin(
     return APIResponse.from_data(AdminOut.from_obj(admin))
 
 
-# before /{id:int}, or the router reads "search" as a malformed id
 @router.get(
     "/search",
     response_model=PagedAdminResponse,
@@ -91,8 +89,6 @@ async def update_admin(
     return APIResponse.from_data(AdminOut.from_obj(admin))
 
 
-# a credential each, on its own route: changing one is an event worth
-# reading in a log, not a field patched in passing
 @router.patch(
     "/{id:int}/username",
     response_model=AdminResponse,

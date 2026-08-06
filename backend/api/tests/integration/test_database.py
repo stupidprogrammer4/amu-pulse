@@ -1,5 +1,3 @@
-"""Smoke integration test — runs alembic migrations on the test DB (`test_dsn`)
-and talks to it through the unit of work. Marked `integration` by path."""
 
 import pytest
 

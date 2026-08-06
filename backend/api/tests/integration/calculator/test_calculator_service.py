@@ -67,7 +67,6 @@ _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 
 class _TestAssetPriceCache(AssetPriceCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:calc:assets:price"
 
 
@@ -126,15 +125,6 @@ def _service(
     uow: PGUnitOfWork,
     redis: RedisClient,
 ) -> tuple[CalculatorService, _TestAssetPriceCache]:
-    """
-    Desc: Build the service over the real database, redis and engine reader.
-    Args:
-        uow (PGUnitOfWork): Unit of work the tables are read through.
-        redis (RedisClient): Client every cache runs on.
-    Returns:
-        return (tuple[CalculatorService, _TestAssetPriceCache]): The service
-            and the cache it prices into.
-    """
     prices = _TestAssetPriceCache(redis)
     readings = CacheReaderService(
         _TestSourcePriceCache(redis),
@@ -158,15 +148,6 @@ async def _asset(
     code: AssetCode,
     switches: list[SourceSwitch],
 ) -> AssetModel:
-    """
-    Desc: Create one asset with its config and its pricing order.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-        switches (list[SourceSwitch]): Its markets, first tried first.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -189,16 +170,6 @@ async def _symbol(
     code: SymbolCode,
     currency: CurrencyType = CurrencyType.RIAL,
 ) -> SymbolModel:
-    """
-    Desc: Create one line the asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-        code (SymbolCode): Code of the line.
-        currency (CurrencyType): What the line is priced in.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -217,15 +188,6 @@ async def _source(
     code: SourceCode,
     switch: SourceSwitch,
 ) -> SourceModel:
-    """
-    Desc: Create one source feeding the given market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (SourceCode): Code of the source.
-        switch (SourceSwitch): The market it feeds.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(
@@ -248,17 +210,6 @@ def _reading(
     symbol_id: int,
     currency: CurrencyType = CurrencyType.RIAL,
 ) -> SourcePriceResult:
-    """
-    Desc: Build one source reading, mid priced like the crawl caches it.
-    Args:
-        buying (int): The buying side, in the currency's own unit.
-        selling (int): The selling side, in the currency's own unit.
-        source_id (int): ID of the source that quoted it.
-        symbol_id (int): ID of the line it was quoted for.
-        currency (CurrencyType): What the two sides are counted in.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     price = round((buying + selling) / 2)
     return SourcePriceResult(
         source_id=source_id,
@@ -304,7 +255,6 @@ class TestCalculateOne:
     async def test_it_falls_through_to_the_suppliers(
         self, uow: PGUnitOfWork, redis: RedisClient
     ) -> None:
-        # the iranian sources went quiet, so the mazane prices gold
         gold = await _asset(
             uow,
             AssetCode.GOLD18,
@@ -380,7 +330,6 @@ class TestCalculateOne:
         )
         service, cache = _service(uow, redis)
 
-        # the dollar has to be priced first; the world reads it from cache
         await service.calculate_usd()
         price = await service.calculate(gold.id)
         found = await cache.get(AssetCode.GOLD18)
@@ -517,7 +466,6 @@ class TestCalculateAll:
         )
         service, cache = _service(uow, redis)
 
-        # without the dollar route first, world parity has no rate to read
         empty = await service.calculate_all()
         await service.calculate_usd()
         priced = await service.calculate_all()

@@ -10,7 +10,6 @@ from rich.logging import RichHandler
 
 from src.core.config import get_settings
 
-#: Per-task correlation id; set by middleware, surfaced on every record.
 request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 
@@ -21,14 +20,7 @@ class _ContextFilter(logging.Filter):
 
 
 class JSONFormatter(logging.Formatter):
-    """
-    Desc: Render a record as one ECS-shaped JSON object per line. Filebeat
-        reads the container's stdout, decodes the line, and hands the fields
-        to Elasticsearch without a grok pattern in between.
-    """
 
-    #: Attributes the logging module puts on every record. Anything outside
-    #: this set was attached by a caller through ``extra=`` and is shipped.
     BUILTIN_RECORD_ATTRS = frozenset(
         {
             "args",
@@ -94,8 +86,6 @@ class JSONFormatter(logging.Formatter):
             if key not in self.BUILTIN_RECORD_ATTRS:
                 payload[key] = value
 
-        # default=str so an unserialisable extra downgrades to its repr
-        # instead of losing the whole line
         return orjson.dumps(payload, default=str).decode()
 
     @staticmethod
@@ -105,9 +95,6 @@ class JSONFormatter(logging.Formatter):
 
 
 class Logger:
-    #: Loggers that ship their own handlers. Left alone they would write a
-    #: second, differently formatted copy of every line, which Filebeat
-    #: cannot parse.
     ADOPTED_LOGGERS = (
         "uvicorn",
         "uvicorn.error",
@@ -124,11 +111,6 @@ class Logger:
         self._logger.setLevel(level)
 
     def setup(self) -> None:
-        """
-        Desc: Route every logger in the process through one handler, so a
-            container emits a single uniformly formatted stream. Idempotent —
-            calling it again swaps the handler rather than stacking a second.
-        """
         config = get_settings().logging
         handler = self.build_handler(config.format, config.service)
 
@@ -147,14 +129,6 @@ class Logger:
 
     @staticmethod
     def build_handler(fmt: str, service: str) -> logging.Handler:
-        """
-        Desc: Build the single handler the whole process logs through.
-        Args:
-            fmt (str): Either ``console`` or ``json``.
-            service (str): Value written to service.name on json records.
-        Returns:
-            return (logging.Handler): A handler carrying the context filter.
-        """
         handler: logging.Handler
         if fmt == "json":
             handler = logging.StreamHandler()
@@ -164,8 +138,6 @@ class Logger:
             handler.setFormatter(
                 logging.Formatter("[%(request_id)s] %(message)s")
             )
-        # on the handler, not on a logger: a filter attached to a logger never
-        # sees records that propagated up from a child, and uvicorn's do
         handler.addFilter(_ContextFilter())
         return handler
 

@@ -11,13 +11,6 @@ from src.web.dependencies import decode_path_id
 
 
 def _symbol_out(id: int) -> SymbolOut:
-    """
-    Desc: Build a SymbolOut carrying the given internal id.
-    Args:
-        id (int): The internal id.
-    Returns:
-        return (SymbolOut): The output schema.
-    """
     now = datetime(2026, 7, 30, 12, 0, 0)
     return SymbolOut(
         id=id,
@@ -45,7 +38,6 @@ class TestRoundTrip:
         assert 500_000_000 <= public < 600_000_000
 
     def test_it_does_not_collide_with_the_asset_range(self) -> None:
-        # every module owns a step, so a pasted id addresses one table only
         symbol = SYMBOL_ID_ENCRYPTION.encode(1)
 
         with pytest.raises(Exception):

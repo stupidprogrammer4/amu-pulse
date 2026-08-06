@@ -23,11 +23,7 @@ class AbstractGlobalFetcher(AbstractFetcher[GlobalSourceQuote]):
         ]
 
 
-# --- XAU spot ---
-
-
 class GoldApiComFetcher(AbstractGlobalFetcher):
-    # verified live: keyless, one mid price per symbol
     __code__ = SourceCode.GOLD_API
     __url__ = "https://api.gold-api.com/price/XAU"
 
@@ -40,7 +36,6 @@ class GoldApiComFetcher(AbstractGlobalFetcher):
 
 
 class GoldPriceDevFetcher(AbstractGlobalFetcher):
-    # verified live: keyless, quotes both sides
     __code__ = SourceCode.GOLDPRICE_DEV
     __url__ = "https://api.goldprice.dev/v1/spot/XAU"
 

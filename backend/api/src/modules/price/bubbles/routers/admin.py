@@ -21,8 +21,6 @@ from src.modules.price.bubbles.interfaces import (
 )
 from src.web.response import APIResponse
 
-# every route here is an admin panel route; the guard sits on the
-# router so no handler can be added without it
 router = APIRouter(
     prefix="/panel/bubbles",
     tags=["Panel Bubbles"],

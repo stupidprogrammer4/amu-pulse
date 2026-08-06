@@ -26,13 +26,6 @@ from src.modules.price.sources.infra.repository import (
 
 
 def _services(uow: PGUnitOfWork) -> tuple[SourceService, SourceConfigService]:
-    """
-    Desc: Build the source and source-config services over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read and write through.
-    Returns:
-        return (tuple[SourceService, SourceConfigService]): The two services.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     return sources, configs
@@ -42,14 +35,6 @@ def _create_data(
     code: SourceCode = SourceCode.TGJU,
     switch: SourceSwitch = SourceSwitch.IRAN_MARKET,
 ) -> SourceCreate:
-    """
-    Desc: Build a SourceCreate DTO for the given code and market.
-    Args:
-        code (SourceCode): Code of the source to create.
-        switch (SourceSwitch): The market it feeds.
-    Returns:
-        return (SourceCreate): The create DTO.
-    """
     return SourceCreate(
         title="شبکه اطلاع‌رسانی طلا و ارز",
         code=code,
@@ -89,7 +74,6 @@ class TestSourceServiceCRUD:
         assert config.auth_credentials is None
 
     async def test_create_persists_a_long_url(self, uow: PGUnitOfWork) -> None:
-        # the column was 55 chars, too short for a real endpoint
         sources, _ = _services(uow)
         url = "https://api.metalpriceapi.com/v1/latest" + "?x=" + "y" * 150
         data = _create_data(SourceCode.METALPRICE_API)
@@ -277,13 +261,6 @@ class TestSourceWithConfig:
 @pytest.mark.usefixtures("migrated_test_db", "clean_db")
 class TestSourceSearch:
     async def _seed(self, uow: PGUnitOfWork) -> SourceService:
-        """
-        Desc: Create one source per market for the search tests.
-        Args:
-            uow (PGUnitOfWork): Unit of work to write through.
-        Returns:
-            return (SourceService): The service the sources were made with.
-        """
         sources, _ = _services(uow)
         await sources.create(
             _create_data(SourceCode.TGJU, SourceSwitch.IRAN_MARKET)

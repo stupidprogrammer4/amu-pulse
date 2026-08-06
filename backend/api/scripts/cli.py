@@ -12,9 +12,6 @@ def _main() -> None: ...
 
 
 def _run(fn: Callable[..., Awaitable[None]]) -> None:
-    # imported here rather than at module scope: this CLI is mounted on the
-    # scaffolding one, which runs on a host that has no config.yml and no
-    # database, and must not pay for either to print its help
     import asyncio
 
     import src.tasks.broker  # noqa: F401 — boots the modules
@@ -47,14 +44,11 @@ def create_super_admin_command(
         ...,
         "--password",
         "-p",
-        # prompted and confirmed by default, so the password stays out of
-        # the shell history and out of the process list of a shared box
         prompt=True,
         confirmation_prompt=True,
         hide_input=True,
     ),
 ) -> None:
-    """Create the first super admin of a fresh database."""
 
     async def run(uow, settings) -> None:
         from scripts.super_admin import create_super_admin

@@ -4,17 +4,11 @@ from src.modules.ops.logs.domain.results import LogPageType, LogSearchResult
 from src.modules.ops.logs.domain.schemas import LogMeta, LogOut
 from src.modules.ops.logs.infra.repository import LogRepository
 
-# a request id gathers a handful of lines, never a page of them
 TRACE_LIMIT = 500
 
 
 class LogService:
     def __init__(self, repo: LogRepository) -> None:
-        """
-        Desc: Build the service with its repository.
-        Args:
-            repo (LogRepository): Reads the log data stream.
-        """
         self.repo = repo
 
     async def search(self, data: LogSearch) -> LogSearchResult:
@@ -62,4 +56,4 @@ class LogService:
 
     @staticmethod
     def _lines(page: LogPageType) -> list[LogOut]:
-        return [LogOut.from_doc(doc) for doc in page.items]
+        return [LogOut(**doc.to_dict()) for doc in page.items]

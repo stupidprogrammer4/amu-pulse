@@ -33,15 +33,9 @@ from src.modules.price.symbols.interfaces import ISymbolService
 
 
 class SourceConfigService(BaseService[SourceConfigModel]):
-    # what a freshly created source fetches with until an admin tunes it
     default_timeout = 10
 
     def __init__(self, repo: SourceConfigRepository) -> None:
-        """
-        Desc: Build the service with its repository.
-        Args:
-            repo (SourceConfigRepository): The source config repository.
-        """
         self.repo = repo
 
     async def create_default(self, source_id: int) -> SourceConfigModel:
@@ -106,12 +100,6 @@ class SourceService(BaseIDService[SourceModel]):
         repo: SourceRepository,
         configs: ISourceConfigService,
     ) -> None:
-        """
-        Desc: Build the service with its repository and the config service.
-        Args:
-            repo (SourceRepository): The source repository.
-            configs (ISourceConfigService): The source config service.
-        """
         self.repo = repo
         self.configs = configs
 
@@ -186,8 +174,6 @@ class SourceService(BaseIDService[SourceModel]):
         Returns:
             return (PagedType[SourceModel]): The page and the total count.
         """
-        # an admin pastes a public id into the search box; match it as an id
-        # too, not only as text
         id_match = None
         if data.q is not None and data.q.isdigit():
             id_match = SOURCE_ID_ENCRYPTION.try_decode(int(data.q))
@@ -270,11 +256,6 @@ class SourceService(BaseIDService[SourceModel]):
 
 class SourceErrorService(BaseIDService[SourceModel]):
     def __init__(self, repo: SourceRepository) -> None:
-        """
-        Desc: Build the service with its repository.
-        Args:
-            repo (SourceRepository): The source repository.
-        """
         self.repo = repo
 
     async def apply_errors(
@@ -302,13 +283,6 @@ class SourceMetaService:
         sources: ISourceService,
         symbols: ISymbolService,
     ) -> None:
-        """
-        Desc: Build the service with what it names a source and a line by.
-        Args:
-            sources (ISourceService): Where a source's name and colour
-                live.
-            symbols (ISymbolService): Where a line's name and colour live.
-        """
         self.sources = sources
         self.symbols = symbols
 

@@ -17,8 +17,6 @@ from src.modules.price.symbols.domain.schemas import SymbolOut
 from src.modules.price.symbols.interfaces import ISymbolService
 from src.web.response import APIResponse
 
-# every route here is an admin panel route; the guard sits on the
-# router so no handler can be added without it
 router = APIRouter(
     prefix="/panel/symbols",
     tags=["Panel Symbols"],

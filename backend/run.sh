@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# Bring the backend up in the shape a given job needs.
-#
-# Compose profiles decide *what* runs; this script decides *in what order*,
-# which profiles cannot express: alembic has to finish before the api that
-# reads the tables it creates starts, and compose returns as soon as a
-# container is created rather than when it answers.
-#
-# With no flags it brings up the infrastructure alone — postgres, redis,
-# rabbitmq and elasticsearch — which is what the integration tests need.
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -94,8 +85,6 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# a box where the user is not in the docker group still has to work, and
-# guessing wrong is a confusing permission error rather than a clear one
 DC=(docker compose)
 if ! docker info >/dev/null 2>&1; then
     DC=(sudo docker compose)
@@ -134,8 +123,6 @@ all_profiles=(--profile app --profile ai --profile logs --profile tools)
 
 case "$ACTION" in
 admin)
-    # no -p flag on the inner command: the prompt keeps the password out of
-    # the shell history and out of the process list
     "${DC[@]}" run --rm scripts create-super-admin -u "$ADMIN_USER"
     ;;
 build)
@@ -160,8 +147,6 @@ reset)
     "${DC[@]}" "${all_profiles[@]}" down -v
     ;;
 up)
-    # infrastructure first and on its own, so a migration does not run
-    # against a postgres that is still starting
     say "infrastructure"
     "${DC[@]}" up -d
     PROFILES=()

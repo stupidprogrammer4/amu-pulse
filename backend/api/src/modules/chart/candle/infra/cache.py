@@ -13,21 +13,12 @@ from src.modules.price.symbols.domain.enums import SymbolCode
 
 class AssetWindowCache:
     namespace = "assets:window"
-    # the flusher drops each window once it is written down; this only
-    # catches the one nobody came back for
     ttl = 60 * 60
 
     def __init__(self, redis: RedisClient) -> None:
         self.redis = redis
 
     def _key(self, st_ts: int) -> str:
-        """
-        Desc: Read the key one window's prices are gathered under.
-        Args:
-            st_ts (int): When the window opened.
-        Returns:
-            return (str): The key.
-        """
         return f"{self.namespace}:{st_ts}"
 
     async def set(
@@ -38,7 +29,7 @@ class AssetWindowCache:
     ) -> None:
         key = self._key(st_ts)
         await resolve(
-            self.redis.client.hset(key, code.value, window.model_dump_json())
+            self.redis.client.hset(key, code, window.model_dump_json())
         )
         await resolve(self.redis.client.expire(key, self.ttl))
 
@@ -49,7 +40,7 @@ class AssetWindowCache:
     ) -> None:
         key = self._key(st_ts)
         mapping = {
-            code.value: window.model_dump_json()
+            code: window.model_dump_json()
             for code, window in items.items()
         }
         await resolve(self.redis.client.hset(key, mapping=mapping))
@@ -61,7 +52,7 @@ class AssetWindowCache:
         code: AssetCode,
     ) -> AssetPriceWindow | None:
         raw = await resolve(
-            self.redis.client.hget(self._key(st_ts), code.value)
+            self.redis.client.hget(self._key(st_ts), code)
         )
         window = None
         if raw is not None:
@@ -73,7 +64,7 @@ class AssetWindowCache:
         st_ts: int,
         codes: Sequence[AssetCode],
     ) -> dict[AssetCode, AssetPriceWindow]:
-        fields = [code.value for code in codes]
+        fields = [code for code in codes]
         raws = await resolve(self.redis.client.hmget(self._key(st_ts), fields))
         return {
             code: AssetPriceWindow.model_validate_json(raw)
@@ -98,20 +89,12 @@ class AssetWindowCache:
 class SourceWindowCache:
     namespace = "sources:window"
     ttl = 60 * 60
-    # a line's field holds one window per source that quoted it
     adapter = TypeAdapter(list[SourcePriceWindow])
 
     def __init__(self, redis: RedisClient) -> None:
         self.redis = redis
 
     def _key(self, st_ts: int) -> str:
-        """
-        Desc: Read the key one window's readings are gathered under.
-        Args:
-            st_ts (int): When the window opened.
-        Returns:
-            return (str): The key.
-        """
         return f"{self.namespace}:{st_ts}"
 
     async def set(
@@ -122,7 +105,7 @@ class SourceWindowCache:
     ) -> None:
         key = self._key(st_ts)
         payload = self.adapter.dump_json(list(windows)).decode()
-        await resolve(self.redis.client.hset(key, code.value, payload))
+        await resolve(self.redis.client.hset(key, code, payload))
         await resolve(self.redis.client.expire(key, self.ttl))
 
     async def set_many(
@@ -132,7 +115,7 @@ class SourceWindowCache:
     ) -> None:
         key = self._key(st_ts)
         mapping = {
-            code.value: self.adapter.dump_json(list(windows)).decode()
+            code: self.adapter.dump_json(list(windows)).decode()
             for code, windows in items.items()
         }
         await resolve(self.redis.client.hset(key, mapping=mapping))
@@ -144,7 +127,7 @@ class SourceWindowCache:
         code: SymbolCode,
     ) -> list[SourcePriceWindow]:
         raw = await resolve(
-            self.redis.client.hget(self._key(st_ts), code.value)
+            self.redis.client.hget(self._key(st_ts), code)
         )
         windows = []
         if raw is not None:
@@ -156,7 +139,7 @@ class SourceWindowCache:
         st_ts: int,
         codes: Sequence[SymbolCode],
     ) -> dict[SymbolCode, list[SourcePriceWindow]]:
-        fields = [code.value for code in codes]
+        fields = [code for code in codes]
         raws = await resolve(self.redis.client.hmget(self._key(st_ts), fields))
         return {
             code: self.adapter.validate_json(raw)

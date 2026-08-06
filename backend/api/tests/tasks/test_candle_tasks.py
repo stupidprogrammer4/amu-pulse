@@ -57,11 +57,6 @@ _five_minutes = TimeFrame.FIVE_MINUTE.seconds
 
 
 def _closed() -> int:
-    """
-    Desc: Read when the window that has just closed opened at.
-    Returns:
-        return (int): The moment it opened, in whole seconds.
-    """
     stamp = int(date_utils.utc_now().timestamp())
     return TimeFrame.FIVE_MINUTE.opened_at(stamp) - _five_minutes
 
@@ -85,14 +80,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset to hang candles off.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -107,14 +94,6 @@ async def _symbol(
     uow: PGUnitOfWork,
     asset: AssetModel,
 ) -> SymbolModel:
-    """
-    Desc: Create the line an asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -129,13 +108,6 @@ async def _symbol(
 
 
 async def _source(uow: PGUnitOfWork) -> SourceModel:
-    """
-    Desc: Create one source feeding the Iranian market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(

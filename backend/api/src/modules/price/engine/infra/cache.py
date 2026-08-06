@@ -13,7 +13,6 @@ from src.modules.price.symbols.domain.enums import SymbolCode
 
 class SourcePriceCache:
     namespace = "sources:price"
-    # a list of results per field, so one adapter parses the whole field
     adapter = TypeAdapter(list[SourcePriceResult])
 
     def __init__(self, redis: RedisClient) -> None:

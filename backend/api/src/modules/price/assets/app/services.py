@@ -38,11 +38,9 @@ from src.modules.price.sources.domain.enums import SourceSwitch
 
 
 class AssetConfigService(BaseService[AssetConfigModel]):
-    # a new asset stays paused until an admin points it at a market
     default_scheduler_on = False
     default_scheduler_seconds = 60
     default_agg_type = AggregationType.MEDIAN
-    # the dollar is priced on a period of its own, and never paused
     usd_scheduler_on = True
     usd_scheduler_seconds = 20
 
@@ -52,14 +50,6 @@ class AssetConfigService(BaseService[AssetConfigModel]):
         asset_repo: AssetRepository,
         scheduler: ISchedulerService,
     ) -> None:
-        """
-        Desc: Build the service with its repository and the scheduler it
-        reschedules through.
-        Args:
-            repo (AssetConfigRepository): The asset config repository.
-            scheduler (ISchedulerService): Where the asset's schedule is
-                written.
-        """
         self.repo = repo
         self.scheduler = scheduler
         self.asset_repo = asset_repo
@@ -159,11 +149,6 @@ class AssetConfigService(BaseService[AssetConfigModel]):
 
 class AssetSwitchService(BaseIDService[AssetSwitchModel]):
     def __init__(self, repo: AssetSwitchRepository) -> None:
-        """
-        Desc: Build the service with its repository.
-        Args:
-            repo (AssetSwitchRepository): The asset switch repository.
-        """
         self.repo = repo
 
     def _check_no_repeat(
@@ -364,12 +349,6 @@ class AssetService(BaseIDService[AssetModel]):
         repo: AssetRepository,
         configs: IAssetConfigService,
     ) -> None:
-        """
-        Desc: Build the service with its repository and the config service.
-        Args:
-            repo (AssetRepository): The asset repository.
-            configs (IAssetConfigService): The asset config service.
-        """
         self.repo = repo
         self.configs = configs
 
@@ -461,11 +440,6 @@ class AssetService(BaseIDService[AssetModel]):
 
 class AssetMetaService:
     def __init__(self, assets: IAssetService) -> None:
-        """
-        Desc: Build the service with what it names an asset by.
-        Args:
-            assets (IAssetService): Where an asset's name and colour live.
-        """
         self.assets = assets
 
     async def build(self, asset_ids: Sequence[int]) -> AssetMeta:

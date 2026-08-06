@@ -11,7 +11,6 @@ from src.tasks.broker import broker
 @broker.task(
     task_name="ticker.snapshot_prices",
     queue_name="ticker_queue",
-    # on the five-minute marks, so every chart point lands on the same grid
     schedule=[{"cron": "*/5 * * * *"}],
 )
 @inject(patch_module=True)

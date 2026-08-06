@@ -21,17 +21,6 @@ class IranMarketPriceHelper:
         source_ids: dict[SourceCode, int],
         iran_quotes: Sequence[IranSourceQuote],
     ) -> Sequence[SourcePriceResult]:
-        """
-        Desc: Turn what the Iranian market quoted into readings.
-        Args:
-            symbol_ids (dict[SymbolCode, int]): The id of each quoted line.
-            source_ids (dict[SourceCode, int]): The id of each source.
-            iran_quotes (Sequence[IranSourceQuote]): What those sources
-                answered with.
-        Returns:
-            return (Sequence[SourcePriceResult]): One reading per quote
-                whose source and line are both known.
-        """
         readings = []
         for quote in iran_quotes:
             source_id = source_ids.get(quote.code)
@@ -46,7 +35,6 @@ class IranMarketPriceHelper:
                     buy_fee_rial=quote.buy_fee_rial,
                     sell_fee_rial=quote.sell_fee_rial,
                 )
-            # the feed quotes its own mid; the fee is what opens the spread
             price = quote.price_rial
             divisor = price or 1
             readings.append(
@@ -75,24 +63,12 @@ class GlobalMarketPriceHelper:
         source_ids: dict[SourceCode, int],
         global_quotes: Sequence[GlobalSourceQuote],
     ) -> Sequence[SourcePriceResult]:
-        """
-        Desc: Turn what the world market quoted into readings.
-        Args:
-            symbol_ids (dict[SymbolCode, int]): The id of each quoted line.
-            source_ids (dict[SourceCode, int]): The id of each source.
-            global_quotes (Sequence[GlobalSourceQuote]): What those sources
-                answered with.
-        Returns:
-            return (Sequence[SourcePriceResult]): One reading per quote
-                whose source and line are both known.
-        """
         readings = []
         for quote in global_quotes:
             source_id = source_ids.get(quote.code)
             symbol_id = symbol_ids.get(quote.symbol)
             if source_id is None or symbol_id is None:
                 continue
-            # the cent is the smallest unit here, so nothing is rounded off
             price = round((quote.selling_cent + quote.buying_cent) / 2)
             sell_spread = quote.selling_cent - price
             buy_spread = price - quote.buying_cent
@@ -122,25 +98,12 @@ class SupplierMarketPriceHelper:
         source_ids: dict[SourceCode, int],
         supplier_quotes: Sequence[SupplierSourceQuote],
     ) -> Sequence[SourcePriceResult]:
-        """
-        Desc: Turn what the suppliers quoted into readings.
-        Args:
-            symbol_ids (dict[SymbolCode, int]): The id of each quoted line.
-            source_ids (dict[SourceCode, int]): The id of each source.
-            supplier_quotes (Sequence[SupplierSourceQuote]): What those
-                sources answered with.
-        Returns:
-            return (Sequence[SourcePriceResult]): One reading per quote
-                whose source and line are both known.
-        """
         readings = []
         for quote in supplier_quotes:
             source_id = source_ids.get(quote.code)
             symbol_id = symbol_ids.get(quote.symbol)
             if source_id is None or symbol_id is None:
                 continue
-            # a mesghal is a line of its own; turning it into grams is the
-            # calculator's job, not the crawl's
             price = currency_utils.round_rial(
                 (quote.selling_mazane + quote.buying_mazane) / 2
             )

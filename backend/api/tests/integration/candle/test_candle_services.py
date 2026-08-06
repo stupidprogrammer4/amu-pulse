@@ -65,7 +65,6 @@ _five_minutes = TimeFrame.FIVE_MINUTE.seconds
 
 
 class _TestAssetWindowCache(AssetWindowCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:build:assets:window"
 
 
@@ -74,11 +73,6 @@ class _TestSourceWindowCache(SourceWindowCache):
 
 
 def _closed() -> int:
-    """
-    Desc: Read when the window that has just closed opened at.
-    Returns:
-        return (int): The moment it opened, in whole seconds.
-    """
     stamp = int(date_utils.utc_now().timestamp())
     return TimeFrame.FIVE_MINUTE.opened_at(stamp) - _five_minutes
 
@@ -99,7 +93,6 @@ async def redis(
         ),
     )
     try:
-        # reaching redis at all is what decides whether these can run
         await resolve(client.client.ping())
     except (RedisError, OSError) as exc:
         await client.close()
@@ -119,13 +112,6 @@ async def redis(
 
 
 def _asset_meta(uow: PGUnitOfWork) -> AssetMetaService:
-    """
-    Desc: Build the asset meta service over the real services.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read through.
-    Returns:
-        return (AssetMetaService): What names a charted asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -133,13 +119,6 @@ def _asset_meta(uow: PGUnitOfWork) -> AssetMetaService:
 
 
 def _source_meta(uow: PGUnitOfWork) -> SourceMetaService:
-    """
-    Desc: Build the source meta service over the real services.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read through.
-    Returns:
-        return (SourceMetaService): What names a charted source and line.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     return SourceMetaService(
         SourceService(SourceRepository(uow), configs),
@@ -151,14 +130,6 @@ def _candles(
     uow: PGUnitOfWork,
     cache: AssetWindowCache,
 ) -> CandleService:
-    """
-    Desc: Build the candle service over the real table and cache.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        cache (AssetWindowCache): Where the open window lives.
-    Returns:
-        return (CandleService): The service.
-    """
     return CandleService(CandleRepository(uow), cache, _asset_meta(uow))
 
 
@@ -166,14 +137,6 @@ def _source_candles(
     uow: PGUnitOfWork,
     cache: SourceWindowCache,
 ) -> SourceCandleService:
-    """
-    Desc: Build the source candle service over the real table and cache.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        cache (SourceWindowCache): Where the open window lives.
-    Returns:
-        return (SourceCandleService): The service.
-    """
     return SourceCandleService(
         SourceCandleRepository(uow), cache, _source_meta(uow)
     )
@@ -183,14 +146,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset to hang candles off.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -206,15 +161,6 @@ async def _symbol(
     asset: AssetModel,
     code: SymbolCode = SymbolCode.GOLD18_GRAM,
 ) -> SymbolModel:
-    """
-    Desc: Create the line an asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-        code (SymbolCode): Code of the line.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -232,14 +178,6 @@ async def _source(
     uow: PGUnitOfWork,
     code: SourceCode = SourceCode.TGJU,
 ) -> SourceModel:
-    """
-    Desc: Create one source feeding the Iranian market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (SourceCode): Code of the source.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(
@@ -261,15 +199,6 @@ async def _five_minute_candles(
     prices: list[tuple[int, int, int, int]],
     st_ts: int,
 ) -> None:
-    """
-    Desc: Write one five minute candle per step, oldest first.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the candles are of.
-        prices (list[tuple[int, int, int, int]]): The open, high, low and
-            close of each candle.
-        st_ts (int): When the first candle opened.
-    """
     repo = CandleRepository(uow)
     await repo.bulk_upsert(
         [

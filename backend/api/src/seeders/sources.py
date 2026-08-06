@@ -29,7 +29,6 @@ _GLOBAL = SourceSwitch.GLOBAL_MARKET
 
 
 SOURCES: list[SourceSeed] = [
-    # --- supplier: the wholesalers we actually buy from ---
     SourceSeed(
         SourceCode.TALALAND,
         "طلالند",
@@ -107,7 +106,6 @@ SOURCES: list[SourceSeed] = [
         "#a32b35",
         _IRAN,
     ),
-    # --- iran_market: rate aggregators and the online shops ---
     SourceSeed(
         SourceCode.TGJU,
         "شبکه اطلاع‌رسانی طلا و ارز",
@@ -143,7 +141,6 @@ SOURCES: list[SourceSeed] = [
         "#f67b65",
         _IRAN,
     ),
-    # --- global_market: XAU spot ---
     SourceSeed(
         SourceCode.GOLDAPI_IO,
         "GoldAPI.io",
@@ -221,7 +218,6 @@ SOURCES: list[SourceSeed] = [
         "#4b6908",
         _GLOBAL,
     ),
-    # --- global_market: USD and the rest of the FX board ---
     SourceSeed(
         SourceCode.OPEN_EXCHANGE_RATES,
         "Open Exchange Rates",

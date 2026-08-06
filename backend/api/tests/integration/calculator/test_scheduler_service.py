@@ -25,7 +25,6 @@ from src.modules.price.calculator.app.services import SchedulerService
 async def schedules(
     integration_settings: Settings,
 ) -> AsyncIterator[RedisScheduleSource]:
-    # never touch the prefix a running scheduler is reading
     source = RedisScheduleSource(
         url=integration_settings.taskiq.redis_url,
         prefix="test:calc:schedule",
@@ -48,15 +47,6 @@ def _assets(
     uow: PGUnitOfWork,
     schedules: RedisScheduleSource,
 ) -> tuple[AssetService, AssetConfigService]:
-    """
-    Desc: Build the asset services over real repositories, rescheduling
-    through the real schedule source.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        schedules (RedisScheduleSource): Where the schedules land.
-    Returns:
-        return (tuple[AssetService, AssetConfigService]): The two services.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow),
         AssetRepository(uow),
@@ -70,15 +60,6 @@ async def _asset(
     schedules: RedisScheduleSource,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset with its default, paused config.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        schedules (RedisScheduleSource): Where the schedules land.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     assets, _ = _assets(uow, schedules)
     asset = await assets.create(
         AssetCreate(title="طلا", code=code, primary_color="#c8a44b")
@@ -109,7 +90,6 @@ class TestConfigWritesTheSchedule:
     async def test_a_brand_new_asset_is_never_scheduled(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
-        # creating an asset must not start pricing it on its own
         await _asset(uow, schedules)
 
         found = await schedules.get_schedules()
@@ -147,8 +127,6 @@ class TestConfigWritesTheSchedule:
     async def test_a_period_written_while_paused_schedules_nothing(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
-        # the switch is read off the row the write returned, not off the
-        # patch, so a period alone cannot start a paused asset
         asset = await _asset(uow, schedules)
         _, configs = _assets(uow, schedules)
 
@@ -179,7 +157,6 @@ class TestConfigWritesTheSchedule:
     async def test_the_dollar_config_is_refused(
         self, uow: PGUnitOfWork, schedules: RedisScheduleSource
     ) -> None:
-        # the dollar runs on a period of its own, so its config is closed
         gold = await _asset(uow, schedules)
         dollar = await _asset(uow, schedules, AssetCode.USD)
         _, configs = _assets(uow, schedules)

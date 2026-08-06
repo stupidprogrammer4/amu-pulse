@@ -45,7 +45,6 @@ class JWTConfig(BaseModel):
     algorithm: str
     secret_key: str
     access_token_expire_minutes: int = Field(ge=1)
-    # long-lived refresh token; trades for a fresh access token
     refresh_token_expire_minutes: int = Field(default=60 * 24 * 14, ge=1)
     api_secret: str
 
@@ -78,8 +77,6 @@ class LoggingConfig(BaseModel):
     level: str
     format: Literal["console", "json"]
     service: str
-    # the data stream Filebeat ships into and the logs module reads back;
-    # must match setup.template.name in filebeat/filebeat.yml
     index: str
 
 
@@ -99,11 +96,6 @@ class Settings(BaseModel):
 
 @lru_cache
 def get_settings() -> Settings:
-    """
-    Desc: Load settings from config.yml, the only configuration source.
-    Returns:
-        return (Settings): Validated application settings.
-    """
     path = Path("config.yml")
     with path.open("r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)

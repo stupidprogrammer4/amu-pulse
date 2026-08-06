@@ -58,13 +58,6 @@ class CFGReaderService:
         symbols: SymbolReader,
         sources: SourceReader,
     ) -> None:
-        """
-        Desc: Build the service with the readers it reads through.
-        Args:
-            assets (AssetReader): Reader over the assets module's tables.
-            symbols (SymbolReader): Reader over the symbols module's tables.
-            sources (SourceReader): Reader over the sources module's tables.
-        """
         self.assets = assets
         self.symbols = symbols
         self.sources = sources
@@ -155,15 +148,6 @@ class CacheFlusherService:
         source_bubbles: BubbleSourceCache,
         windows: ISourceWindowService,
     ) -> None:
-        """
-        Desc: Build the service with the caches it writes to.
-        Args:
-            prices (SourcePriceCache): Where each source's reading lands.
-            source_bubbles (BubbleSourceCache): Where each source's raw
-                premium lands.
-            windows (ISourceWindowService): The open candle each reading is
-                folded into.
-        """
         self.prices = prices
         self.source_bubbles = source_bubbles
         self.windows = windows
@@ -229,13 +213,6 @@ class CacheReaderService:
         prices: SourcePriceCache,
         source_bubbles: BubbleSourceCache,
     ) -> None:
-        """
-        Desc: Build the service with the caches it reads from.
-        Args:
-            prices (SourcePriceCache): Where each source's reading lands.
-            source_bubbles (BubbleSourceCache): Where each source's raw
-                premium lands.
-        """
         self.prices = prices
         self.source_bubbles = source_bubbles
 
@@ -311,11 +288,6 @@ class CacheReaderService:
 
 class PersistFlusherService:
     def __init__(self, errors: ISourceErrorService) -> None:
-        """
-        Desc: Build the service with the source service it writes through.
-        Args:
-            errors (ISourceErrorService): Where a source's failure is kept.
-        """
         self.errors = errors
 
     def _as_info(self, error: ErrorQuote) -> SourceErrorInfo:
@@ -347,7 +319,6 @@ class PersistFlusherService:
             return (int): How many sources were stamped.
         """
         source_ids = {source.code: source.id for source in cfg.sources}
-        # a source without a fetcher was never called, so it is not judged
         called = {
             *SUPPLIER_FETCHERS,
             *IRAN_FETCHERS,
@@ -375,11 +346,6 @@ class PersistFlusherService:
 
 class RunnerService:
     def __init__(self, container: AsyncContainer) -> None:
-        """
-        Desc: Build the service with the container it opens its scopes on.
-        Args:
-            container (AsyncContainer): The application container.
-        """
         self.container = container
 
     async def run(self) -> bool:

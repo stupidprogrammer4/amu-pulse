@@ -9,8 +9,6 @@ from src.modules.ops.logs.domain.schemas import LogMeta, LogOut
 from src.modules.ops.logs.interfaces import ILogService
 from src.web.response import APIResponse
 
-# a log line can carry anything a request carried, so this stays behind the
-# guard even though it only reads
 router = APIRouter(
     prefix="/panel/logs",
     tags=["Panel Logs"],

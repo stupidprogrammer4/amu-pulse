@@ -14,25 +14,12 @@ from src.modules.price.sources.domain.models import (
 
 class LoginReader(PGReader):
     def __init__(self, uow: PGUnitOfWork):
-        """
-        Desc: Build the reader over the unit of work.
-        Args:
-            uow (PGUnitOfWork): Unit of work whose session runs the query.
-        """
         super().__init__(uow)
 
     async def read_by_codes(
         self,
         codes: Sequence[SourceCode],
     ) -> Sequence[LoginContext]:
-        """
-        Desc: Read the named sources' login secrets, oldest first.
-        Args:
-            codes (Sequence[SourceCode]): Codes of the sources to log into.
-        Returns:
-            return (Sequence[LoginContext]): One context per source that
-                actually holds a secret.
-        """
         stmt = (
             select(
                 SourceModel.id,
@@ -57,14 +44,6 @@ class LoginReader(PGReader):
         ]
 
     async def read(self, source_id: int) -> Optional[LoginContext]:
-        """
-        Desc: Read one source's login secret by its id.
-        Args:
-            source_id (int): ID of the source to log into.
-        Returns:
-            return (Optional[LoginContext]): The context, or None when
-                the source has no row, no config or no secret.
-        """
         stmt = (
             select(
                 SourceModel.id,

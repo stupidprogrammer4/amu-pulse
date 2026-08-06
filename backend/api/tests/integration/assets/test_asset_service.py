@@ -20,13 +20,6 @@ from tests.conftest import NullScheduler
 
 
 def _services(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
-    """
-    Desc: Build the asset and asset-config services over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read and write through.
-    Returns:
-        return (tuple[AssetService, AssetConfigService]): The two services.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -35,13 +28,6 @@ def _services(uow: PGUnitOfWork) -> tuple[AssetService, AssetConfigService]:
 
 
 def _create_data(code: AssetCode = AssetCode.GOLD18) -> AssetCreate:
-    """
-    Desc: Build an AssetCreate DTO for the given code.
-    Args:
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetCreate): The create DTO.
-    """
     return AssetCreate(
         title="طلای ۱۸ عیار",
         code=code,
@@ -74,7 +60,6 @@ class TestAssetServiceCRUD:
 
         config = await configs.get_by_asset_id(asset.id)
         assert config.asset_id == asset.id
-        # a new asset is paused until an admin turns it on
         assert config.scheduler_on is False
         assert config.scheduler_seconds == 60
         assert config.agg_type == AggregationType.MEDIAN
@@ -180,7 +165,6 @@ class TestAssetWithConfig:
         found = await assets.get_all_with_config()
 
         assert len(found) == 2
-        # reached without a second query: joinedload already filled it in
         for asset in found:
             assert asset.config is not None
             assert asset.config.asset_id == asset.id

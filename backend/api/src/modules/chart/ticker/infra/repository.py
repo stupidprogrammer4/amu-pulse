@@ -25,10 +25,6 @@ class PriceTickerRepository(PGTimestampIDRepository[PriceTickerModel]):
             return (Sequence[PriceTickerModel]): The points, oldest first.
         """
         since = now - type.span
-        # the snapshots are finer than every chart but the daily one, so
-        # each step keeps its last point and drops the rest. the step is
-        # the stamp minus its remainder: dividing would ask postgres for a
-        # numeric, and every point would land in a step of its own
         stamp = col(PriceTickerModel.timestamp)
         bucket = stamp - stamp % type.step
         stmt = (

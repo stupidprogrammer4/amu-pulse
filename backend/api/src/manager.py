@@ -9,8 +9,6 @@ from src.common.utils.string_utils import pluralize
 
 app = typer.Typer(help="goldis project CLI", no_args_is_help=True)
 
-# the operational scripts hang off the one entry point pip already installs,
-# so a container runs them as `fastamu scripts <name>` with nothing to add
 app.add_typer(scripts_app, name="scripts")
 
 MODULES_DIR = Path(__file__).resolve().parent / "modules"
@@ -61,13 +59,10 @@ def _render(
     )
 
 
-# --- templates --------------------------------------------------------
-
 MODELS = """from src.infra.postgres.models.base import BaseIDTimestampModel
 
 
 class <<P>>Model(BaseIDTimestampModel, table=True):
-    # table name auto-derives as "tbl_<<PL>>"; columns combine alias + factory
     ...
 """
 
@@ -173,7 +168,6 @@ class <<P>>Projection(
     AbstractESProjection[<<P>>Repository, <<P>>ESRepository]
 ):
     async def project(self, id: int) -> bool:
-        # read the PG row, then save the mapped <<P>>Document into ES
         return True
 """
 
@@ -246,7 +240,6 @@ router = APIRouter(prefix="/<<PL>>", tags=["<<PL>>"])
 
 TASKS = "# taskiq background tasks for the <<S>> module\n"
 
-# --- context-module templates -----------------------------------------
 
 CONTEXT = """from dataclasses import dataclass
 
@@ -428,7 +421,6 @@ def module(
     snake, pascal = _names(raw)
     if not snake:
         raise typer.BadParameter("module name is empty")
-    # a context module is an engine, not rows; its name stays as written
     folder = snake if context else _pluralize(snake)
     dotted = f"{group}.{folder}" if group else folder
 

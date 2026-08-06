@@ -9,7 +9,6 @@ T = TypeVar("T")
 async def resolve(value: Awaitable[T] | T) -> T:
     result: T
     if isinstance(value, Awaitable):
-        # the isinstance is the proof, but it cannot carry T along with it
         result = await cast("Awaitable[T]", value)
     else:
         result = value

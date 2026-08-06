@@ -22,7 +22,6 @@ _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 
 class _FakeCacheReader:
-    """The one read the price route makes."""
 
     def __init__(self, price: AssetPriceResult | None) -> None:
         self.price = price
@@ -47,14 +46,12 @@ class _FakeCacheReader:
 
 
 class _FakeJob:
-    """What kiq answers with once the job is queued."""
 
     def __init__(self, task_id: str) -> None:
         self.task_id = task_id
 
 
 class _FakeTask:
-    """The reprice task, kicked but never run."""
 
     def __init__(self) -> None:
         self.kicked: list[Any] = []
@@ -65,14 +62,6 @@ class _FakeTask:
 
 
 def _price(asset_id: int = 1, price: int = 100_500_000) -> AssetPriceResult:
-    """
-    Desc: Build one cached asset price.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        price (int): The mid price in rial.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=100_000_000,

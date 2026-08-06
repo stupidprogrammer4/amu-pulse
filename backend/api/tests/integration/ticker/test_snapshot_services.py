@@ -69,7 +69,6 @@ _epoch = int(_at.timestamp())
 
 
 class TickerAssetPriceCache(AssetPriceCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:ticker:assets:price"
 
 
@@ -120,14 +119,6 @@ async def caches(
 
 
 def _prices(uow: PGUnitOfWork, redis: RedisClient) -> PriceSnapshotService:
-    """
-    Desc: Build the asset snapshot service over the real table and cache.
-    Args:
-        uow (PGUnitOfWork): Unit of work the rows are written through.
-        redis (RedisClient): Client the caches run on.
-    Returns:
-        return (PriceSnapshotService): The service.
-    """
     reader = PriceCacheReaderService(
         TickerAssetPriceCache(redis), TickerBubbleCache(redis)
     )
@@ -138,14 +129,6 @@ def _readings(
     uow: PGUnitOfWork,
     redis: RedisClient,
 ) -> SourcePriceSnapshotService:
-    """
-    Desc: Build the source snapshot service over the real table and cache.
-    Args:
-        uow (PGUnitOfWork): Unit of work the rows are written through.
-        redis (RedisClient): Client the caches run on.
-    Returns:
-        return (SourcePriceSnapshotService): The service.
-    """
     reader = CacheReaderService(
         TickerSourcePriceCache(redis), TickerBubbleSourceCache(redis)
     )
@@ -156,14 +139,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset with its default config.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -179,15 +154,6 @@ async def _symbol(
     asset: AssetModel,
     code: SymbolCode,
 ) -> SymbolModel:
-    """
-    Desc: Create the line an asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-        code (SymbolCode): Code of the line.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -202,13 +168,6 @@ async def _symbol(
 
 
 async def _source(uow: PGUnitOfWork) -> SourceModel:
-    """
-    Desc: Create one source feeding the Iranian market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(
@@ -225,14 +184,6 @@ async def _source(uow: PGUnitOfWork) -> SourceModel:
 
 
 def _price(asset_id: int, price: int) -> AssetPriceResult:
-    """
-    Desc: Build one cached asset price.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        price (int): The mid price in rial.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price,
@@ -251,15 +202,6 @@ def _reading(
     symbol_id: int,
     price: int,
 ) -> SourcePriceResult:
-    """
-    Desc: Build one cached source reading.
-    Args:
-        source_id (int): ID of the source that quoted it.
-        symbol_id (int): ID of the line it was quoted for.
-        price (int): The mid price in rial.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=symbol_id,

@@ -14,25 +14,12 @@ from tests.unit.calculator.test_asset_price_cache import _FakeRedis
 
 
 def _cache() -> tuple[BubbleCache, _FakeRedis]:
-    """
-    Desc: Build the cache over a fake Redis.
-    Returns:
-        return (tuple[BubbleCache, _FakeRedis]): The cache and its store.
-    """
     fake = _FakeRedis()
     client = cast(RedisClient, SimpleNamespace(client=fake))
     return BubbleCache(client), fake
 
 
 def _bubble(amount: int, asset_id: int = 1) -> BubbleResult:
-    """
-    Desc: Build a bubble to store.
-    Args:
-        amount (int): The premium in Rial, signed.
-        asset_id (int): ID of the asset it belongs to.
-    Returns:
-        return (BubbleResult): The bubble.
-    """
     return BubbleResult(
         asset_id=asset_id,
         amount=amount,
@@ -52,7 +39,6 @@ class TestSetAndGet:
         assert found.asset_id == 1
 
     async def test_a_negative_bubble_survives(self) -> None:
-        # the market sits under world parity often enough to matter
         cache, _ = _cache()
 
         await cache.set(AssetCode.GOLD18, _bubble(-2_137_540))
@@ -144,7 +130,6 @@ class TestRemovalAndNamespace:
         assert BubbleCache.namespace == "bubble:price"
 
     def test_the_three_caches_never_share_a_namespace(self) -> None:
-        # a collision would have one cache reading another's payloads
         namespaces = {
             AssetPriceCache.namespace,
             SourcePriceCache.namespace,

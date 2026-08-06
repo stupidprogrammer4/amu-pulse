@@ -15,10 +15,8 @@ from .docs import setup_docs
 from .error_handlers import setup_exception_handlers
 from .middlewares.logging import LoggingMiddleware
 
-# get settings
 settings = get_settings()
 
-# bootstrap
 bootstrapper = get_bootstrapper()
 
 import src.tasks.broker  # noqa: E402, F401

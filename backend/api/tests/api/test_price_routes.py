@@ -34,14 +34,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset with its default config.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -53,14 +45,6 @@ async def _asset(
 
 
 def _price(asset_id: int, price: int = 100_500_000) -> AssetPriceResult:
-    """
-    Desc: Build one cached asset price.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        price (int): The mid price in rial.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=100_000_000,
@@ -75,14 +59,6 @@ def _price(asset_id: int, price: int = 100_500_000) -> AssetPriceResult:
 
 
 def _reading(source_id: int, price: int) -> SourcePriceResult:
-    """
-    Desc: Build one cached source reading.
-    Args:
-        source_id (int): ID of the source that quoted it.
-        price (int): The mid price in rial.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=1,
@@ -147,7 +123,6 @@ class TestRepriceAsset:
     async def test_the_price_is_not_what_it_answers(
         self, client: AsyncClient, caches: RedisClient, queue: str
     ) -> None:
-        # the job is the answer; the price lands in the cache later
         response = await client.post("/assets/usd/reprice")
 
         assert "price" not in response.json()["data"]

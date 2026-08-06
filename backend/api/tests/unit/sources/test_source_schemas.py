@@ -23,14 +23,6 @@ def _config(
     headers: dict[str, str] | None = None,
     auth: dict[str, str] | None = None,
 ) -> SourceConfigModel:
-    """
-    Desc: Build a source config row with the given credentials.
-    Args:
-        headers (dict[str, str] | None): Header credentials, if any.
-        auth (dict[str, str] | None): Auth credentials, if any.
-    Returns:
-        return (SourceConfigModel): The config row.
-    """
     return SourceConfigModel(
         source_id=3,
         timeout=10,
@@ -42,13 +34,6 @@ def _config(
 
 
 def _source_out(id: int = 3) -> SourceOut:
-    """
-    Desc: Build a SourceOut carrying the given internal id.
-    Args:
-        id (int): The internal id.
-    Returns:
-        return (SourceOut): The output schema.
-    """
     return SourceOut(
         id=id,
         title="شبکه اطلاع‌رسانی طلا و ارز",
@@ -75,8 +60,6 @@ class TestSourceIDEncryption:
         assert dumped["id"] == SOURCE_ID_ENCRYPTION.encode(3)
 
     def test_source_ids_do_not_collide_with_asset_ids(self) -> None:
-        # each module owns its own public-id range, so the same internal id
-        # never renders as the same public one across modules
         source_low, source_high = SOURCE_ID_ENCRYPTION.bounds
         asset_low, asset_high = ASSET_ID_ENCRYPTION.bounds
         assert source_low > asset_high or asset_low > source_high
@@ -107,8 +90,6 @@ class TestSourceConfigOutHidesCredentials:
         assert out.has_auth_credentials is False
 
     def test_a_nested_config_is_masked_too(self) -> None:
-        # the nested path validates the config as a field rather than through
-        # from_obj, so masking has to hold there as well
         source = _source_out()
         nested = SourceWithConfigOut.model_validate(
             {

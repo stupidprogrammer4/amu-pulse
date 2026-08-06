@@ -22,26 +22,12 @@ from src.seeders.bubbles import BUBBLES, seed_bubbles
 def _services(
     uow: PGUnitOfWork,
 ) -> tuple[BubbleService, BubbleConfigService]:
-    """
-    Desc: Build the bubble and bubble-config services over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read and write through.
-    Returns:
-        return (tuple[BubbleService, BubbleConfigService]): The two services.
-    """
     configs = BubbleConfigService(BubbleConfigRepository(uow))
     bubbles = BubbleService(BubbleRepository(uow), configs)
     return bubbles, configs
 
 
 def _create_data(code: AssetCode = AssetCode.GOLD18) -> BubbleCreate:
-    """
-    Desc: Build a BubbleCreate DTO for the given asset code.
-    Args:
-        code (AssetCode): Asset whose premium the bubble tracks.
-    Returns:
-        return (BubbleCreate): The create DTO.
-    """
     return BubbleCreate(
         title="حباب طلای ۱۸ عیار",
         code=code,
@@ -71,7 +57,6 @@ class TestBubbleServiceCRUD:
 
         config = await configs.get_by_bubble_id(bubble.id)
         assert config.bubble_id == bubble.id
-        # a new bubble is paused until an admin turns it on
         assert config.scheduler_on is False
         assert config.scheduler_seconds == 60
         assert config.agg_type == AggregationType.MEDIAN
@@ -149,7 +134,6 @@ class TestBubbleConfigService:
     async def test_the_aggregation_is_what_folds_many_publishers(
         self, uow: PGUnitOfWork
     ) -> None:
-        # a second bubble source needs no schema change, only this setting
         bubbles, configs = _services(uow)
         bubble = await bubbles.create(_create_data())
 

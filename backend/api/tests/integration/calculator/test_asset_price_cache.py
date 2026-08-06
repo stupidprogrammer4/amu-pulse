@@ -12,7 +12,6 @@ from src.modules.price.calculator.infra.cache import AssetPriceCache
 
 
 class _TestAssetPriceCache(AssetPriceCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:assets:price"
 
 
@@ -33,7 +32,6 @@ async def cache(
     )
     built = _TestAssetPriceCache(client)
     try:
-        # reaching redis at all is what decides whether these can run
         await client.client.ping()
     except (RedisError, OSError) as exc:
         await client.close()
@@ -47,14 +45,6 @@ async def cache(
 
 
 def _result(price: int, asset_id: int = 1) -> AssetPriceResult:
-    """
-    Desc: Build a priced result to store.
-    Args:
-        price (int): The mid price in Rial.
-        asset_id (int): ID of the asset it belongs to.
-    Returns:
-        return (AssetPriceResult): The result.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price - 1000,
@@ -78,7 +68,6 @@ class TestAssetPriceCacheAgainstRedis:
 
         assert found is not None
         assert found.price == 185_820_000
-        # the rate is the one field a float round trip would corrupt
         assert found.buy_spread_rate == 0.00125
         assert found.priced_at.tzinfo is not None
 

@@ -27,14 +27,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset to hang points off.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -50,13 +42,6 @@ async def _points(
     asset: AssetModel,
     stamps: list[int],
 ) -> None:
-    """
-    Desc: Write one point per timestamp, priced by its own stamp.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the points belong to.
-        stamps (list[int]): The times the points were priced at.
-    """
     repo = PriceTickerRepository(uow)
     await repo.bulk_create(
         [
@@ -67,11 +52,6 @@ async def _points(
 
 
 def _now() -> int:
-    """
-    Desc: Read the moment the charts are measured back from.
-    Returns:
-        return (int): Now, in whole seconds.
-    """
     return int(date_utils.utc_now().timestamp())
 
 
@@ -80,7 +60,6 @@ class TestTheDailyChart:
     async def test_every_five_minute_point_is_kept(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the snapshots are taken on the same step the daily chart draws
         asset = await _asset(uow)
         now = _now()
         stamps = [now - step * 5 * _minute for step in range(6)]
@@ -151,7 +130,6 @@ class TestTheCoarserCharts:
     async def test_the_weekly_chart_keeps_one_point_a_half_hour(
         self, uow: PGUnitOfWork
     ) -> None:
-        # six five-minute points sit inside one half-hour step
         asset = await _asset(uow)
         now = _now()
         base = (now // (30 * _minute)) * 30 * _minute

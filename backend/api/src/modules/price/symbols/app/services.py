@@ -8,11 +8,6 @@ from src.modules.price.symbols.infra.repository import SymbolRepository
 
 class SymbolService(BaseIDService[SymbolModel]):
     def __init__(self, repo: SymbolRepository) -> None:
-        """
-        Desc: Build the service with its repository.
-        Args:
-            repo (SymbolRepository): The symbol repository.
-        """
         self.repo = repo
 
     async def create(self, data: SymbolCreate) -> SymbolModel:

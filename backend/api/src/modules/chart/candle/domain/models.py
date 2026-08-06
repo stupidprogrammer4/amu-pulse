@@ -19,7 +19,6 @@ class CandleData(BaseModel):
 
 
 class CandleModel(BaseIDTimestampModel, CandleData, table=True):
-    # a rerun of a rollup writes the same candle, never a second one
     __table_args__ = (UniqueConstraint("asset_id", "timeframe", "st_ts"),)
 
     asset_id: int = ForeignKeyField("tbl_assets.id", ondelete="CASCADE")

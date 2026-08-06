@@ -19,12 +19,6 @@ _at = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 
 def _service() -> tuple[CacheReaderService, AssetPriceCache, BubbleCache]:
-    """
-    Desc: Build the service over caches on a fake Redis.
-    Returns:
-        return (tuple[CacheReaderService, AssetPriceCache, BubbleCache]):
-            The service and the two caches it reads.
-    """
     client = cast(RedisClient, SimpleNamespace(client=_FakeRedis()))
     prices = AssetPriceCache(client)
     bubbles = BubbleCache(client)
@@ -32,14 +26,6 @@ def _service() -> tuple[CacheReaderService, AssetPriceCache, BubbleCache]:
 
 
 def _price(asset_id: int, price: int) -> AssetPriceResult:
-    """
-    Desc: Build one cached asset price.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        price (int): The mid price in rial.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price,
@@ -54,14 +40,6 @@ def _price(asset_id: int, price: int) -> AssetPriceResult:
 
 
 def _bubble(asset_id: int, amount: int) -> BubbleResult:
-    """
-    Desc: Build one settled premium.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        amount (int): The premium in rial, signed.
-    Returns:
-        return (BubbleResult): The premium.
-    """
     return BubbleResult(asset_id=asset_id, amount=amount, priced_at=_at)
 
 

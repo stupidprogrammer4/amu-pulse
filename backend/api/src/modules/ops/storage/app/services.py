@@ -17,7 +17,6 @@ from src.modules.ops.storage.infra.storage import (
 
 
 class MediaService(BaseIDService[MediaModel]):
-    """Uploaded media: streamed storage, dedupe by hash, the catalog."""
 
     def __init__(
         self,

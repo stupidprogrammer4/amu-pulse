@@ -12,7 +12,6 @@ from src.modules.price.calculator.infra.cache import BubbleCache
 
 
 class _TestBubbleCache(BubbleCache):
-    # never touch the namespace a running engine is writing to
     namespace = "test:bubble:price"
 
 
@@ -46,14 +45,6 @@ async def cache(
 
 
 def _bubble(amount: int, asset_id: int = 1) -> BubbleResult:
-    """
-    Desc: Build a bubble to store.
-    Args:
-        amount (int): The premium in Rial, signed.
-        asset_id (int): ID of the asset it belongs to.
-    Returns:
-        return (BubbleResult): The bubble.
-    """
     return BubbleResult(
         asset_id=asset_id,
         amount=amount,
@@ -65,7 +56,6 @@ class TestBubbleCacheAgainstRedis:
     async def test_a_negative_bubble_round_trips(
         self, cache: _TestBubbleCache
     ) -> None:
-        # the real melligold figure was negative when this was written
         await cache.set(AssetCode.GOLD18, _bubble(-2_137_540))
 
         found = await cache.get(AssetCode.GOLD18)

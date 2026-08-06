@@ -12,7 +12,6 @@ from src.tasks.broker import broker
 @broker.task(
     task_name="candle.build_from_cache",
     queue_name="candle_queue",
-    # on the five-minute marks, the moment a window closes
     schedule=[{"cron": "*/5 * * * *"}],
 )
 @inject(patch_module=True)
@@ -53,7 +52,6 @@ async def roll_timeframe(
     candles: FromDishka[ICandleService],
     sources: FromDishka[ISourceCandleService],
 ) -> int:
-    # a schedule hands the timeframe over as its own value
     frame = TimeFrame(tf)
     priced = await candles.build_timeframe_from_rolled(frame)
     quoted = await sources.build_timeframe_from_rolled(frame)

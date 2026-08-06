@@ -30,13 +30,6 @@ from tests.conftest import NullScheduler
 
 
 async def _asset(uow: PGUnitOfWork) -> AssetModel:
-    """
-    Desc: Create one asset to hang a pricing order off.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -56,15 +49,6 @@ async def _switch(
     asset: AssetModel,
     switch: SourceSwitch = SourceSwitch.IRAN_MARKET,
 ) -> AssetSwitchModel:
-    """
-    Desc: Put one market in an asset's pricing order.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the market prices.
-        switch (SourceSwitch): The market to add.
-    Returns:
-        return (AssetSwitchModel): The created row.
-    """
     switches = AssetSwitchService(AssetSwitchRepository(uow))
     row = await switches.create(
         asset.id, AssetSwitchCreate(switch=switch, priority=0)
@@ -77,7 +61,6 @@ class TestTheAssetIsReadOffThePathAlone:
     async def test_the_order_is_served_without_a_query_string(
         self, client: AsyncClient, uow: PGUnitOfWork
     ) -> None:
-        # the id is in the path; nothing may ask for it a second time
         asset = await _asset(uow)
         await _switch(uow, asset)
         await uow.commit()

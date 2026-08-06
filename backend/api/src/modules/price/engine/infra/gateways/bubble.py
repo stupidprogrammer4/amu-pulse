@@ -22,15 +22,11 @@ class AbstractBubbleFetcher(AbstractFetcher[BubbleQuote]):
 
 
 class MeligoldBubbleFetcher(AbstractBubbleFetcher):
-    # verified live: keyless
     __code__ = SourceCode.MELIGOLD
     __url__ = "https://cms.melligold.com/api/bubble-rates/latest"
-    # the CMS also publishes coin bubbles; only the ones AssetCode models
-    # are read, keyed by the row's `key` field
     assets_by_key = {"XAU18_BUBBLE": AssetCode.GOLD18}
 
     async def _request(self, client: httpx.AsyncClient) -> httpx.Response:
-        # a list value renders as a repeated key[]=... parameter
         params = {"key[]": list(self.assets_by_key)}
         resp = await client.get(self.__url__, params=params)
         return resp

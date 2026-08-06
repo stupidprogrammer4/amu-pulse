@@ -3,9 +3,6 @@ from decimal import Decimal, InvalidOperation
 from src.common.constants import MAZANE_FACTOR
 from src.common.utils import persian_utils
 
-# what a decoded price field is allowed to be. A source may hand back a
-# string ("1,931,900"), an int, a float or a Decimal — anything else is a
-# malformed body, not an amount.
 QuotedAmount = str | int | float | Decimal
 
 
@@ -18,14 +15,12 @@ def _normalize(value: QuotedAmount) -> str | None:
 
 
 def _numeric(value: QuotedAmount) -> int | float | Decimal:
-    # bool passes an int check, and a source reporting True is a bug
     if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
         raise ValueError(f"non-numeric amount: {value!r}")
     return value
 
 
 def round_rial(amount: int | float | Decimal) -> int:
-    # a rial price always ends in a zero; the toman is the unit people read
     rial = round(amount / 10) * 10
     return rial
 
@@ -56,7 +51,6 @@ def to_decimal(value: QuotedAmount) -> Decimal:
 
 
 def to_cent(value: QuotedAmount) -> int:
-    # a world feed quotes dollars; the smallest unit it prices in is a cent
     cents = round(to_decimal(value) * 100)
     return cents
 

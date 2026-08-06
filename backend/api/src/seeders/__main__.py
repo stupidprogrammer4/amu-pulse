@@ -1,5 +1,4 @@
 # isort: skip_file
-# the broker boots the modules, so it has to be imported first
 import asyncio
 
 import src.tasks.broker  # noqa: F401
@@ -16,7 +15,6 @@ from src.seeders.symbols import seed_symbols
 async def seed_all(uow: PGUnitOfWork) -> None:
     print(f"seeded {len(await seed_assets(uow))} assets")
     print(f"seeded {len(await seed_sources(uow))} sources")
-    # after assets: a symbol points at the asset it prices
     print(f"seeded {len(await seed_symbols(uow))} symbols")
     print(f"seeded {len(await seed_bubbles(uow))} bubbles")
 

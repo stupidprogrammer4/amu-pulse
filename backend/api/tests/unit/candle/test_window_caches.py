@@ -18,7 +18,6 @@ _st_ts = 1_785_000_000
 
 
 class _FakeWindowRedis(_FakeRedis):
-    """The fake, plus the expiry the window caches set."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -30,24 +29,12 @@ class _FakeWindowRedis(_FakeRedis):
 
 
 def _assets() -> tuple[AssetWindowCache, _FakeWindowRedis]:
-    """
-    Desc: Build the asset window cache over a fake Redis.
-    Returns:
-        return (tuple[AssetWindowCache, _FakeWindowRedis]): The cache and
-            its store.
-    """
     fake = _FakeWindowRedis()
     client = cast(RedisClient, SimpleNamespace(client=fake))
     return AssetWindowCache(client), fake
 
 
 def _sources() -> tuple[SourceWindowCache, _FakeWindowRedis]:
-    """
-    Desc: Build the source window cache over a fake Redis.
-    Returns:
-        return (tuple[SourceWindowCache, _FakeWindowRedis]): The cache and
-            its store.
-    """
     fake = _FakeWindowRedis()
     client = cast(RedisClient, SimpleNamespace(client=fake))
     return SourceWindowCache(client), fake

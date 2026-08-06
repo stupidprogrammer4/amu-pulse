@@ -16,7 +16,6 @@ from src.modules.price.symbols.domain.enums import SymbolCode
 
 
 class AbstractIranFetcher(AbstractFetcher[IranSourceQuote]):
-    # a failed fetch answers per line, so none silently disappears
     __symbols__: tuple[SymbolCode, ...] = (SymbolCode.GOLD18_GRAM,)
 
     def _failed(self, error: ErrorQuote) -> Sequence[IranSourceQuote]:
@@ -26,25 +25,19 @@ class AbstractIranFetcher(AbstractFetcher[IranSourceQuote]):
         ]
 
 
-# --- rate aggregators ---
-
-
 class TgjuFetcher(AbstractIranFetcher):
-    # verified live: keyless
     __code__ = SourceCode.TGJU
     __url__ = (
         "https://call4.tgju.org/ajax.json"
         "?rev=pf2MFAghbHqfa4c5jYzDfSq8c8PmqUq4aZatIEutGCv93T8b0rhYJzSfvjI9"
     )
     __symbols__ = (SymbolCode.GOLD18_GRAM, SymbolCode.USD_RIAL)
-    # the board keys each row by symbol and prices it under "p"
     gold_sell_key = "tgju_gold_irg18"
     gold_buy_key = "tgju_gold_irg18_buy"
     dollar_key = "price_dollar_rl"
 
     def _parse(self, resp: httpx.Response) -> Sequence[IranSourceQuote]:
         board = json_path(resp.json(), "current")
-        # the dollar comes as one mid price, gold as a two-sided pair
         dollar = json_path(board, self.dollar_key, "p")
         quotes = [
             IranSourceQuote.from_buying_selling(
@@ -61,11 +54,9 @@ class TgjuFetcher(AbstractIranFetcher):
 
 
 class WallexFetcher(AbstractIranFetcher):
-    # verified live: keyless
     __code__ = SourceCode.WALLEX
     __url__ = "https://api.wallex.ir/v1/depth?symbol=USDTTMN"
     __symbols__ = (SymbolCode.USD_RIAL,)
-    # the book quotes Toman; storage is Rial
     toman_to_rial = 10
 
     def _parse(self, resp: httpx.Response) -> Sequence[IranSourceQuote]:
@@ -79,9 +70,6 @@ class WallexFetcher(AbstractIranFetcher):
             float(bid) * self.toman_to_rial,
         )
         return [quote]
-
-
-# --- online gold shops: watched, not bought from ---
 
 
 class DigikalaFetcher(AbstractIranFetcher):

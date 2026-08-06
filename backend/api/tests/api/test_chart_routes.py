@@ -47,22 +47,10 @@ _minute = 60
 
 
 def _now() -> int:
-    """
-    Desc: Read the moment the charts are measured back from.
-    Returns:
-        return (int): Now, in whole seconds.
-    """
     return int(date_utils.utc_now().timestamp())
 
 
 async def _asset(uow: PGUnitOfWork) -> AssetModel:
-    """
-    Desc: Create one asset to chart.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -78,14 +66,6 @@ async def _asset(uow: PGUnitOfWork) -> AssetModel:
 
 
 async def _symbol(uow: PGUnitOfWork, asset: AssetModel) -> SymbolModel:
-    """
-    Desc: Create the line the asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -100,13 +80,6 @@ async def _symbol(uow: PGUnitOfWork, asset: AssetModel) -> SymbolModel:
 
 
 async def _source(uow: PGUnitOfWork) -> SourceModel:
-    """
-    Desc: Create one source that quotes the line.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(

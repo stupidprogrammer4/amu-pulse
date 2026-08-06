@@ -8,16 +8,13 @@ from src.modules.price.assets.config.constants import (
 )
 from src.web.dependencies import decode_path_id
 
-# the public asset id in a route path, decoded to the internal one
 AssetID = Annotated[int, Depends(decode_path_id(ASSET_ID_ENCRYPTION, "Asset"))]
 
-# the public id of one row of an asset's pricing order
 AssetSwitchID = Annotated[
     int,
     Depends(decode_path_id(ASSET_SWITCH_ID_ENCRYPTION, "AssetSwitch")),
 ]
 
-# the same ids, where the path names them after what they belong to
 AssetIDPath = Annotated[
     int,
     Depends(decode_path_id(ASSET_ID_ENCRYPTION, "Asset", "asset_id")),

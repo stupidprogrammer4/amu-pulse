@@ -77,7 +77,6 @@ class TestSourceSeeder:
     async def test_it_covers_every_source_code(
         self, uow: PGUnitOfWork
     ) -> None:
-        # a code with no seed row would be unreachable through the API
         created = await seed_sources(uow)
 
         assert {s.code for s in created} == set(SourceCode)

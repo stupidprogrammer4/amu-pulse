@@ -39,11 +39,6 @@ from src.modules.price.symbols.domain.enums import SymbolCode
 
 class WindowService:
     def __init__(self, cache: AssetWindowCache) -> None:
-        """
-        Desc: Build the service with the window each price is folded into.
-        Args:
-            cache (AssetWindowCache): Where the open window lives.
-        """
         self.cache = cache
         self.clock = WindowClock()
 
@@ -112,12 +107,6 @@ class WindowService:
 
 class SourceWindowService:
     def __init__(self, cache: SourceWindowCache) -> None:
-        """
-        Desc: Build the service with the window each reading is folded
-        into.
-        Args:
-            cache (SourceWindowCache): Where the open window lives.
-        """
         self.cache = cache
         self.clock = WindowClock()
 
@@ -140,8 +129,6 @@ class SourceWindowService:
         """
         windows = {window.source_id: window for window in standing}
         for row in quoted:
-            # a window opened on the reading folds it back as a no-op, so
-            # the first reading of a source needs no branch of its own
             window = windows.get(
                 row.source_id,
                 SourcePriceWindow.opened(
@@ -184,14 +171,6 @@ class CandleService:
         cache: AssetWindowCache,
         meta: IAssetMetaService,
     ) -> None:
-        """
-        Desc: Build the service with the candles it writes, the windows it
-        writes them out of and what names the asset they are of.
-        Args:
-            repo (CandleRepository): The candle repository.
-            cache (AssetWindowCache): Where the open window lives.
-            meta (IAssetMetaService): What the charted asset is named by.
-        """
         self.repo = repo
         self.cache = cache
         self.clock = WindowClock()
@@ -241,8 +220,6 @@ class CandleService:
             st_ts = tf.opened_at(self.clock.last_closed())
             en_ts = st_ts + tf.seconds
             candles = await self.repo.get_all_by_timeframe(finer, st_ts, en_ts)
-            # the rows come by asset, oldest first: the first opens the
-            # candle and every one after it stretches the same one
             folded: dict[int, CandleModel] = {}
             for row in candles:
                 standing = folded.get(row.asset_id)
@@ -329,15 +306,6 @@ class SourceCandleService:
         cache: SourceWindowCache,
         meta: ISourceMetaService,
     ) -> None:
-        """
-        Desc: Build the service with the candles it writes, the windows it
-        writes them out of and what names the source they are of.
-        Args:
-            repo (SourceCandleRepository): The source candle repository.
-            cache (SourceWindowCache): Where the open window lives.
-            meta (ISourceMetaService): What the charted source and line are
-                named by.
-        """
         self.repo = repo
         self.cache = cache
         self.clock = WindowClock()
@@ -389,8 +357,6 @@ class SourceCandleService:
             st_ts = tf.opened_at(self.clock.last_closed())
             en_ts = st_ts + tf.seconds
             candles = await self.repo.get_all_by_timeframe(finer, st_ts, en_ts)
-            # the rows come by source and line, oldest first: the first
-            # opens the candle and every one after it stretches the same
             folded: dict[tuple[int, int], SourceCandleModel] = {}
             for row in candles:
                 key = (row.source_id, row.symbol_id)

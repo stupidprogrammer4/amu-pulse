@@ -16,13 +16,6 @@ class SourceLoginService:
         reader: LoginReader,
         configs: ISourceConfigService,
     ) -> None:
-        """
-        Desc: Build the service with its reader and the config service.
-        Args:
-            reader (LoginReader): Reads the secrets to exchange.
-            configs (ISourceConfigService): Writes the issued credentials
-                back through the module that owns them.
-        """
         self.reader = reader
         self.configs = configs
 

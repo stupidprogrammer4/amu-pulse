@@ -13,11 +13,6 @@ from tests.unit.calculator.test_asset_price_cache import _FakeRedis
 
 
 def _cache() -> tuple[SourcePriceCache, _FakeRedis]:
-    """
-    Desc: Build the cache over a fake Redis.
-    Returns:
-        return (tuple[SourcePriceCache, _FakeRedis]): Cache and its store.
-    """
     fake = _FakeRedis()
     client = cast(RedisClient, SimpleNamespace(client=fake))
     return SourcePriceCache(client), fake
@@ -28,15 +23,6 @@ def _reading(
     price: int,
     symbol_id: int = 1,
 ) -> SourcePriceResult:
-    """
-    Desc: Build one source's reading for a symbol.
-    Args:
-        source_id (int): ID of the source that quoted it.
-        price (int): The mid price in Rial.
-        symbol_id (int): ID of the symbol priced.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=symbol_id,
@@ -74,7 +60,6 @@ class TestSetAndGet:
         assert found[0].buy_spread_rate == 0.00125
 
     async def test_the_source_order_is_kept(self) -> None:
-        # the aggregation reads positionally when it picks a median
         cache, _ = _cache()
         readings = [_reading(i, i * 1000) for i in (5, 2, 9)]
 
@@ -92,7 +77,6 @@ class TestSetAndGet:
         assert found is None
 
     async def test_an_empty_reading_list_is_not_a_miss(self) -> None:
-        # every source failing is a real answer, distinct from never fetched
         cache, _ = _cache()
 
         await cache.set(SymbolCode.GOLD18_GRAM, [])

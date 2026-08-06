@@ -24,7 +24,6 @@ class SourceModel(BaseIDTimestampModel, table=True):
     icon_url: str = CharField(255)
     primary_color: str = CharField(16)
     source_type: SourceSwitch = CharField(55)
-    # last failed fetch; cleared once the source answers again
     error: SourceErrorInfo | None = JSONBField(nullable=True)
 
     config: Mapped[Optional["SourceConfigModel"]] = Relationship(

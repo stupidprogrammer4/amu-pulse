@@ -24,7 +24,6 @@ from src.modules.price.symbols.domain.schemas import SymbolMetaOut
 class SourceConfigOut(BaseOutput):
     source_id: SourceIDField
     timeout: int
-    # write-only: carried for the flags below, dropped from the output
     headers_credentials: dict[str, str] | None = Field(
         default=None, exclude=True
     )

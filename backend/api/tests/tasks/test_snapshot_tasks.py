@@ -55,14 +55,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset with its default config.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -78,15 +70,6 @@ async def _symbol(
     asset: AssetModel,
     code: SymbolCode,
 ) -> SymbolModel:
-    """
-    Desc: Create the line an asset is quoted through.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        asset (AssetModel): The asset the line belongs to.
-        code (SymbolCode): Code of the line.
-    Returns:
-        return (SymbolModel): The created line.
-    """
     symbols = SymbolService(SymbolRepository(uow))
     symbol = await symbols.create(
         SymbolCreate(
@@ -101,13 +84,6 @@ async def _symbol(
 
 
 async def _source(uow: PGUnitOfWork) -> SourceModel:
-    """
-    Desc: Create one source feeding the Iranian market.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-    Returns:
-        return (SourceModel): The created source.
-    """
     configs = SourceConfigService(SourceConfigRepository(uow))
     sources = SourceService(SourceRepository(uow), configs)
     source = await sources.create(
@@ -124,14 +100,6 @@ async def _source(uow: PGUnitOfWork) -> SourceModel:
 
 
 def _price(asset_id: int, price: int) -> AssetPriceResult:
-    """
-    Desc: Build one cached asset price.
-    Args:
-        asset_id (int): ID of the asset it belongs to.
-        price (int): The mid price in rial.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price,
@@ -150,15 +118,6 @@ def _reading(
     symbol_id: int,
     price: int,
 ) -> SourcePriceResult:
-    """
-    Desc: Build one cached source reading.
-    Args:
-        source_id (int): ID of the source that quoted it.
-        symbol_id (int): ID of the line it was quoted for.
-        price (int): The mid price in rial.
-    Returns:
-        return (SourcePriceResult): The reading.
-    """
     return SourcePriceResult(
         source_id=source_id,
         symbol_id=symbol_id,
@@ -176,7 +135,6 @@ def _reading(
 
 class TestTheSchedule:
     def test_both_run_on_the_five_minute_marks(self) -> None:
-        # :00, :05, :10 — the same grid for both, so points line up
         assert snapshot_prices.labels["schedule"] == [{"cron": "*/5 * * * *"}]
         assert snapshot_source_prices.labels["schedule"] == [
             {"cron": "*/5 * * * *"}

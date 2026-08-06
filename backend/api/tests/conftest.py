@@ -29,7 +29,6 @@ from src.infra.redis.client import RedisClient
 
 
 class _NullScheduleSource(ScheduleSource):
-    """Hermetic schedule source for tests — never touches redis."""
 
     async def get_schedules(self) -> list[ScheduledTask]:
         return []
@@ -42,7 +41,6 @@ class _NullScheduleSource(ScheduleSource):
 def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
-    """Auto-mark tests by folder: unit, integration, api and tasks."""
     folders = {
         "/tests/integration/": pytest.mark.integration,
         "/tests/unit/": pytest.mark.unit,
@@ -57,8 +55,6 @@ def pytest_collection_modifyitems(
 
 
 class NullScheduler:
-    """A scheduler that writes no schedule, for the services that only
-    hand an asset id on to it."""
 
     def __init__(self) -> None:
         self.synced: list[int] = []
@@ -80,9 +76,6 @@ def obj(**kwargs: Any) -> SimpleNamespace:
 @pytest.fixture
 def make_obj():
     return obj
-
-
-# --- integration: real test database ---------------------------------
 
 
 def _load_settings() -> Settings:
@@ -116,8 +109,6 @@ def migrated_test_db(test_dsn: str) -> Iterator[None]:
 
     cfg = Config("alembic.ini")
     cfg.set_main_option("sqlalchemy.url", test_dsn)
-    # only reaching the database is allowed to skip; a migration that fails
-    # once we're connected is a real failure and must be reported as one
     try:
         asyncio.run(_reset_public_schema(test_dsn))
     except _UNREACHABLE as exc:
@@ -130,10 +121,6 @@ def migrated_test_db(test_dsn: str) -> Iterator[None]:
         pass
 
 
-# a bad host, a refused connection and a rejected password all mean the same
-# thing here: there is no test database to run against. asyncpg raises its own
-# errors straight out of connect, so neither OSError nor SQLAlchemyError alone
-# covers them.
 _UNREACHABLE = (OSError, SQLAlchemyError, PostgresError)
 
 
@@ -186,22 +173,16 @@ async def es(integration_settings: Settings) -> AsyncIterator[ESClient]:
 
 @pytest.fixture
 async def clean_db(pg: PGConnection, es: ESClient) -> None:
-    """Empty every mapped table and read-model index (both discovered from the
-    modules) between tests."""
     bootstrapper = get_bootstrapper()
     bootstrapper.boot_sqlmodels()
     tables = list(reversed(SQLModel.metadata.sorted_tables))
     if tables:
-        # one statement: a TRUNCATE per table costs a round-trip and an
-        # ACCESS EXCLUSIVE lock each, before every single test
         names = ", ".join(f'"{table.name}"' for table in tables)
         async with pg.session_factory() as session:
             await session.execute(
                 text(f"TRUNCATE TABLE {names} RESTART IDENTITY CASCADE")
             )
             await session.commit()
-    # a projection outlives the row it came from, so a stale document would
-    # answer the next test's search
     for document in bootstrapper.boot_documents():
         index = document.Index.name
         if await es.client.indices.exists(index=index):
@@ -214,14 +195,6 @@ async def clean_db(pg: PGConnection, es: ESClient) -> None:
 
 
 def test_settings_of(settings: Settings, test_dsn: str) -> Settings:
-    """
-    Desc: Point a copy of the settings at the test database.
-    Args:
-        settings (Settings): The settings read off config.yml.
-        test_dsn (str): DSN of the test database.
-    Returns:
-        return (Settings): The same settings, aimed at the test database.
-    """
     return settings.model_copy(
         deep=True,
         update={
@@ -233,13 +206,6 @@ def test_settings_of(settings: Settings, test_dsn: str) -> Settings:
 
 
 def core_provider_of(test_settings: Settings) -> Provider:
-    """
-    Desc: Build the core provider every test container is rooted in.
-    Args:
-        test_settings (Settings): Settings aimed at the test database.
-    Returns:
-        return (Provider): The provider of settings, postgres, redis and es.
-    """
 
     class TestCoreProvider(Provider):
         @provide(scope=Scope.APP)
@@ -301,7 +267,6 @@ def core_provider_of(test_settings: Settings) -> Provider:
 
 @pytest.fixture
 async def dishka_container(integration_settings: Settings, test_dsn: str):
-    # module providers are discovered; a new module needs no edit here
     container = make_async_container(
         core_provider_of(test_settings_of(integration_settings, test_dsn)),
         *get_bootstrapper().boot_providers(),

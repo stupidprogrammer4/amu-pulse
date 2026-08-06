@@ -6,7 +6,6 @@ from src.modules.price.calculator.app.services import SchedulerService
 
 
 class _FakeScheduleSource:
-    """The two writes the service makes, over a dict of schedules."""
 
     def __init__(self) -> None:
         self.schedules: dict[str, ScheduledTask] = {}
@@ -26,15 +25,6 @@ class _FakeScheduleSource:
 def _service(
     source: _FakeScheduleSource | None = None,
 ) -> tuple[SchedulerService, _FakeScheduleSource]:
-    """
-    Desc: Build the service over a fake schedule source.
-    Args:
-        source (_FakeScheduleSource | None): The schedules already written,
-            a fresh set when none is given.
-    Returns:
-        return (tuple[SchedulerService, _FakeScheduleSource]): The service
-            and the schedules it writes to.
-    """
     written = source or _FakeScheduleSource()
     return SchedulerService(cast(ScheduleSource, written)), written
 
@@ -86,7 +76,6 @@ class TestSync:
         assert source.schedules["calculator:asset:1"].interval == 20
 
     async def test_a_paused_asset_is_swept_off_the_source(self) -> None:
-        # one that never had a schedule is asked to drop it all the same
         service, source = _service()
 
         await service.sync(9999, False, 60)

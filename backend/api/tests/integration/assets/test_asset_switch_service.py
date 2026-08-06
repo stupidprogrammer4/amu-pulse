@@ -35,13 +35,6 @@ from tests.conftest import NullScheduler
 
 
 def _services(uow: PGUnitOfWork) -> tuple[AssetService, AssetSwitchService]:
-    """
-    Desc: Build the asset and asset-switch services over real repositories.
-    Args:
-        uow (PGUnitOfWork): Unit of work to read and write through.
-    Returns:
-        return (tuple[AssetService, AssetSwitchService]): The two services.
-    """
     configs = AssetConfigService(
         AssetConfigRepository(uow), AssetRepository(uow), NullScheduler()
     )
@@ -54,14 +47,6 @@ async def _asset(
     uow: PGUnitOfWork,
     code: AssetCode = AssetCode.GOLD18,
 ) -> AssetModel:
-    """
-    Desc: Create one asset to hang a pricing order off.
-    Args:
-        uow (PGUnitOfWork): Unit of work to write through.
-        code (AssetCode): Code of the asset to create.
-    Returns:
-        return (AssetModel): The created asset.
-    """
     assets, _ = _services(uow)
     asset = await assets.create(
         AssetCreate(title="طلا", code=code, primary_color="#c8a44b")
@@ -70,13 +55,6 @@ async def _asset(
 
 
 def _order(*items: tuple[SourceSwitch, int]) -> AssetSwitchBatchCreate:
-    """
-    Desc: Build a pricing order out of market and level pairs.
-    Args:
-        items (tuple[SourceSwitch, int]): Each market and its level.
-    Returns:
-        return (AssetSwitchBatchCreate): The order to write.
-    """
     order = AssetSwitchBatchCreate(
         items=[
             AssetSwitchCreate(switch=switch, priority=priority)
@@ -87,13 +65,6 @@ def _order(*items: tuple[SourceSwitch, int]) -> AssetSwitchBatchCreate:
 
 
 def _patch(*items: tuple[SourceSwitch, int]) -> AssetSwitchBatchUpdate:
-    """
-    Desc: Build a batch patch out of market and level pairs.
-    Args:
-        items (tuple[SourceSwitch, int]): Each market and its level.
-    Returns:
-        return (AssetSwitchBatchUpdate): The levels to write.
-    """
     patch = AssetSwitchBatchUpdate(
         items=[
             AssetSwitchCreate(switch=switch, priority=priority)
@@ -130,7 +101,6 @@ class TestBatchCreate:
     async def test_two_markets_may_share_a_level(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the point of the table: no unique constraint on priority
         _, switches = _services(uow)
         asset = await _asset(uow)
 
@@ -232,7 +202,6 @@ class TestSetPriority:
     async def test_a_market_that_was_never_created_writes_nothing(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the update joins on existing rows; it never inserts
         _, switches = _services(uow)
         asset = await _asset(uow)
         await switches.batch_create(
@@ -362,7 +331,6 @@ class TestGetByAssetId:
     async def test_an_asset_without_an_order_reads_empty(
         self, uow: PGUnitOfWork
     ) -> None:
-        # a new asset is not priced until an admin gives it markets
         _, switches = _services(uow)
         asset = await _asset(uow)
 
@@ -391,7 +359,6 @@ class TestGetByAssetId:
     async def test_an_update_never_leaks_into_another_asset(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the grid joins on switch, so the asset must narrow it
         _, switches = _services(uow)
         gold = await _asset(uow)
         dollar = await _asset(uow, AssetCode.USD)
@@ -442,7 +409,6 @@ class TestCreate:
     async def test_the_same_market_twice_is_refused(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the unique constraint is what keeps the order unambiguous
         _, switches = _services(uow)
         asset = await _asset(uow)
         await switches.create(
@@ -526,7 +492,6 @@ class TestUpdate:
     async def test_another_asset_cannot_patch_it(
         self, uow: PGUnitOfWork
     ) -> None:
-        # the id alone is not authority; the asset in the path must own it
         _, switches = _services(uow)
         gold = await _asset(uow)
         dollar = await _asset(uow, AssetCode.USD)

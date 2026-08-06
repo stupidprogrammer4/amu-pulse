@@ -7,13 +7,6 @@ from src.modules.price.symbols.domain.enums import CurrencyType, SymbolCode
 
 
 def _create(**over: object) -> SymbolCreate:
-    """
-    Desc: Build a SymbolCreate for the Iranian gram line of gold.
-    Args:
-        over (object): Fields to override.
-    Returns:
-        return (SymbolCreate): The create DTO.
-    """
     data = {
         "title": "هر گرم طلای ۱۸ عیار",
         "code": SymbolCode.GOLD18_GRAM,
@@ -66,7 +59,6 @@ class TestUpdate:
         assert patch.to_row() == {"title": "مظنه"}
 
     def test_the_code_is_not_patchable(self) -> None:
-        # a symbol's code is its identity; moving it would rewrite history
         patch = SymbolUpdate(title="مظنه")
 
         assert "code" not in patch.to_row(exclude_unset=False)

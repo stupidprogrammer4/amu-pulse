@@ -58,5 +58,4 @@ class AssetSwitchModel(BaseIDTimestampModel, table=True):
 
     asset_id: int = ForeignKeyField("tbl_assets.id", ondelete="CASCADE")
     switch: SourceSwitch = CharField(55)
-    # lower comes first; two markets may share a level
     priority: int = SmallIntField()

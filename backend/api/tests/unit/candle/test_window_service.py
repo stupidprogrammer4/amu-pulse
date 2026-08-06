@@ -13,12 +13,6 @@ from tests.unit.candle.test_window_caches import _FakeWindowRedis
 
 
 def _service() -> tuple[WindowService, AssetWindowCache]:
-    """
-    Desc: Build the window service over a fake Redis.
-    Returns:
-        return (tuple[WindowService, AssetWindowCache]): The service and
-            the cache it folds into.
-    """
     fake = _FakeWindowRedis()
     client = cast(RedisClient, SimpleNamespace(client=fake))
     cache = AssetWindowCache(client)
@@ -30,15 +24,6 @@ def _priced(
     asset_id: int = 1,
     priced_at: datetime | None = None,
 ) -> AssetPriceResult:
-    """
-    Desc: Build what an asset was priced at, now unless told otherwise.
-    Args:
-        price (int): The mid price in rial.
-        asset_id (int): ID of the asset it belongs to.
-        priced_at (datetime | None): When it was priced, or now.
-    Returns:
-        return (AssetPriceResult): The price.
-    """
     return AssetPriceResult(
         asset_id=asset_id,
         buy_price=price - 1_000,
@@ -53,11 +38,6 @@ def _priced(
 
 
 def _opened_now() -> int:
-    """
-    Desc: Read when the window prices are folded into opened at.
-    Returns:
-        return (int): The moment it opened, in whole seconds.
-    """
     stamp = int(date_utils.utc_now().timestamp())
     return TimeFrame.FIVE_MINUTE.opened_at(stamp)
 

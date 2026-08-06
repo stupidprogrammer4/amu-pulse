@@ -34,8 +34,6 @@ class TestRangesStayDisjoint:
     def test_no_two_modules_share_a_public_id(
         self, pair: tuple[str, str]
     ) -> None:
-        # overlapping ranges would let one module's public id decode cleanly
-        # under another's encryption, silently naming the wrong row
         first: IDEncryption = _ENCRYPTIONS[pair[0]]
         second: IDEncryption = _ENCRYPTIONS[pair[1]]
 
