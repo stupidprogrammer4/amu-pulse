@@ -40,7 +40,7 @@ ASSETS: list[AssetSeed] = [
         AssetCode.GOLD18,
         "طلای ۱۸ عیار",
         "مظنه آب‌شده و قیمت هر گرم طلای ۱۸ عیار",
-        "#c8a44b",
+        "#2a78d6",
         [
             AssetSwitchCreate(switch=SourceSwitch.GLOBAL_MARKET, priority=0),
             AssetSwitchCreate(switch=SourceSwitch.SUPPLIER, priority=0),
@@ -51,7 +51,7 @@ ASSETS: list[AssetSeed] = [
         AssetCode.USD,
         "دلار آمریکا",
         "نرخ برابری دلار آمریکا در برابر ریال",
-        "#4b8ec8",
+        "#eb6834",
         [
             AssetSwitchCreate(switch=SourceSwitch.IRAN_MARKET, priority=0),
         ],

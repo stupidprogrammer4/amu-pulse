@@ -39,6 +39,7 @@ services:
       retries: 10
 
   postgres-ai:
+    profiles: ["ai"]
     image: pgvector/pgvector:0.8.6-pg17
     restart: unless-stopped
     environment:
@@ -112,6 +113,7 @@ services:
   kibana:
     # Docker Hub, not docker.elastic.co: the latter is unreachable from here,
     # and a registry mirror only ever covers Hub
+    profiles: ["logs"]
     image: kibana:8.15.0
     restart: unless-stopped
     environment:
@@ -133,6 +135,7 @@ services:
         condition: service_healthy
 
   filebeat:
+    profiles: ["logs"]
     image: elastic/filebeat:8.19.3
     restart: unless-stopped
     # reading another container's log file and the docker socket both need
@@ -185,6 +188,7 @@ services:
 
   api:
     <<: *api
+    profiles: ["app"]
     restart: unless-stopped
     command:
       [
@@ -222,6 +226,7 @@ services:
 
   worker:
     <<: *api
+    profiles: ["app"]
     restart: unless-stopped
     command:
       [
@@ -243,6 +248,7 @@ services:
 
   scheduler:
     <<: *api
+    profiles: ["app"]
     restart: unless-stopped
     command: ["taskiq", "scheduler", "src.tasks.scheduler:scheduler"]
     depends_on:
@@ -250,6 +256,7 @@ services:
         condition: service_healthy
 
   ollama:
+    profiles: ["ai"]
     image: ollama/ollama:0.32.5
     restart: unless-stopped
     ports:
@@ -274,6 +281,7 @@ services:
 
   ai-api:
     <<: *ai
+    profiles: ["ai"]
     restart: unless-stopped
     command:
       [
@@ -309,6 +317,7 @@ services:
 
   ai-worker:
     <<: *ai
+    profiles: ["ai"]
     restart: unless-stopped
     command:
       [
@@ -328,6 +337,7 @@ services:
 
   ai-consumer:
     <<: *ai
+    profiles: ["ai"]
     restart: unless-stopped
     command:
       [

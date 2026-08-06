@@ -10,11 +10,14 @@ from src.infra.postgres.uow import PGUnitOfWork
 from src.seeders.assets import seed_assets
 from src.seeders.bubbles import seed_bubbles
 from src.seeders.sources import seed_sources
+from src.seeders.symbols import seed_symbols
 
 
 async def seed_all(uow: PGUnitOfWork) -> None:
     print(f"seeded {len(await seed_assets(uow))} assets")
     print(f"seeded {len(await seed_sources(uow))} sources")
+    # after assets: a symbol points at the asset it prices
+    print(f"seeded {len(await seed_symbols(uow))} symbols")
     print(f"seeded {len(await seed_bubbles(uow))} bubbles")
 
 

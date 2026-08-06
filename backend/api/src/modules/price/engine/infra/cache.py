@@ -26,7 +26,7 @@ class SourcePriceCache:
     ) -> None:
         payload = self.adapter.dump_json(list(results)).decode()
         await resolve(
-            self.redis.client.hset(self.namespace, code.value, payload)
+            self.redis.client.hset(self.namespace, code, payload)
         )
 
     async def set_many(
@@ -34,13 +34,13 @@ class SourcePriceCache:
         results: Mapping[SymbolCode, Sequence[SourcePriceResult]],
     ) -> None:
         mapping = {
-            code.value: self.adapter.dump_json(list(rows)).decode()
+            code: self.adapter.dump_json(list(rows)).decode()
             for code, rows in results.items()
         }
         await resolve(self.redis.client.hset(self.namespace, mapping=mapping))
 
     async def get(self, code: SymbolCode) -> list[SourcePriceResult] | None:
-        raw = await resolve(self.redis.client.hget(self.namespace, code.value))
+        raw = await resolve(self.redis.client.hget(self.namespace, code))
         results = None
         if raw is not None:
             results = self.adapter.validate_json(raw)
@@ -52,7 +52,7 @@ class SourcePriceCache:
     ) -> dict[SymbolCode, list[SourcePriceResult]]:
         if not codes:
             return {}
-        fields = [code.value for code in codes]
+        fields = [code for code in codes]
         raws = await resolve(self.redis.client.hmget(self.namespace, fields))
         found = {
             code: self.adapter.validate_json(raw)
@@ -70,7 +70,7 @@ class SourcePriceCache:
         return found
 
     async def remove(self, code: SymbolCode) -> None:
-        await resolve(self.redis.client.hdel(self.namespace, code.value))
+        await resolve(self.redis.client.hdel(self.namespace, code))
 
     async def clear(self) -> None:
         await resolve(self.redis.client.delete(self.namespace))
@@ -90,7 +90,7 @@ class BubbleSourceCache:
     ) -> None:
         payload = self.adapter.dump_json(list(results)).decode()
         await resolve(
-            self.redis.client.hset(self.namespace, code.value, payload)
+            self.redis.client.hset(self.namespace, code, payload)
         )
 
     async def set_many(
@@ -98,13 +98,13 @@ class BubbleSourceCache:
         results: Mapping[AssetCode, Sequence[SourceBubbleResult]],
     ) -> None:
         mapping = {
-            code.value: self.adapter.dump_json(list(rows)).decode()
+            code: self.adapter.dump_json(list(rows)).decode()
             for code, rows in results.items()
         }
         await resolve(self.redis.client.hset(self.namespace, mapping=mapping))
 
     async def get(self, code: AssetCode) -> list[SourceBubbleResult] | None:
-        raw = await resolve(self.redis.client.hget(self.namespace, code.value))
+        raw = await resolve(self.redis.client.hget(self.namespace, code))
         results = None
         if raw is not None:
             results = self.adapter.validate_json(raw)
@@ -114,7 +114,7 @@ class BubbleSourceCache:
         self,
         codes: Sequence[AssetCode],
     ) -> dict[AssetCode, list[SourceBubbleResult]]:
-        fields = [code.value for code in codes]
+        fields = [code for code in codes]
         raws = await resolve(self.redis.client.hmget(self.namespace, fields))
         found = {
             code: self.adapter.validate_json(raw)
@@ -132,7 +132,7 @@ class BubbleSourceCache:
         return found
 
     async def remove(self, code: AssetCode) -> None:
-        await resolve(self.redis.client.hdel(self.namespace, code.value))
+        await resolve(self.redis.client.hdel(self.namespace, code))
 
     async def clear(self) -> None:
         await resolve(self.redis.client.delete(self.namespace))
