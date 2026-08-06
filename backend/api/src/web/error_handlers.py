@@ -76,7 +76,13 @@ def csrf_error_handler(
 
 
 def unexcepted_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.exception(exc)
+    logger.error(
+        "unhandled error on %s %s: %s",
+        request.method,
+        request.url.path,
+        exc,
+        exc_info=exc,
+    )
     response_model = APIResponse.get_server_error()
     return JSONResponse(
         content=response_model.model_dump(exclude_defaults=True),

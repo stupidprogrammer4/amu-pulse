@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 import httpx
 
+from src.core.logger import logger
 from src.modules.price.logins.domain.context import LoginContext
 from src.modules.price.logins.domain.quotes import LoginError, LoginQuote
 from src.modules.price.sources.domain.enums import ErrorType, SourceCode
@@ -21,8 +22,20 @@ class AbstractLogin(ABC):
                 self.source.code, self.source.id, credentials
             )
         except httpx.HTTPError as exc:
+            logger.warning(
+                "login to %s could not be reached: %s",
+                self.source.code,
+                exc,
+                exc_info=exc,
+            )
             quote = self._refused(ErrorType.HTTP_ERROR, exc)
         except Exception as exc:
+            logger.error(
+                "login to %s answered but could not be read: %s",
+                self.source.code,
+                exc,
+                exc_info=exc,
+            )
             quote = self._refused(ErrorType.LOGICAL_ERROR, exc)
         return quote
 

@@ -5,6 +5,7 @@ from sqlalchemy import text
 
 from src.common.utils import date_utils
 from src.core.config import Settings
+from src.core.logger import logger
 from src.infra.es.client import ESClient
 from src.infra.postgres.connection import PGConnection
 from src.infra.redis.client import RedisClient
@@ -68,6 +69,9 @@ class SystemService:
         try:
             await probe()
         except Exception as exc:
+            logger.warning(
+                "health probe failed: %s", exc, exc_info=exc
+            )
             result = ComponentHealthOut(healthy=False, error=str(exc))
         return result
 

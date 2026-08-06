@@ -135,7 +135,10 @@ class Bootstrapper:
                     await document.init(using=es)
             except Exception as exc:  # noqa: BLE001 — boot must survive a down ES
                 logger.warning(
-                    f"skipping ES index init for {index_name}: {exc}"
+                    "skipping ES index init for %s: %s",
+                    index_name,
+                    exc,
+                    exc_info=exc,
                 )
 
 

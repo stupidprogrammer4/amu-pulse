@@ -3,6 +3,7 @@ from typing import Any, Generic, Sequence, TypeVar
 
 import httpx
 
+from src.core.logger import logger
 from src.modules.price.engine.domain.quotes import (
     ErrorQuote,
     HTTPErrorQuote,
@@ -79,8 +80,20 @@ class AbstractFetcher(ABC, Generic[TQuote]):
                 resp.raise_for_status()
                 quotes = self._parse(resp)
         except httpx.HTTPError as exc:
+            logger.warning(
+                "source %s could not be reached: %s",
+                self.__code__,
+                exc,
+                exc_info=exc,
+            )
             quotes = self._failed(http_error(exc))
         except Exception as exc:
+            logger.error(
+                "source %s answered but could not be read: %s",
+                self.__code__,
+                exc,
+                exc_info=exc,
+            )
             quotes = self._failed(logical_error(exc))
         return quotes
 
