@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+/* The panel is a dark, English-only, LTR operator console, and it is black and
+   gold — nothing in the chrome is blue. The brand pack ships two navies and a
+   blue-gray; this console deliberately runs only the gold/black half of that
+   palette, and every neutral below is warmed toward the gold rather than cooled
+   toward the navy. Tokens live here so the sidebar, the log tables and the API
+   explorer all pull the same gold instead of each view inventing an accent. */
+@theme {
+  /* The pack's gold and black, verbatim — the source of truth for the rest. */
+  --color-brand-gold: #d4af37;
+  --color-brand-gold-light: #f7c24d;
+  --color-brand-off-white: #f5f7fa;
+  --color-brand-black: #05080d;
+
+  /* Surfaces, darkest (page) to lightest (hover / raised). Warm near-blacks. */
+  --color-surface-950: #080705;
+  --color-surface-900: #0e0d0a;
+  --color-surface-850: #14120e;
+  --color-surface-800: #1b1813;
+  --color-surface-700: #262218;
+  --color-surface-600: #342e20;
+
+  --color-line: #241f16;
+  --color-line-strong: #3a3223;
+
+  /* Text, brightest to faintest — warm greys, no blue cast. */
+  --color-content-100: #f7f3e9;
+  --color-content-200: #e0d9c8;
+  --color-content-300: #b5ac97;
+  --color-content-400: #8a8271;
+  --color-content-500: #625b4d;
+
+  /* The accent is the brand gold. Anything sitting *on* accent-500/600 needs
+     dark text — see the buttons, which use text-surface-950. */
+  --color-accent-200: #fbdd97;
+  --color-accent-300: #f7c24d;
+  --color-accent-400: #e4ba42;
+  --color-accent-500: #d4af37;
+  --color-accent-600: #a98a26;
+
+  /* Semantic only — kept off gold's hue so a warning never reads as an accent,
+     and off blue so nothing in the console goes cold. */
+  --color-signal-ok: #5fb84f;
+  --color-signal-warn: #e27b33;
+  --color-signal-error: #e0524a;
+
+  --gradient-brand-gold: linear-gradient(135deg, #d4af37, #f7c24d);
+  --gradient-brand-dark: linear-gradient(135deg, #080705, #262218);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-surface-950);
+  color: var(--color-content-200);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thin scrollbars everywhere; a log console is mostly scroll surface. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-600) transparent;
+}
+
+/* Browser autofill repaints inputs white — force it back onto the dark field. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-content-100);
+  box-shadow: inset 0 0 0 100rem var(--color-surface-800);
+  caret-color: var(--color-content-100);
+}

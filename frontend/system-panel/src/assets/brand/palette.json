@@ -1,0 +1,12 @@
+{
+  "brand": "amu-pulse",
+  "colors": {
+    "gold": "#D4AF37",
+    "goldLight": "#F7C24D",
+    "navy": "#0D1B2A",
+    "navyLight": "#1F2A44",
+    "blueGray": "#8FA3BF",
+    "offWhite": "#F5F7FA",
+    "black": "#05080D"
+  }
+}

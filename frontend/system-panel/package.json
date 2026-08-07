@@ -1,0 +1,50 @@
+{
+  "name": "amu-pulse-system-panel",
+  "private": true,
+  "version": "0.0.0",
+  "description": "System panel for AMU Pulse, the precious-metals pricing, history and market-analysis service — the operator console its own developers run the service from: logs, reports, every guarded /panel route, and an explorer over the backend's OpenAPI contract.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "run-p type-check build-only",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "brand:icons": "node scripts/generate-brand-icons.mjs",
+    "lint": "eslint . --fix",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "@lucide/vue": "^1.28.0",
+    "@vueuse/core": "^14.3.0",
+    "axios": "^1.18.1",
+    "pinia": "^4.0.2",
+    "vue": "^3.5.39",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.2",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.9.0",
+    "@vue/test-utils": "^2.4.11",
+    "@vue/tsconfig": "^0.9.1",
+    "eslint": "^10.8.0",
+    "eslint-plugin-vue": "^10.10.0",
+    "jsdom": "^27.4.0",
+    "npm-run-all2": "^9.0.2",
+    "prettier": "^3.9.6",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10",
+    "vue-tsc": "^3.3.8"
+  }
+}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <rect width="64" height="64" rx="14" fill="#FFF8E8"/>
+  <title id="title">AMU Pulse butterfly and market pulse</title>
+  <g fill="#102A43">
+    <path d="M29.4 29.6C26.4 17 15.8 8.3 6.8 10.2 4.2 20.9 8.2 30.4 20.8 33.5Z"/>
+    <path d="M34.6 29.6C37.6 17 48.2 8.3 57.2 10.2 59.8 20.9 55.8 30.4 43.2 33.5Z"/>
+    <path d="M29.5 35.1C20.2 34.7 11.7 40.8 10.4 53.7 19.2 55.2 27.1 48.7 30.8 37.3Z"/>
+    <path d="M34.5 35.1C43.8 34.7 52.3 40.8 53.6 53.7 44.8 55.2 36.9 48.7 33.2 37.3Z"/>
+  </g>
+  <path d="M29.4 20.7C28.2 15.5 25.7 12.7 22.8 11" fill="none" stroke="#4C9FF5" stroke-width="2.7" stroke-linecap="round"/>
+  <path d="M34.6 20.7C35.8 15.5 38.3 12.7 41.2 11" fill="none" stroke="#4C9FF5" stroke-width="2.7" stroke-linecap="round"/>
+  <path d="M6.8 35.7H20.7L26.7 24.2 33.1 44.1 38.7 35.2H57.2" fill="none" stroke="#F4B73B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
