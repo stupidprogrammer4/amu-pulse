@@ -24,8 +24,8 @@ export const navigation: NavSection[] = [
     title: 'Operations',
     items: [
       { label: 'Overview', to: 'overview', icon: 'LayoutDashboard', ready: true },
-      { label: 'Logs', endpoint: '/panel/logs', icon: 'ScrollText', ready: false },
-      { label: 'Traces', endpoint: '/panel/logs/traces', icon: 'Waypoints', ready: false },
+      { label: 'Logs', to: 'logs', endpoint: '/panel/logs', icon: 'ScrollText', ready: true },
+      { label: 'Jobs', endpoint: '/panel/jobs', icon: 'Play', ready: false },
     ],
   },
   {
@@ -36,6 +36,13 @@ export const navigation: NavSection[] = [
       { label: 'Symbols', endpoint: '/panel/symbols', icon: 'Tags', ready: false },
       { label: 'Bubbles', endpoint: '/panel/bubbles', icon: 'CircleDot', ready: false },
       { label: 'Candles', endpoint: '/panel/candles', icon: 'ChartCandlestick', ready: false },
+    ],
+  },
+  {
+    title: 'Platform',
+    items: [
+      { label: 'Storage', endpoint: '/panel/storage', icon: 'Layers', ready: false },
+      { label: 'System', endpoint: '/system/health', icon: 'Activity', ready: false },
     ],
   },
   {

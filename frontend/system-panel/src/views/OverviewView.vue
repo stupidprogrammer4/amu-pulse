@@ -28,9 +28,7 @@ const tiles = [
       <BrandRibbons />
       <div
         class="pointer-events-none absolute inset-0"
-        style="
-          background: linear-gradient(100deg, rgb(8 7 5 / 0.92) 24%, rgb(8 7 5 / 0.35) 100%);
-        "
+        style="background: linear-gradient(100deg, rgb(8 7 5 / 0.92) 24%, rgb(8 7 5 / 0.35) 100%)"
       />
       <div class="relative px-5 py-7 sm:px-7 sm:py-9">
         <span class="font-mono text-[0.58rem] font-semibold tracking-[0.13em] text-accent-400">

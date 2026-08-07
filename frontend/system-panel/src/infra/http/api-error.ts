@@ -10,7 +10,12 @@ export class ApiError extends Error {
   readonly messageCode?: string
   readonly fieldErrors: ApiFieldError[]
 
-  constructor(message: string, status: number, messageCode?: string, fieldErrors: ApiFieldError[] = []) {
+  constructor(
+    message: string,
+    status: number,
+    messageCode?: string,
+    fieldErrors: ApiFieldError[] = [],
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
@@ -25,14 +30,14 @@ export class ApiError extends Error {
 
   static fromEnvelope(envelope: ApiEnvelope | null | undefined, status: number): ApiError {
     const errors = envelope?.errors ?? []
-    const message =
-      envelope?.error?.message ??
-      errors[0]?.message ??
-      defaultMessage(status)
+    const message = envelope?.error?.message ?? errors[0]?.message ?? defaultMessage(status)
     return new ApiError(
       message,
       status,
-      envelope?.error?.message_code ?? errors[0]?.message_code ?? envelope?.message_code ?? undefined,
+      envelope?.error?.message_code ??
+        errors[0]?.message_code ??
+        envelope?.message_code ??
+        undefined,
       errors,
     )
   }

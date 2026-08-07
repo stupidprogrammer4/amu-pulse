@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
-import {
-  Check,
-  Clipboard,
-  Clock,
-  LoaderCircle,
-  Play,
-  RotateCcw,
-  X,
-} from '@/common/icons'
+import { Check, Clipboard, Clock, LoaderCircle, Play, RotateCcw, X } from '@/common/icons'
 import { ApiError, rawRequest, type RawResponse } from '@/infra/http'
 
 import type { OpenApiParameter, Operation } from '../types'
@@ -152,9 +144,7 @@ function onFile(name: string, event: Event): void {
 
 /** Empty query fields are left out entirely rather than sent as `?x=`. */
 function buildQuery(): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(queryValues.value).filter(([, value]) => value !== ''),
-  )
+  return Object.fromEntries(Object.entries(queryValues.value).filter(([, value]) => value !== ''))
 }
 
 function buildHeaders(): Record<string, string> {
@@ -449,8 +439,7 @@ async function copyResponse(): Promise<void> {
 
           <pre
             class="max-h-96 overflow-auto p-3.5 font-mono text-[0.62rem] leading-relaxed whitespace-pre-wrap text-content-200"
-            >{{ prettyBody || '(empty body)' }}</pre
-          >
+            >{{ prettyBody || '(empty body)' }}</pre>
         </section>
       </div>
 

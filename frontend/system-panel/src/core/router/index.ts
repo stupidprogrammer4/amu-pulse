@@ -28,6 +28,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Overview' },
   },
   {
+    path: '/logs',
+    name: 'logs',
+    component: () => import('@/modules/logs/views/LogsView.vue'),
+    meta: { title: 'Logs' },
+  },
+  {
+    path: '/logs/traces/:requestId',
+    name: 'log-trace',
+    component: () => import('@/modules/logs/views/LogTraceView.vue'),
+    meta: { title: 'Trace' },
+  },
+  {
     path: '/explorer',
     name: 'explorer',
     component: () => import('@/modules/explorer/views/ExplorerView.vue'),

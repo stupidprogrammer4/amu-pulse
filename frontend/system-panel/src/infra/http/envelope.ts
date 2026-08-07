@@ -20,15 +20,29 @@ export interface ApiEnvelope<TData = unknown, TMeta = unknown> {
   errors?: ApiFieldError[] | null
 }
 
+/**
+ * What the backend actually sends back (`PagerMeta` in the contract): totals and
+ * the two edge flags. It does *not* echo `page`/`per_page` — the caller sent
+ * those, so the caller is the one that remembers them.
+ */
 export interface PagerMeta {
-  page: number
-  per_page: number
   total_items: number
   total_pages: number
+  has_prev: boolean
+  has_next: boolean
+}
+
+/** A filter the backend offers for a list route, described rather than hardcoded. */
+export interface FilterMeta {
+  id?: number | null
+  type: 'slider' | 'checkbox' | 'radio'
+  title?: string | null
+  options: Record<string, unknown>[]
 }
 
 export interface BaseMeta {
   pager?: PagerMeta | null
+  filters?: Record<string, FilterMeta> | null
 }
 
 /** A payload plus whatever metadata came with it, for paged reads. */

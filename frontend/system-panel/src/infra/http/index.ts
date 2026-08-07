@@ -1,5 +1,5 @@
 export { ApiError } from './api-error'
-export type { ApiEnvelope, ApiFieldError, BaseMeta, Paged, PagerMeta } from './envelope'
+export type { ApiEnvelope, ApiFieldError, BaseMeta, FilterMeta, Paged, PagerMeta } from './envelope'
 export type { RawRequestInput, RawResponse } from './client'
 export {
   anonymousRequest,

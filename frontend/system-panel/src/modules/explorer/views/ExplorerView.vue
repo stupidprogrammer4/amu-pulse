@@ -108,7 +108,8 @@ useEventListener(window, 'keydown', (event: KeyboardEvent) => {
       </button>
 
       <span class="ml-auto px-1 font-mono text-[0.56rem] text-content-500">
-        {{ explorer.stats.shown }} / {{ explorer.panelOnly ? explorer.stats.panel : explorer.stats.total }}
+        {{ explorer.stats.shown }} /
+        {{ explorer.panelOnly ? explorer.stats.panel : explorer.stats.total }}
         operations
       </span>
     </div>
